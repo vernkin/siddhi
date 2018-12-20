@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,17 +17,17 @@
  */
 package org.wso2.siddhi.query.api.exception;
 
-public class DuplicateAttributeException extends ExecutionPlanValidationException {
+/**
+ * Exception thrown when duplicate attributes are defined
+ */
+public class DuplicateAttributeException extends SiddhiAppValidationException {
 
-    public DuplicateAttributeException(String message) {
-        super(message);
+    public DuplicateAttributeException(String message, int[] queryContextStartIndex,
+                                       int[] queryContextEndIndex, String siddhiAppName, String siddhiAppString) {
+        super(message, queryContextStartIndex, queryContextEndIndex, siddhiAppName, siddhiAppString);
     }
 
-    public DuplicateAttributeException(String message, Throwable throwable) {
-        super(message, throwable);
-    }
-
-    public DuplicateAttributeException(Throwable throwable) {
-        super(throwable);
+    public DuplicateAttributeException(String message, int[] queryContextStartIndex, int[] queryContextEndIndex) {
+        super(message, queryContextStartIndex, queryContextEndIndex);
     }
 }

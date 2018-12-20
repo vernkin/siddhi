@@ -25,10 +25,13 @@ import org.wso2.siddhi.query.api.execution.query.output.stream.OutputStream;
  * 'define window([attributes]) function([parameters]) output [event type];'
  */
 public class WindowDefinition extends StreamDefinition {
+
+    private static final long serialVersionUID = 1L;
+
     /**
      * Internal window which has to be used within the EventWindow
      */
-    private Window window;
+    private Window window = null;
 
     /**
      * Output event type of the window definition.
@@ -56,7 +59,7 @@ public class WindowDefinition extends StreamDefinition {
     }
 
     /**
-     * Set the internal window to the WindowDefinition.
+     * UpdateSet the internal window to the WindowDefinition.
      *
      * @param window the internal window
      * @return the WindowDefinition object for chained method call
@@ -67,22 +70,22 @@ public class WindowDefinition extends StreamDefinition {
     }
 
     /**
-     * Set output event type of the window. If not explicitly assigned, OutputEventType.ALL_EVENTS
-     * will be used by default.
-     *
-     * @param outputEventType the output event type
-     */
-    public void setOutputEventType(OutputStream.OutputEventType outputEventType) {
-        this.outputEventType = outputEventType;
-    }
-
-    /**
      * Return the output event type of the window.
      *
      * @return the output event type
      */
     public OutputStream.OutputEventType getOutputEventType() {
         return outputEventType;
+    }
+
+    /**
+     * UpdateSet output event type of the window. If not explicitly assigned, OutputEventType.ALL_EVENTS
+     * will be used by default.
+     *
+     * @param outputEventType the output event type
+     */
+    public void setOutputEventType(OutputStream.OutputEventType outputEventType) {
+        this.outputEventType = outputEventType;
     }
 
     /**
@@ -96,11 +99,6 @@ public class WindowDefinition extends StreamDefinition {
 
     @Override
     public String toString() {
-        return "WindowDefinition{" +
-                "id='" + id + '\'' +
-                ", attributeList=" + attributeList +
-                ", annotations=" + annotations +
-                ", window=" + window +
-                '}';
+        return super.toString("window") + " " + window.toString();
     }
 }

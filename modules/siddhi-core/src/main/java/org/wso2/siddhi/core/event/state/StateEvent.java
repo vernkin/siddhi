@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -25,20 +25,29 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.wso2.siddhi.core.util.SiddhiConstants.*;
+import static org.wso2.siddhi.core.util.SiddhiConstants.BEFORE_WINDOW_DATA_INDEX;
+import static org.wso2.siddhi.core.util.SiddhiConstants.CURRENT;
+import static org.wso2.siddhi.core.util.SiddhiConstants.LAST;
+import static org.wso2.siddhi.core.util.SiddhiConstants.ON_AFTER_WINDOW_DATA_INDEX;
+import static org.wso2.siddhi.core.util.SiddhiConstants.OUTPUT_DATA_INDEX;
+import static org.wso2.siddhi.core.util.SiddhiConstants.STATE_OUTPUT_DATA_INDEX;
+import static org.wso2.siddhi.core.util.SiddhiConstants.STREAM_ATTRIBUTE_INDEX_IN_TYPE;
+import static org.wso2.siddhi.core.util.SiddhiConstants.STREAM_ATTRIBUTE_TYPE_INDEX;
+import static org.wso2.siddhi.core.util.SiddhiConstants.STREAM_EVENT_CHAIN_INDEX;
+import static org.wso2.siddhi.core.util.SiddhiConstants.STREAM_EVENT_INDEX_IN_CHAIN;
 
 /**
  * Implementation of StateEvent to be used when executing join/pattern queries
  */
 public class StateEvent implements ComplexEvent {
 
-    private long id;
+    private static final long serialVersionUID = -4298551180747630402L;
     protected StreamEvent[] streamEvents;
     protected StateEvent next;
-
     protected long timestamp = -1;
     protected Type type = Type.CURRENT;
     protected Object[] outputData;      //Attributes to sent as output
+    private long id;
 
 
     public StateEvent(int streamEventsSize, int outputSize) {
@@ -54,12 +63,12 @@ public class StateEvent implements ComplexEvent {
         return streamEvents;
     }
 
-    public void setNext(ComplexEvent stateEvent) {
-        next = (StateEvent) stateEvent;
-    }
-
     public StateEvent getNext() {
         return next;
+    }
+
+    public void setNext(ComplexEvent stateEvent) {
+        next = (StateEvent) stateEvent;
     }
 
     @Override
@@ -69,16 +78,18 @@ public class StateEvent implements ComplexEvent {
 
     /**
      * @param position int array of 3 or 4 elements
-     *                 int array of 3 : position[0]-which element of the streamEventSize array, position[1]-BeforeWindowData or OutputData or AfterWindowData,
+     *                 int array of 3 : position[0]-which element of the streamEventSize array,
+     *                 position[1]-BeforeWindowData or OutputData or AfterWindowData,
      *                 position[2]- which attribute
-     *                 int array of 4 : position[0]-which element of the streamEventSize array, position[1]-which event of the event chain,
+     *                 int array of 4 : position[0]-which element of the streamEventSize array, position[1]-which
+     *                 event of the event chain,
      *                 position[3]- BeforeWindowData or OutputData or AfterWindowData, position[4]- which attribute
      * @return Attribute
      */
     @Override
     public Object getAttribute(int[] position) {
         if (position[STREAM_ATTRIBUTE_TYPE_INDEX] == STATE_OUTPUT_DATA_INDEX) {
-            return outputData[position[STREAM_ATTRIBUTE_INDEX]];
+            return outputData[position[STREAM_ATTRIBUTE_INDEX_IN_TYPE]];
         } else {
             StreamEvent streamEvent = getStreamEvent(position);
             if (streamEvent == null) {
@@ -86,13 +97,14 @@ public class StateEvent implements ComplexEvent {
             }
             switch (position[STREAM_ATTRIBUTE_TYPE_INDEX]) {
                 case BEFORE_WINDOW_DATA_INDEX:
-                    return streamEvent.getBeforeWindowData()[position[STREAM_ATTRIBUTE_INDEX]];
+                    return streamEvent.getBeforeWindowData()[position[STREAM_ATTRIBUTE_INDEX_IN_TYPE]];
                 case OUTPUT_DATA_INDEX:
-                    return streamEvent.getOutputData()[position[STREAM_ATTRIBUTE_INDEX]];
+                    return streamEvent.getOutputData()[position[STREAM_ATTRIBUTE_INDEX_IN_TYPE]];
                 case ON_AFTER_WINDOW_DATA_INDEX:
-                    return streamEvent.getOnAfterWindowData()[position[STREAM_ATTRIBUTE_INDEX]];
+                    return streamEvent.getOnAfterWindowData()[position[STREAM_ATTRIBUTE_INDEX_IN_TYPE]];
                 default:
-                    throw new IllegalStateException("STREAM_ATTRIBUTE_TYPE_INDEX cannot be " + position[STREAM_ATTRIBUTE_TYPE_INDEX]);
+                    throw new IllegalStateException("STREAM_ATTRIBUTE_TYPE_INDEX cannot be " +
+                            position[STREAM_ATTRIBUTE_TYPE_INDEX]);
             }
         }
     }
@@ -100,7 +112,7 @@ public class StateEvent implements ComplexEvent {
     @Override
     public void setAttribute(Object object, int[] position) {
         if (position[STREAM_ATTRIBUTE_TYPE_INDEX] == STATE_OUTPUT_DATA_INDEX) {
-            outputData[position[STREAM_ATTRIBUTE_INDEX]] = object;
+            outputData[position[STREAM_ATTRIBUTE_INDEX_IN_TYPE]] = object;
         } else {
             StreamEvent streamEvent = getStreamEvent(position);
             if (streamEvent == null) {
@@ -108,16 +120,17 @@ public class StateEvent implements ComplexEvent {
             }
             switch (position[STREAM_ATTRIBUTE_TYPE_INDEX]) {
                 case BEFORE_WINDOW_DATA_INDEX:
-                    streamEvent.getBeforeWindowData()[position[STREAM_ATTRIBUTE_INDEX]] = object;
+                    streamEvent.getBeforeWindowData()[position[STREAM_ATTRIBUTE_INDEX_IN_TYPE]] = object;
                     break;
                 case OUTPUT_DATA_INDEX:
-                    streamEvent.getOutputData()[position[STREAM_ATTRIBUTE_INDEX]] = object;
+                    streamEvent.getOutputData()[position[STREAM_ATTRIBUTE_INDEX_IN_TYPE]] = object;
                     break;
                 case ON_AFTER_WINDOW_DATA_INDEX:
-                    streamEvent.getOnAfterWindowData()[position[STREAM_ATTRIBUTE_INDEX]] = object;
+                    streamEvent.getOnAfterWindowData()[position[STREAM_ATTRIBUTE_INDEX_IN_TYPE]] = object;
                     break;
                 default:
-                    throw new IllegalStateException("STREAM_ATTRIBUTE_TYPE_INDEX cannot be " + position[STREAM_ATTRIBUTE_TYPE_INDEX]);
+                    throw new IllegalStateException("STREAM_ATTRIBUTE_TYPE_INDEX cannot be " +
+                            position[STREAM_ATTRIBUTE_TYPE_INDEX]);
             }
         }
     }
@@ -127,10 +140,10 @@ public class StateEvent implements ComplexEvent {
         if (streamEvent == null) {
             return null;
         }
-        int streamEventIndex = position[STREAM_EVENT_INDEX];
+        int streamEventIndex = position[STREAM_EVENT_INDEX_IN_CHAIN];
 
         if (streamEventIndex >= 0) {
-            for (int i = 1; i <= position[STREAM_EVENT_INDEX]; i++) {
+            for (int i = 1; i <= position[STREAM_EVENT_INDEX_IN_CHAIN]; i++) {
                 streamEvent = streamEvent.getNext();
                 if (streamEvent == null) {
                     return null;
@@ -183,13 +196,13 @@ public class StateEvent implements ComplexEvent {
         this.timestamp = timestamp;
     }
 
-    public void setType(Type type) {
-        this.type = type;
-    }
-
     @Override
     public Type getType() {
         return type;
+    }
+
+    public void setType(Type type) {
+        this.type = type;
     }
 
     public void setEvent(int position, StreamEvent streamEvent) {
@@ -225,7 +238,7 @@ public class StateEvent implements ComplexEvent {
     @Override
     public String toString() {
         return "StateEvent{" +
-                "streamEventSize=" + Arrays.toString(streamEvents) +
+                "streamEvents=" + Arrays.toString(streamEvents) +
                 ", timestamp=" + timestamp +
                 ", type=" + type +
                 ", outputData=" + Arrays.toString(outputData) +

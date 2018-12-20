@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,26 +17,37 @@
  */
 package org.wso2.siddhi.query.api.execution.query;
 
+import org.wso2.siddhi.query.api.SiddhiElement;
 import org.wso2.siddhi.query.api.annotation.Annotation;
 import org.wso2.siddhi.query.api.execution.ExecutionElement;
-import org.wso2.siddhi.query.api.execution.io.Transport;
-import org.wso2.siddhi.query.api.execution.io.map.Mapping;
 import org.wso2.siddhi.query.api.execution.query.input.stream.InputStream;
 import org.wso2.siddhi.query.api.execution.query.output.ratelimit.OutputRate;
-import org.wso2.siddhi.query.api.execution.query.output.stream.*;
+import org.wso2.siddhi.query.api.execution.query.output.stream.DeleteStream;
+import org.wso2.siddhi.query.api.execution.query.output.stream.InsertIntoStream;
+import org.wso2.siddhi.query.api.execution.query.output.stream.OutputStream;
+import org.wso2.siddhi.query.api.execution.query.output.stream.ReturnStream;
+import org.wso2.siddhi.query.api.execution.query.output.stream.UpdateOrInsertStream;
+import org.wso2.siddhi.query.api.execution.query.output.stream.UpdateSet;
+import org.wso2.siddhi.query.api.execution.query.output.stream.UpdateStream;
 import org.wso2.siddhi.query.api.execution.query.selection.Selector;
 import org.wso2.siddhi.query.api.expression.Expression;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class Query implements ExecutionElement {
+/**
+ * Siddhi Query
+ */
+public class Query implements ExecutionElement, SiddhiElement {
 
+    private static final long serialVersionUID = 1L;
     private InputStream inputStream;
     private Selector selector = new Selector();
     private OutputStream outputStream = new ReturnStream();
     private OutputRate outputRate;
     private List<Annotation> annotations = new ArrayList<Annotation>();
+    private int[] queryContextStartIndex;
+    private int[] queryContextEndIndex;
 
     public static Query query() {
         return new Query();
@@ -99,7 +110,8 @@ public class Query implements ExecutionElement {
         this.outputStream = new DeleteStream(outputTableId, onDeletingExpression);
     }
 
-    public void deleteBy(String outputTableId, OutputStream.OutputEventType outputEventType, Expression onDeletingExpression) {
+    public void deleteBy(String outputTableId, OutputStream.OutputEventType outputEventType, Expression
+            onDeletingExpression) {
         this.outputStream = new DeleteStream(outputTableId, outputEventType, onDeletingExpression);
     }
 
@@ -107,24 +119,28 @@ public class Query implements ExecutionElement {
         this.outputStream = new UpdateStream(outputTableId, onUpdateExpression);
     }
 
-    public void updateBy(String outputTableId, OutputStream.OutputEventType outputEventType, Expression onUpdateExpression) {
-        this.outputStream = new UpdateStream(outputTableId, outputEventType, onUpdateExpression);
+    public void updateBy(String outputTableId, UpdateSet updateSetAttributes, Expression onUpdateExpression) {
+        this.outputStream = new UpdateStream(outputTableId, updateSetAttributes, onUpdateExpression);
     }
 
-    public void insertOverwriteBy(String outputTableId, Expression onUpdateExpression) {
-        this.outputStream = new InsertOverwriteStream(outputTableId, onUpdateExpression);
+    public void updateBy(String outputTableId, OutputStream.OutputEventType outputEventType,
+                         Expression onUpdateExpression) {
+        this.outputStream = new UpdateStream(outputTableId, outputEventType, null, onUpdateExpression);
     }
 
-    public void insertOverwriteBy(String outputTableId, OutputStream.OutputEventType outputEventType, Expression onUpdateExpression) {
-        this.outputStream = new InsertOverwriteStream(outputTableId, outputEventType, onUpdateExpression);
+    public void updateBy(String outputTableId, OutputStream.OutputEventType outputEventType,
+                         UpdateSet updateSetAttributes, Expression onUpdateExpression) {
+        this.outputStream = new UpdateStream(outputTableId, outputEventType, updateSetAttributes, onUpdateExpression);
     }
 
-    public void publish(Transport transport, Mapping mapping) {
-        this.outputStream = new PublishStream(transport, mapping);
+    public void updateOrInsertBy(String outputTableId, UpdateSet updateSetAttributes, Expression onUpdateExpression) {
+        this.outputStream = new UpdateOrInsertStream(outputTableId, updateSetAttributes, onUpdateExpression);
     }
 
-    public void publish(Transport transport, OutputStream.OutputEventType outputEventType, Mapping mapping) {
-        this.outputStream = new PublishStream(transport, outputEventType, mapping);
+    public void updateOrInsertBy(String outputTableId, OutputStream.OutputEventType outputEventType,
+                                 UpdateSet updateSetAttributes, Expression onUpdateExpression) {
+        this.outputStream = new UpdateOrInsertStream(outputTableId, outputEventType, updateSetAttributes,
+                onUpdateExpression);
     }
 
     public OutputStream getOutputStream() {
@@ -161,16 +177,30 @@ public class Query implements ExecutionElement {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Query)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof Query)) {
+            return false;
+        }
 
         Query query = (Query) o;
 
-        if (annotations != null ? !annotations.equals(query.annotations) : query.annotations != null) return false;
-        if (inputStream != null ? !inputStream.equals(query.inputStream) : query.inputStream != null) return false;
-        if (outputRate != null ? !outputRate.equals(query.outputRate) : query.outputRate != null) return false;
-        if (outputStream != null ? !outputStream.equals(query.outputStream) : query.outputStream != null) return false;
-        if (selector != null ? !selector.equals(query.selector) : query.selector != null) return false;
+        if (annotations != null ? !annotations.equals(query.annotations) : query.annotations != null) {
+            return false;
+        }
+        if (inputStream != null ? !inputStream.equals(query.inputStream) : query.inputStream != null) {
+            return false;
+        }
+        if (outputRate != null ? !outputRate.equals(query.outputRate) : query.outputRate != null) {
+            return false;
+        }
+        if (outputStream != null ? !outputStream.equals(query.outputStream) : query.outputStream != null) {
+            return false;
+        }
+        if (selector != null ? !selector.equals(query.selector) : query.selector != null) {
+            return false;
+        }
 
         return true;
     }
@@ -183,6 +213,26 @@ public class Query implements ExecutionElement {
         result = 31 * result + (outputRate != null ? outputRate.hashCode() : 0);
         result = 31 * result + (annotations != null ? annotations.hashCode() : 0);
         return result;
+    }
+
+    @Override
+    public int[] getQueryContextStartIndex() {
+        return queryContextStartIndex;
+    }
+
+    @Override
+    public void setQueryContextStartIndex(int[] lineAndColumn) {
+        queryContextStartIndex = lineAndColumn;
+    }
+
+    @Override
+    public int[] getQueryContextEndIndex() {
+        return queryContextEndIndex;
+    }
+
+    @Override
+    public void setQueryContextEndIndex(int[] lineAndColumn) {
+        queryContextEndIndex = lineAndColumn;
     }
 
 }

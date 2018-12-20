@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -22,9 +22,13 @@ import org.wso2.siddhi.core.event.ComplexEvent;
 import org.wso2.siddhi.core.event.state.StateEvent;
 import org.wso2.siddhi.core.event.stream.StreamEvent;
 
+import java.util.Arrays;
 import java.util.List;
 
-import static org.wso2.siddhi.core.util.SiddhiConstants.*;
+import static org.wso2.siddhi.core.util.SiddhiConstants.STREAM_ATTRIBUTE_INDEX_IN_TYPE;
+import static org.wso2.siddhi.core.util.SiddhiConstants.STREAM_ATTRIBUTE_TYPE_INDEX;
+import static org.wso2.siddhi.core.util.SiddhiConstants.STREAM_EVENT_CHAIN_INDEX;
+import static org.wso2.siddhi.core.util.SiddhiConstants.STREAM_EVENT_INDEX_IN_CHAIN;
 
 /**
  * The populater class that populates StateEvents
@@ -33,7 +37,7 @@ public class SelectiveComplexEventPopulater implements ComplexEventPopulater {
 
     private List<StreamMappingElement> streamMappingElements;       //List to hold information needed for population
 
-    public SelectiveComplexEventPopulater(List<StreamMappingElement> streamMappingElements) {
+    SelectiveComplexEventPopulater(List<StreamMappingElement> streamMappingElements) {
         this.streamMappingElements = streamMappingElements;
     }
 
@@ -53,23 +57,23 @@ public class SelectiveComplexEventPopulater implements ComplexEventPopulater {
             streamEvent = (StreamEvent) complexEvent;
         } else {
             streamEvent = ((StateEvent) complexEvent).getStreamEvent(toPosition[STREAM_EVENT_CHAIN_INDEX]);
-            for (int i = 0; i <= toPosition[STREAM_EVENT_INDEX]; i++) {
+            for (int i = 0; i <= toPosition[STREAM_EVENT_INDEX_IN_CHAIN]; i++) {
                 streamEvent = streamEvent.getNext();
             }
         }
         switch (toPosition[STREAM_ATTRIBUTE_TYPE_INDEX]) {
             case 0:
-                streamEvent.setBeforeWindowData(data, toPosition[STREAM_ATTRIBUTE_INDEX]);
+                streamEvent.setBeforeWindowData(data, toPosition[STREAM_ATTRIBUTE_INDEX_IN_TYPE]);
                 break;
             case 1:
-                streamEvent.setOnAfterWindowData(data, toPosition[STREAM_ATTRIBUTE_INDEX]);
+                streamEvent.setOnAfterWindowData(data, toPosition[STREAM_ATTRIBUTE_INDEX_IN_TYPE]);
                 break;
             case 2:
-                complexEvent.setOutputData(data, toPosition[STREAM_ATTRIBUTE_INDEX]);
+                complexEvent.setOutputData(data, toPosition[STREAM_ATTRIBUTE_INDEX_IN_TYPE]);
                 break;
             default:
                 //will not happen
-                throw new IllegalStateException("To Position cannot be :" + toPosition);
+                throw new IllegalStateException("To Position cannot be :" + Arrays.toString(toPosition));
         }
     }
 

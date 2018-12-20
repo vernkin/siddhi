@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,19 +17,26 @@
  */
 package org.wso2.siddhi.query.api.definition;
 
+import org.wso2.siddhi.query.api.SiddhiElement;
 import org.wso2.siddhi.query.api.annotation.Annotation;
 import org.wso2.siddhi.query.api.exception.AttributeNotExistException;
 import org.wso2.siddhi.query.api.exception.DuplicateAttributeException;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
-public abstract class AbstractDefinition implements Serializable {
+/**
+ * Abstract definition used for Streams, Tables and other common artifacts
+ */
+public abstract class AbstractDefinition implements SiddhiElement {
 
+    private static final long serialVersionUID = 1L;
     protected String id;
     protected List<Attribute> attributeList = new ArrayList<Attribute>();
     protected List<Annotation> annotations = new ArrayList<Annotation>();
+    private int[] queryContextStartIndex;
+    private int[] queryContextEndIndex;
 
     protected AbstractDefinition() {
 
@@ -62,7 +69,9 @@ public abstract class AbstractDefinition implements Serializable {
     protected void checkAttribute(String attributeName) {
         for (Attribute attribute : attributeList) {
             if (attribute.getName().equals(attributeName)) {
-                throw new DuplicateAttributeException("'"+attributeName + "' is already defined for with type '" + attribute.getType() + "' for '" + id + "'; " + this.toString());
+                throw new DuplicateAttributeException("'" + attributeName + "' is already defined for with type '" +
+                        attribute.getType() + "' for '" + id + "'; " + this.toString(),
+                        attribute.getQueryContextStartIndex(), attribute.getQueryContextEndIndex());
             }
         }
     }
@@ -73,7 +82,8 @@ public abstract class AbstractDefinition implements Serializable {
                 return attribute.getType();
             }
         }
-        throw new AttributeNotExistException("Cannot find attribute type as '" + attributeName + "' does not exist in '" + id + "'; " + this.toString());
+        throw new AttributeNotExistException("Cannot find attribute type as '" + attributeName + "' does not exist in" +
+                " '" + id + "'; " + this.toString());
     }
 
     public int getAttributePosition(String attributeName) {
@@ -83,7 +93,8 @@ public abstract class AbstractDefinition implements Serializable {
                 return i;
             }
         }
-        throw new AttributeNotExistException("Cannot get attribute position as '" + attributeName + "' does not exist in '" + id + "'; " + this.toString());
+        throw new AttributeNotExistException("Cannot get attribute position as '" + attributeName + "' does not exist" +
+                " in '" + id + "'; " + this.toString());
     }
 
     public String[] getAttributeNameArray() {
@@ -97,24 +108,50 @@ public abstract class AbstractDefinition implements Serializable {
 
     @Override
     public String toString() {
-        return "AbstractDefinition{" +
-                "id='" + id + '\'' +
-                ", attributeList=" + attributeList +
-                ", annotations=" + annotations +
-                '}';
+       return toString("stream");
     }
 
+     protected String toString(String type) {
+        StringBuilder definitionBuilder = new StringBuilder();
+        if (annotations != null && annotations.size() > 0) {
+            for (Annotation annotation : annotations) {
+                definitionBuilder.append(annotation.toString());
+            }
+        }
+        definitionBuilder.append("define ").append(type).append(" ").append(id).append(" (");
+        boolean isFirst = true;
+        for (Attribute attribute : attributeList) {
+            if (!isFirst) {
+                definitionBuilder.append(", ");
+            } else {
+                isFirst = false;
+            }
+            definitionBuilder.append(attribute.getName()).append(" ").
+                    append(attribute.getType().toString().toLowerCase(Locale.getDefault()));
+        }
+        definitionBuilder.append(")");
+        return definitionBuilder.toString();
+    }
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof AbstractDefinition)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof AbstractDefinition)) {
+            return false;
+        }
 
         AbstractDefinition that = (AbstractDefinition) o;
 
-        if (annotations != null ? !annotations.equals(that.annotations) : that.annotations != null) return false;
-        if (attributeList != null ? !attributeList.equals(that.attributeList) : that.attributeList != null)
+        if (annotations != null ? !annotations.equals(that.annotations) : that.annotations != null) {
             return false;
-        if (id != null ? !id.equals(that.id) : that.id != null) return false;
+        }
+        if (attributeList != null ? !attributeList.equals(that.attributeList) : that.attributeList != null) {
+            return false;
+        }
+        if (id != null ? !id.equals(that.id) : that.id != null) {
+            return false;
+        }
 
         return true;
     }
@@ -129,15 +166,42 @@ public abstract class AbstractDefinition implements Serializable {
 
 
     public boolean equalsIgnoreAnnotations(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof AbstractDefinition)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof AbstractDefinition)) {
+            return false;
+        }
 
         AbstractDefinition that = (AbstractDefinition) o;
 
-        if (attributeList != null ? !attributeList.equals(that.attributeList) : that.attributeList != null)
+        if (attributeList != null ? !attributeList.equals(that.attributeList) : that.attributeList != null) {
             return false;
-        if (id != null ? !id.equals(that.id) : that.id != null) return false;
+        }
+        if (id != null ? !id.equals(that.id) : that.id != null) {
+            return false;
+        }
 
         return true;
+    }
+
+    @Override
+    public int[] getQueryContextStartIndex() {
+        return queryContextStartIndex;
+    }
+
+    @Override
+    public void setQueryContextStartIndex(int[] lineAndColumn) {
+        queryContextStartIndex = lineAndColumn;
+    }
+
+    @Override
+    public int[] getQueryContextEndIndex() {
+        return queryContextEndIndex;
+    }
+
+    @Override
+    public void setQueryContextEndIndex(int[] lineAndColumn) {
+        queryContextEndIndex = lineAndColumn;
     }
 }

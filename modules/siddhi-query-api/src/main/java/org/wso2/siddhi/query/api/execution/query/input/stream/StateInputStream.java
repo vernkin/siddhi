@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,17 +17,22 @@
  */
 package org.wso2.siddhi.query.api.execution.query.input.stream;
 
-import org.wso2.siddhi.query.api.execution.query.input.state.*;
+import org.wso2.siddhi.query.api.execution.query.input.state.CountStateElement;
+import org.wso2.siddhi.query.api.execution.query.input.state.EveryStateElement;
+import org.wso2.siddhi.query.api.execution.query.input.state.LogicalStateElement;
+import org.wso2.siddhi.query.api.execution.query.input.state.NextStateElement;
+import org.wso2.siddhi.query.api.execution.query.input.state.StateElement;
+import org.wso2.siddhi.query.api.execution.query.input.state.StreamStateElement;
 
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Input stream that handle states in query
+ */
 public class StateInputStream extends InputStream {
 
-    public enum Type {
-        PATTERN, SEQUENCE
-    }
-
+    private static final long serialVersionUID = 1L;
     private Type stateType;
     private StateElement stateElement;
     private List<String> streamIdList;
@@ -75,7 +80,8 @@ public class StateInputStream extends InputStream {
             collectStreamIds(((NextStateElement) stateElement).getStateElement(), streamIds);
             collectStreamIds(((NextStateElement) stateElement).getNextStateElement(), streamIds);
         } else if (stateElement instanceof StreamStateElement) {
-            BasicSingleInputStream basicSingleInputStream = ((StreamStateElement) stateElement).getBasicSingleInputStream();
+            BasicSingleInputStream basicSingleInputStream = ((StreamStateElement) stateElement)
+                    .getBasicSingleInputStream();
             streamIds.add(basicSingleInputStream.getStreamId());
         }
         return streamIds;
@@ -102,14 +108,24 @@ public class StateInputStream extends InputStream {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof StateInputStream)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof StateInputStream)) {
+            return false;
+        }
 
         StateInputStream that = (StateInputStream) o;
 
-        if (stateElement != null ? !stateElement.equals(that.stateElement) : that.stateElement != null) return false;
-        if (stateType != that.stateType) return false;
-        if (streamIdList != null ? !streamIdList.equals(that.streamIdList) : that.streamIdList != null) return false;
+        if (stateElement != null ? !stateElement.equals(that.stateElement) : that.stateElement != null) {
+            return false;
+        }
+        if (stateType != that.stateType) {
+            return false;
+        }
+        if (streamIdList != null ? !streamIdList.equals(that.streamIdList) : that.streamIdList != null) {
+            return false;
+        }
 
         return true;
     }
@@ -120,5 +136,13 @@ public class StateInputStream extends InputStream {
         result = 31 * result + (stateElement != null ? stateElement.hashCode() : 0);
         result = 31 * result + (streamIdList != null ? streamIdList.hashCode() : 0);
         return result;
+    }
+
+    /**
+     * Different state management types
+     */
+    public enum Type {
+        PATTERN,
+        SEQUENCE
     }
 }

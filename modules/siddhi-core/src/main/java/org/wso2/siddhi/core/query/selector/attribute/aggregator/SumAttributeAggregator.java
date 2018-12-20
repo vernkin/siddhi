@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,15 +17,47 @@
  */
 package org.wso2.siddhi.core.query.selector.attribute.aggregator;
 
-import org.wso2.siddhi.core.config.ExecutionPlanContext;
+import org.wso2.siddhi.annotation.Example;
+import org.wso2.siddhi.annotation.Extension;
+import org.wso2.siddhi.annotation.Parameter;
+import org.wso2.siddhi.annotation.ReturnAttribute;
+import org.wso2.siddhi.annotation.util.DataType;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
 import org.wso2.siddhi.core.exception.OperationNotSupportedException;
 import org.wso2.siddhi.core.executor.ExpressionExecutor;
+import org.wso2.siddhi.core.util.config.ConfigReader;
 import org.wso2.siddhi.query.api.definition.Attribute;
 
-import java.util.AbstractMap;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * {@link AttributeAggregator} to calculate sum based on an event attribute.
+ */
+@Extension(
+        name = "sum",
+        namespace = "",
+        description = "Returns the sum for all the events.",
+        parameters = {
+                @Parameter(name = "arg",
+                        description = "The value that needs to be summed.",
+                        type = {DataType.INT, DataType.LONG, DataType.DOUBLE, DataType.FLOAT})
+        },
+        returnAttributes = @ReturnAttribute(
+                description = "Returns long if the input parameter type is int or long, and returns double if the " +
+                        "input parameter type is float or double.",
+                type = {DataType.LONG, DataType.DOUBLE}),
+        examples = {
+                @Example(
+                        syntax = "from inputStream\n" +
+                                "select sum(volume) as sumOfVolume\n" +
+                                "insert into outputStream;",
+                        description = "This will returns the sum of volume values as a long value for each event " +
+                                "arrival and expiry."
+                )
+        }
+)
 public class SumAttributeAggregator extends AttributeAggregator {
 
     private SumAttributeAggregator sumOutputAttributeAggregator;
@@ -34,13 +66,16 @@ public class SumAttributeAggregator extends AttributeAggregator {
      * The initialization method for FunctionExecutor
      *
      * @param attributeExpressionExecutors are the executors of each attributes in the function
-     * @param executionPlanContext         Execution plan runtime context
+     * @param configReader                 this hold the {@link SumAttributeAggregator} configuration reader.
+     * @param siddhiAppContext             Siddhi app runtime context
      */
     @Override
-    protected void init(ExpressionExecutor[] attributeExpressionExecutors, ExecutionPlanContext executionPlanContext) {
+    protected void init(ExpressionExecutor[] attributeExpressionExecutors, ConfigReader configReader,
+                        SiddhiAppContext siddhiAppContext) {
         if (attributeExpressionExecutors.length != 1) {
             throw new OperationNotSupportedException("Sum aggregator has to have exactly 1 parameter, currently " +
-                    attributeExpressionExecutors.length + " parameters provided");
+                    attributeExpressionExecutors.length
+                    + " parameters provided");
         }
         Attribute.Type type = attributeExpressionExecutors[0].getReturnType();
         switch (type) {
@@ -68,6 +103,9 @@ public class SumAttributeAggregator extends AttributeAggregator {
 
     @Override
     public Object processAdd(Object data) {
+        if (data == null) {
+            return sumOutputAttributeAggregator.currentValue();
+        }
         return sumOutputAttributeAggregator.processAdd(data);
     }
 
@@ -79,6 +117,9 @@ public class SumAttributeAggregator extends AttributeAggregator {
 
     @Override
     public Object processRemove(Object data) {
+        if (data == null) {
+            return sumOutputAttributeAggregator.currentValue();
+        }
         return sumOutputAttributeAggregator.processRemove(data);
     }
 
@@ -88,35 +129,35 @@ public class SumAttributeAggregator extends AttributeAggregator {
         return new IllegalStateException("Sin cannot process data array, but found " + Arrays.deepToString(data));
     }
 
+    protected Object currentValue() {
+        return null;
+    }
+
+    @Override
+    public boolean canDestroy() {
+        return sumOutputAttributeAggregator.canDestroy();
+    }
+
     @Override
     public Object reset() {
         return sumOutputAttributeAggregator.reset();
     }
 
     @Override
-    public void start() {
-        //Nothing to start
-    }
-
-    @Override
-    public void stop() {
-        //Nothing to stop
-    }
-
-    @Override
-    public Object[] currentState() {
+    public Map<String, Object> currentState() {
         return sumOutputAttributeAggregator.currentState();
     }
 
     @Override
-    public void restoreState(Object[] state) {
+    public void restoreState(Map<String, Object> state) {
         sumOutputAttributeAggregator.restoreState(state);
     }
 
     class SumAttributeAggregatorDouble extends SumAttributeAggregator {
 
         private final Attribute.Type type = Attribute.Type.DOUBLE;
-        private double value = 0.0;
+        private double sum = 0.0;
+        private long count = 0;
 
         public Attribute.Type getReturnType() {
             return type;
@@ -124,109 +165,81 @@ public class SumAttributeAggregator extends AttributeAggregator {
 
         @Override
         public Object processAdd(Object data) {
-            value += (Double) data;
-            return value;
+            return processAdd(((Double) data).doubleValue());
         }
 
         @Override
         public Object processRemove(Object data) {
-            value -= (Double) data;
-            return value;
+            return processRemove(((Double) data).doubleValue());
+        }
+
+        public Object processAdd(double data) {
+            sum += data;
+            count++;
+            return sum;
+        }
+
+        public Object processRemove(double data) {
+            sum -= data;
+            count--;
+            if (count == 0) {
+                return null;
+            } else {
+                return sum;
+            }
         }
 
         @Override
         public Object reset() {
-            value = 0.0;
-            return value;
+            sum = 0.0;
+            return null;
         }
 
         @Override
-        public Object[] currentState() {
-            return new Object[]{new AbstractMap.SimpleEntry<String, Object>("Value", value)};
+        public boolean canDestroy() {
+            return count == 0 && sum == 0.0;
         }
 
         @Override
-        public void restoreState(Object[] state) {
-            Map.Entry<String, Object> stateEntry = (Map.Entry<String, Object>) state[0];
-            value = (Double) stateEntry.getValue();
+        public Map<String, Object> currentState() {
+            Map<String, Object> state = new HashMap<>();
+            state.put("Sum", sum);
+            state.put("Count", count);
+            return state;
+        }
+
+        @Override
+        public void restoreState(Map<String, Object> state) {
+            sum = (double) state.get("Sum");
+            count = (long) state.get("Count");
+        }
+
+        protected Object currentValue() {
+            if (count == 0) {
+                return null;
+            } else {
+                return sum;
+            }
         }
 
     }
 
-    class SumAttributeAggregatorFloat extends SumAttributeAggregator {
-
-        private final Attribute.Type type = Attribute.Type.DOUBLE;
-        private double value = 0.0;
-
-        public Attribute.Type getReturnType() {
-            return type;
-        }
+    class SumAttributeAggregatorFloat extends SumAttributeAggregatorDouble {
 
         @Override
         public Object processAdd(Object data) {
-            value += ((Float) data).doubleValue();
-            return value;
+            if (data == null) {
+                return null;
+            }
+            return processAdd(((Float) data).doubleValue());
         }
 
         @Override
         public Object processRemove(Object data) {
-            value -= ((Float) data).doubleValue();
-            return value;
-        }
-
-        public Object reset() {
-            value = 0.0;
-            return value;
-        }
-
-        @Override
-        public Object[] currentState() {
-            return new Object[]{new AbstractMap.SimpleEntry<String, Object>("Value", value)};
-        }
-
-        @Override
-        public void restoreState(Object[] state) {
-            Map.Entry<String, Object> stateEntry = (Map.Entry<String, Object>) state[0];
-            value = (Double) stateEntry.getValue();
-        }
-
-    }
-
-    class SumAttributeAggregatorInt extends SumAttributeAggregator {
-
-        private final Attribute.Type type = Attribute.Type.LONG;
-        private long value = 0L;
-
-        public Attribute.Type getReturnType() {
-            return type;
-        }
-
-        @Override
-        public Object processAdd(Object data) {
-            value += ((Integer) data).longValue();
-            return value;
-        }
-
-        @Override
-        public Object processRemove(Object data) {
-            value -= ((Integer) data).longValue();
-            return value;
-        }
-
-        public Object reset() {
-            value = 0L;
-            return value;
-        }
-
-        @Override
-        public Object[] currentState() {
-            return new Object[]{new AbstractMap.SimpleEntry<String, Object>("Value", value)};
-        }
-
-        @Override
-        public void restoreState(Object[] state) {
-            Map.Entry<String, Object> stateEntry = (Map.Entry<String, Object>) state[0];
-            value = (Long) stateEntry.getValue();
+            if (data == null) {
+                return null;
+            }
+            return processRemove(((Float) data).doubleValue());
         }
 
     }
@@ -234,7 +247,8 @@ public class SumAttributeAggregator extends AttributeAggregator {
     class SumAttributeAggregatorLong extends SumAttributeAggregator {
 
         private final Attribute.Type type = Attribute.Type.LONG;
-        private long value = 0L;
+        private long sum = 0L;
+        private long count = 0;
 
         public Attribute.Type getReturnType() {
             return type;
@@ -242,30 +256,77 @@ public class SumAttributeAggregator extends AttributeAggregator {
 
         @Override
         public Object processAdd(Object data) {
-            value += (Long) data;
-            return value;
+            return processAdd(((Long) data).longValue());
+        }
+
+        public Object processAdd(long data) {
+            sum += data;
+            count++;
+            return sum;
+        }
+
+
+        @Override
+        public Object processRemove(Object data) {
+            return processRemove(((Long) data).longValue());
+        }
+
+        public Object processRemove(double data) {
+            sum -= data;
+            count--;
+            if (count == 0) {
+                return null;
+            } else {
+                return sum;
+
+            }
+        }
+
+        public Object reset() {
+            sum = 0L;
+            return sum;
+        }
+
+        @Override
+        public boolean canDestroy() {
+            return count == 0 && sum == 0L;
+        }
+
+
+        @Override
+        public Map<String, Object> currentState() {
+            Map<String, Object> state = new HashMap<>();
+            state.put("Sum", sum);
+            state.put("Count", count);
+            return state;
+        }
+
+        @Override
+        public void restoreState(Map<String, Object> state) {
+            sum = (long) state.get("Sum");
+            count = (long) state.get("Count");
+        }
+
+        protected Object currentValue() {
+            if (count == 0) {
+                return null;
+            } else {
+                return sum;
+            }
+        }
+
+    }
+
+    class SumAttributeAggregatorInt extends SumAttributeAggregatorLong {
+
+        @Override
+        public Object processAdd(Object data) {
+            return processAdd(((Integer) data).longValue());
         }
 
         @Override
         public Object processRemove(Object data) {
-            value -= (Long) data;
-            return value;
-        }
-
-        public Object reset() {
-            value = 0L;
-            return value;
-        }
-
-        @Override
-        public Object[] currentState() {
-            return new Object[]{new AbstractMap.SimpleEntry<String, Object>("Value", value)};
-        }
-
-        @Override
-        public void restoreState(Object[] state) {
-            Map.Entry<String, Object> stateEntry = (Map.Entry<String, Object>) state[0];
-            value = (Long) stateEntry.getValue();
+            return processRemove(((Integer) data).longValue());
         }
 
     }

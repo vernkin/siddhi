@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,25 +17,54 @@
  */
 package org.wso2.siddhi.core.query.extension.util;
 
-import org.wso2.siddhi.core.config.ExecutionPlanContext;
-import org.wso2.siddhi.core.exception.ExecutionPlanCreationException;
+import org.wso2.siddhi.annotation.Example;
+import org.wso2.siddhi.annotation.Extension;
+import org.wso2.siddhi.annotation.Parameter;
+import org.wso2.siddhi.annotation.ReturnAttribute;
+import org.wso2.siddhi.annotation.util.DataType;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
+import org.wso2.siddhi.core.exception.SiddhiAppCreationException;
 import org.wso2.siddhi.core.executor.ExpressionExecutor;
 import org.wso2.siddhi.core.executor.function.FunctionExecutor;
+import org.wso2.siddhi.core.util.config.ConfigReader;
 import org.wso2.siddhi.query.api.definition.Attribute;
 
+import java.util.Map;
+
+@Extension(
+        name = "plus",
+        namespace = "custom",
+        description = "Return the sum of the given input values.",
+        parameters = {
+                @Parameter(name = "args",
+                           description = "The values that need to be sum.",
+                           type = {DataType.INT, DataType.LONG, DataType.DOUBLE, DataType.FLOAT})
+        },
+        returnAttributes = @ReturnAttribute(
+                description = "Returns the calculated sum value as a double or float.",
+                type = {DataType.DOUBLE, DataType.FLOAT}),
+        examples = @Example(
+                syntax = "from fooStream\n" +
+                        "select custom:plus(4, 6, 10) as total\n" +
+                        "insert into barStream",
+                description = "This will return value 20 as total."
+        )
+)
 public class CustomFunctionExtension extends FunctionExecutor {
 
     private Attribute.Type returnType;
 
     @Override
-    public void init(ExpressionExecutor[] attributeExpressionExecutors, ExecutionPlanContext executionPlanContext) {
+    public void init(ExpressionExecutor[] attributeExpressionExecutors,
+                     ConfigReader configReader,
+                     SiddhiAppContext siddhiAppContext) {
         for (ExpressionExecutor expressionExecutor : attributeExpressionExecutors) {
             Attribute.Type attributeType = expressionExecutor.getReturnType();
             if (attributeType == Attribute.Type.DOUBLE) {
                 returnType = attributeType;
 
             } else if ((attributeType == Attribute.Type.STRING) || (attributeType == Attribute.Type.BOOL)) {
-                throw new ExecutionPlanCreationException("Plus cannot have parameters with types String or Bool");
+                throw new SiddhiAppCreationException("Plus cannot have parameters with types String or Bool");
             } else {
                 returnType = Attribute.Type.LONG;
             }
@@ -95,23 +124,13 @@ public class CustomFunctionExtension extends FunctionExecutor {
     }
 
     @Override
-    public void start() {
-        //Nothing to start
-    }
-
-    @Override
-    public void stop() {
-        //Nothing to stop
-    }
-
-    @Override
-    public Object[] currentState() {
+    public Map<String, Object> currentState() {
         //No state
         return null;
     }
 
     @Override
-    public void restoreState(Object[] state) {
+    public void restoreState(Map<String, Object> state) {
         //Nothing to be done
     }
 }

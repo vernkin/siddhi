@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -27,22 +27,27 @@ import org.wso2.siddhi.core.util.Schedulable;
 import org.wso2.siddhi.core.util.Scheduler;
 import org.wso2.siddhi.core.util.parser.SchedulerParser;
 
-import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 
+/**
+ * Implementation of {@link OutputRateLimiter} which will collect pre-defined time period and the emit only first
+ * event.
+ */
 public class FirstPerTimeOutputRateLimiter extends OutputRateLimiter implements Schedulable {
-    private String id;
+    private static final Logger log = Logger.getLogger(FirstPerTimeOutputRateLimiter.class);
     private final Long value;
+    private String id;
     private ComplexEvent firstEvent = null;
     private ScheduledExecutorService scheduledExecutorService;
     private Scheduler scheduler;
     private long scheduledTime;
     private String queryName;
-    static final Logger log = Logger.getLogger(FirstPerTimeOutputRateLimiter.class);
 
-    public FirstPerTimeOutputRateLimiter(String id, Long value, ScheduledExecutorService scheduledExecutorService, String queryName) {
+    public FirstPerTimeOutputRateLimiter(String id, Long value, ScheduledExecutorService scheduledExecutorService,
+                                         String queryName) {
         this.queryName = queryName;
         this.id = id;
         this.value = value;
@@ -51,7 +56,8 @@ public class FirstPerTimeOutputRateLimiter extends OutputRateLimiter implements 
 
     @Override
     public OutputRateLimiter clone(String key) {
-        FirstPerTimeOutputRateLimiter instance = new FirstPerTimeOutputRateLimiter(id + key, value, scheduledExecutorService, queryName);
+        FirstPerTimeOutputRateLimiter instance = new FirstPerTimeOutputRateLimiter(id + key, value,
+                scheduledExecutorService, queryName);
         instance.setLatencyTracker(latencyTracker);
         return instance;
     }
@@ -71,11 +77,13 @@ public class FirstPerTimeOutputRateLimiter extends OutputRateLimiter implements 
                         scheduledTime += value;
                         scheduler.notifyAt(scheduledTime);
                     }
-                } else if (event.getType() == ComplexEvent.Type.CURRENT || event.getType() == ComplexEvent.Type.EXPIRED) {
+                } else if (event.getType() == ComplexEvent.Type.CURRENT || event.getType() == ComplexEvent.Type
+                        .EXPIRED) {
                     if (firstEvent == null) {
                         complexEventChunk.remove();
                         firstEvent = event;
-                        ComplexEventChunk<ComplexEvent> firstPerEventChunk = new ComplexEventChunk<ComplexEvent>(complexEventChunk.isBatch());
+                        ComplexEventChunk<ComplexEvent> firstPerEventChunk = new ComplexEventChunk<ComplexEvent>
+                                (complexEventChunk.isBatch());
                         firstPerEventChunk.add(event);
                         outputEventChunks.add(firstPerEventChunk);
                     }
@@ -90,7 +98,7 @@ public class FirstPerTimeOutputRateLimiter extends OutputRateLimiter implements 
 
     @Override
     public void start() {
-        scheduler = SchedulerParser.parse(scheduledExecutorService, this, executionPlanContext);
+        scheduler = SchedulerParser.parse(this, siddhiAppContext);
         scheduler.setStreamEventPool(new StreamEventPool(0, 0, 0, 5));
         scheduler.init(lockWrapper, queryName);
         long currentTime = System.currentTimeMillis();
@@ -104,14 +112,17 @@ public class FirstPerTimeOutputRateLimiter extends OutputRateLimiter implements 
     }
 
     @Override
-    public Object[] currentState() {
-        return new Object[]{new AbstractMap.SimpleEntry<String, Object>("FirstEvent", firstEvent)};
+    public Map<String, Object> currentState() {
+        Map<String, Object> state = new HashMap<>();
+        synchronized (this) {
+            state.put("FirstEvent", firstEvent);
+        }
+        return state;
     }
 
     @Override
-    public void restoreState(Object[] state) {
-        Map.Entry<String, Object> stateEntry = (Map.Entry<String, Object>) state[0];
-        firstEvent = (ComplexEvent) stateEntry.getValue();
+    public synchronized void restoreState(Map<String, Object> state) {
+        firstEvent = (ComplexEvent) state.get("FirstEvent");
     }
 
 }

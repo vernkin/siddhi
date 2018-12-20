@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -21,6 +21,12 @@ package org.wso2.siddhi.core.query.output.ratelimit;
 import org.apache.log4j.Logger;
 import org.wso2.siddhi.core.event.ComplexEventChunk;
 
+import java.util.Map;
+
+/**
+ * Implementation of {@link OutputRateLimiter} which will pass through events without doing any rate limiting. This
+ * is the default rate limiting strategy used by Siddhi.
+ */
 public class PassThroughOutputRateLimiter extends OutputRateLimiter {
     private static final Logger log = Logger.getLogger(PassThroughOutputRateLimiter.class);
     private String id;
@@ -51,12 +57,12 @@ public class PassThroughOutputRateLimiter extends OutputRateLimiter {
     }
 
     @Override
-    public Object[] currentState() {
-        return new Object[0];
+    public Map<String, Object> currentState() {
+        return null;
     }
 
     @Override
-    public void restoreState(Object[] state) {
+    public void restoreState(Map<String, Object> state) {
 
     }
 

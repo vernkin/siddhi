@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Created on 11/28/14.
+ * Implementation of {@link InputProcessor} which inject the event to a set of Input Processors.
  */
 public class InputDistributor implements InputProcessor {
 
@@ -45,8 +45,8 @@ public class InputDistributor implements InputProcessor {
     }
 
     @Override
-    public void send(long timeStamp, Object[] data, int streamIndex) {
-        inputProcessors.get(streamIndex).send(timeStamp, data, streamIndex);
+    public void send(long timestamp, Object[] data, int streamIndex) {
+        inputProcessors.get(streamIndex).send(timestamp, data, streamIndex);
     }
 
     public void addInputProcessor(InputProcessor inputProcessor) {

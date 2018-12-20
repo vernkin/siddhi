@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,11 +18,11 @@
 
 package org.wso2.siddhi.core.stream;
 
-import junit.framework.Assert;
 import org.apache.log4j.Logger;
-import org.junit.Before;
-import org.junit.Test;
-import org.wso2.siddhi.core.ExecutionPlanRuntime;
+import org.testng.AssertJUnit;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+import org.wso2.siddhi.core.SiddhiAppRuntime;
 import org.wso2.siddhi.core.SiddhiManager;
 import org.wso2.siddhi.core.event.Event;
 import org.wso2.siddhi.core.exception.DefinitionNotExistException;
@@ -37,11 +37,11 @@ import org.wso2.siddhi.core.util.EventPrinter;
  */
 public class CallbackTestCase {
 
-    static final Logger log = Logger.getLogger(CallbackTestCase.class);
+    private static final Logger log = Logger.getLogger(CallbackTestCase.class);
     private volatile int count;
     private volatile boolean eventArrived;
 
-    @Before
+    @BeforeMethod
     public void init() {
         count = 0;
         eventArrived = false;
@@ -52,8 +52,8 @@ public class CallbackTestCase {
         log.info("callback test1");
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        String executionPlan = "" +
-                "@Plan:name('callbackTest1') " +
+        String siddhiApp = "" +
+                "@app:name('callbackTest1') " +
                 "" +
                 "define stream StockStream (symbol string, price float, volume long);" +
                 "" +
@@ -63,19 +63,19 @@ public class CallbackTestCase {
                 "insert into outputStream;";
 
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(executionPlan);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiApp);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 count = count + inEvents.length;
                 eventArrived = true;
             }
 
         });
 
-        executionPlanRuntime.addCallback("outputStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("outputStream", new StreamCallback() {
 
             @Override
             public void receive(Event[] events) {
@@ -85,26 +85,26 @@ public class CallbackTestCase {
         });
 
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("StockStream");
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("StockStream");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
-        inputHandler.send(new Object[]{"IBM", 700f, 100l});
-        inputHandler.send(new Object[]{"WSO2", 60.5f, 200l});
+        inputHandler.send(new Object[]{"IBM", 700f, 100L});
+        inputHandler.send(new Object[]{"WSO2", 60.5f, 200L});
         Thread.sleep(100);
-        Assert.assertEquals(2, count);
-        Assert.assertTrue(eventArrived);
+        AssertJUnit.assertEquals(2, count);
+        AssertJUnit.assertTrue(eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
-    @Test(expected = QueryNotExistException.class)
+    @Test(expectedExceptions = QueryNotExistException.class)
     public void callbackTest2() throws InterruptedException {
         log.info("callback test2");
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        String executionPlan = "" +
-                "@Plan:name('callbackTest1') " +
+        String siddhiApp = "" +
+                "@app:name('callbackTest1') " +
                 "" +
                 "define stream StockStream (symbol string, price float, volume long);" +
                 "" +
@@ -114,26 +114,26 @@ public class CallbackTestCase {
                 "insert into outputStream;";
 
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(executionPlan);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiApp);
 
-        executionPlanRuntime.addCallback("query3", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query3", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
             }
 
         });
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
-    @Test(expected = DefinitionNotExistException.class)
+    @Test(expectedExceptions = DefinitionNotExistException.class)
     public void callbackTest3() throws InterruptedException {
         log.info("callback test3");
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        String executionPlan = "" +
-                "@Plan:name('callbackTest1') " +
+        String siddhiApp = "" +
+                "@app:name('callbackTest1') " +
                 "" +
                 "define stream StockStream (symbol string, price float, volume long);" +
                 "" +
@@ -143,15 +143,15 @@ public class CallbackTestCase {
                 "insert into outputStream;";
 
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(executionPlan);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiApp);
 
-        executionPlanRuntime.addCallback("outputStream2", new StreamCallback() {
+        siddhiAppRuntime.addCallback("outputStream2", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 EventPrinter.print(events);
             }
         });
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -27,8 +27,8 @@ import org.wso2.siddhi.core.query.processor.Processor;
  * Created on 12/17/14.
  */
 public class StreamPostStateProcessor implements PostStateProcessor {
-    protected PreStateProcessor nextStatePerProcessor;
-    protected PreStateProcessor nextEveryStatePerProcessor;
+    protected PreStateProcessor nextStatePreProcessor;
+    protected PreStateProcessor nextEveryStatePreProcessor;
     protected StreamPreStateProcessor thisStatePreProcessor;
     protected Processor nextProcessor;
     protected int stateId;
@@ -60,11 +60,11 @@ public class StreamPostStateProcessor implements PostStateProcessor {
             complexEventChunk.reset();
             this.isEventReturned = true;
         }
-        if (nextStatePerProcessor != null) {
-            nextStatePerProcessor.addState(stateEvent);
+        if (nextStatePreProcessor != null) {
+            nextStatePreProcessor.addState(stateEvent);
         }
-        if (nextEveryStatePerProcessor != null) {
-            nextEveryStatePerProcessor.addEveryState(stateEvent);
+        if (nextEveryStatePreProcessor != null) {
+            nextEveryStatePreProcessor.addEveryState(stateEvent);
         }
         if (callbackPreStateProcessor != null) {
             callbackPreStateProcessor.startStateReset();
@@ -131,36 +131,35 @@ public class StreamPostStateProcessor implements PostStateProcessor {
     }
 
     public void setNextStatePreProcessor(PreStateProcessor preStateProcessor) {
-        this.nextStatePerProcessor = preStateProcessor;
+        this.nextStatePreProcessor = preStateProcessor;
     }
 
-    public void setThisStatePreProcessor(StreamPreStateProcessor preStateProcessor) {
-        thisStatePreProcessor = preStateProcessor;
+    public PreStateProcessor getNextStatePreProcessor() {
+        return nextStatePreProcessor;
     }
 
-    public PreStateProcessor getNextStatePerProcessor() {
-        return nextStatePerProcessor;
+    public PreStateProcessor getNextEveryStatePreProcessor() {
+        return nextEveryStatePreProcessor;
     }
 
-
-    public PreStateProcessor getNextEveryStatePerProcessor() {
-        return nextEveryStatePerProcessor;
-    }
-
-    public void setNextEveryStatePerProcessor(PreStateProcessor nextEveryStatePerProcessor) {
-        this.nextEveryStatePerProcessor = nextEveryStatePerProcessor;
+    public void setNextEveryStatePreProcessor(PreStateProcessor nextEveryStatePreProcessor) {
+        this.nextEveryStatePreProcessor = nextEveryStatePreProcessor;
     }
 
     public PreStateProcessor getThisStatePreProcessor() {
         return thisStatePreProcessor;
     }
 
-    public void setStateId(int stateId) {
-        this.stateId = stateId;
+    public void setThisStatePreProcessor(StreamPreStateProcessor preStateProcessor) {
+        thisStatePreProcessor = preStateProcessor;
     }
 
     public int getStateId() {
         return stateId;
+    }
+
+    public void setStateId(int stateId) {
+        this.stateId = stateId;
     }
 
     @Override

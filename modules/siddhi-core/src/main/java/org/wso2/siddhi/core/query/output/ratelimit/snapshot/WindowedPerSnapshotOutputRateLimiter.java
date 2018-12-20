@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,7 +18,7 @@
 
 package org.wso2.siddhi.core.query.output.ratelimit.snapshot;
 
-import org.wso2.siddhi.core.config.ExecutionPlanContext;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
 import org.wso2.siddhi.core.event.ComplexEvent;
 import org.wso2.siddhi.core.event.ComplexEventChunk;
 import org.wso2.siddhi.core.event.GroupedComplexEvent;
@@ -26,21 +26,33 @@ import org.wso2.siddhi.core.event.stream.StreamEventPool;
 import org.wso2.siddhi.core.util.Scheduler;
 import org.wso2.siddhi.core.util.parser.SchedulerParser;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 
+/**
+ * Implementation of {@link PerSnapshotOutputRateLimiter} for queries with Windows.
+ */
 public class WindowedPerSnapshotOutputRateLimiter extends SnapshotOutputRateLimiter {
-    private String id;
     private final Long value;
     private final ScheduledExecutorService scheduledExecutorService;
-    private LinkedList<ComplexEvent> eventList;
+    private String id;
+    private List<ComplexEvent> eventList;
     private Comparator comparator;
     private Scheduler scheduler;
     private long scheduledTime;
     private String queryName;
 
-    public WindowedPerSnapshotOutputRateLimiter(String id, Long value, ScheduledExecutorService scheduledExecutorService, WrappedSnapshotOutputRateLimiter wrappedSnapshotOutputRateLimiter, ExecutionPlanContext executionPlanContext, String queryName) {
-        super(wrappedSnapshotOutputRateLimiter, executionPlanContext);
+    public WindowedPerSnapshotOutputRateLimiter(String id, Long value, ScheduledExecutorService
+            scheduledExecutorService, WrappedSnapshotOutputRateLimiter wrappedSnapshotOutputRateLimiter,
+                                                SiddhiAppContext siddhiAppContext, String queryName) {
+        super(wrappedSnapshotOutputRateLimiter, siddhiAppContext);
         this.queryName = queryName;
         this.id = id;
         this.value = value;
@@ -110,14 +122,17 @@ public class WindowedPerSnapshotOutputRateLimiter extends SnapshotOutputRateLimi
     }
 
     @Override
-    public SnapshotOutputRateLimiter clone(String key, WrappedSnapshotOutputRateLimiter wrappedSnapshotOutputRateLimiter) {
-        return new WindowedPerSnapshotOutputRateLimiter(id + key, value, scheduledExecutorService, wrappedSnapshotOutputRateLimiter, executionPlanContext, queryName);
+    public SnapshotOutputRateLimiter clone(String key, WrappedSnapshotOutputRateLimiter
+            wrappedSnapshotOutputRateLimiter) {
+        return new WindowedPerSnapshotOutputRateLimiter(id + key, value, scheduledExecutorService,
+                wrappedSnapshotOutputRateLimiter, siddhiAppContext, queryName);
     }
 
     @Override
     public void start() {
-        scheduler = SchedulerParser.parse(scheduledExecutorService, this, executionPlanContext);
-        scheduler.setStreamEventPool(new StreamEventPool(0, 0, 0, 5));
+        scheduler = SchedulerParser.parse(this, siddhiAppContext);
+        scheduler.setStreamEventPool(new StreamEventPool(0, 0,
+                0, 5));
         scheduler.init(lockWrapper, queryName);
         long currentTime = System.currentTimeMillis();
         scheduledTime = currentTime + value;
@@ -130,13 +145,17 @@ public class WindowedPerSnapshotOutputRateLimiter extends SnapshotOutputRateLimi
     }
 
     @Override
-    public Object[] currentState() {
-        return new Object[]{eventList};
+    public Map<String, Object> currentState() {
+        Map<String, Object> state = new HashMap<>();
+        synchronized (this) {
+            state.put("EventList", eventList);
+        }
+        return state;
     }
 
     @Override
-    public void restoreState(Object[] state) {
-        eventList = (LinkedList<ComplexEvent>) state[0];
+    public synchronized void restoreState(Map<String, Object> state) {
+        eventList = (List<ComplexEvent>) state.get("EventList");
     }
 
 }

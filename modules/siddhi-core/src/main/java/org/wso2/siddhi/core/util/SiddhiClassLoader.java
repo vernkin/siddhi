@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,26 +18,14 @@
 package org.wso2.siddhi.core.util;
 
 import org.wso2.siddhi.core.exception.CannotLoadClassException;
-import org.wso2.siddhi.core.exception.ExecutionPlanCreationException;
+import org.wso2.siddhi.core.exception.SiddhiAppCreationException;
 import org.wso2.siddhi.core.util.extension.holder.AbstractExtensionHolder;
 import org.wso2.siddhi.query.api.extension.Extension;
 
+/**
+ * used to load classes required for Siddhi extensions.
+ */
 public class SiddhiClassLoader {
-
-    private static Object loadClass(String name) throws CannotLoadClassException {
-        try {
-            return Class.forName(name).newInstance();
-        } catch (InstantiationException e) {
-            throw new CannotLoadClassException("Cannot restore class: " + name, e);
-        } catch (IllegalAccessException e) {
-            throw new CannotLoadClassException("Cannot restore class: " + name, e);
-        } catch (ClassNotFoundException e) {
-            throw new CannotLoadClassException("Cannot restore class: " + name, e);
-        } catch (NoClassDefFoundError e) {
-            throw new CannotLoadClassException("Cannot restore class: " + name, e);
-        }
-
-    }
 
     private static Object loadClass(Class clazz) throws CannotLoadClassException {
         try {
@@ -49,27 +37,17 @@ public class SiddhiClassLoader {
         }
     }
 
-
-    public static Object loadSiddhiImplementation(String name, Class interfaze) {
-        try {
-            return SiddhiClassLoader.loadClass(interfaze.getPackage().getName() +
-                    "." + name.substring(0, 1).toUpperCase() +
-                    name.substring(1) + interfaze.getSimpleName());
-        } catch (CannotLoadClassException e) {
-            throw new ExecutionPlanCreationException(name + " does not exist in type " + interfaze.getSimpleName(), e, true);
-        }
-    }
-
     public static Object loadExtensionImplementation(Extension extension,
                                                      AbstractExtensionHolder extensionHolder) {
-        Class clazz = extensionHolder.getExtension(extension.getNamespace(), extension.getFunction());
+        Class clazz = extensionHolder.getExtension(extension.getNamespace(), extension.getName());
         if (clazz == null) {
-            throw new ExecutionPlanCreationException("No extension exist for " + extension, true);
+            throw new SiddhiAppCreationException("No extension exist for " + extension.getNamespace() + ":" +
+                                                             extension.getName(), true);
         }
         try {
             return SiddhiClassLoader.loadClass(clazz);
         } catch (CannotLoadClassException e) {
-            throw new ExecutionPlanCreationException("Extension " + clazz.getName() + " cannot be loaded!", true);
+            throw new SiddhiAppCreationException("Extension " + clazz.getName() + " cannot be loaded!", true);
 
         }
     }

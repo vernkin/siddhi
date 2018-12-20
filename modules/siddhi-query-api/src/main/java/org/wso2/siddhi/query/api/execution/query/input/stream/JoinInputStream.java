@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,36 +17,36 @@
  */
 package org.wso2.siddhi.query.api.execution.query.input.stream;
 
+import org.wso2.siddhi.query.api.aggregation.Within;
 import org.wso2.siddhi.query.api.expression.Expression;
-import org.wso2.siddhi.query.api.expression.constant.Constant;
 
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Joining input streams in a query
+ */
 public class JoinInputStream extends InputStream {
 
+    private static final long serialVersionUID = 1L;
+    private final Within within;
+    private final Expression per;
     private InputStream leftInputStream;
     private Type type;
     private InputStream rightInputStream;
     private Expression onCompare;
     private EventTrigger trigger;
-    private Constant within;
-
-    public enum Type {JOIN, INNER_JOIN, LEFT_OUTER_JOIN, RIGHT_OUTER_JOIN, FULL_OUTER_JOIN}
-
-    public enum EventTrigger {
-        LEFT, RIGHT, ALL
-    }
 
     public JoinInputStream(SingleInputStream leftInputStream, Type type,
-                           SingleInputStream rightInputStream, Expression onCompare, Constant within,
-                           EventTrigger trigger) {
+                           SingleInputStream rightInputStream, Expression onCompare,
+                           EventTrigger trigger, Within within, Expression per) {
         this.leftInputStream = leftInputStream;
         this.type = type;
         this.rightInputStream = rightInputStream;
         this.onCompare = onCompare;
-        this.within = within;
         this.trigger = trigger;
+        this.within = within;
+        this.per = per;
     }
 
     public InputStream getLeftInputStream() {
@@ -69,8 +69,12 @@ public class JoinInputStream extends InputStream {
         return trigger;
     }
 
-    public Constant getWithin() {
+    public Within getWithin() {
         return within;
+    }
+
+    public Expression getPer() {
+        return per;
     }
 
     @Override
@@ -105,5 +109,81 @@ public class JoinInputStream extends InputStream {
         return list;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
+        JoinInputStream that = (JoinInputStream) o;
+
+        if (leftInputStream != null ? !leftInputStream.equals(that.leftInputStream) : that.leftInputStream != null) {
+            return false;
+        }
+        if (type != that.type) {
+            return false;
+        }
+        if (rightInputStream != null ? !rightInputStream.equals(that.rightInputStream) :
+                that.rightInputStream != null) {
+            return false;
+        }
+        if (onCompare != null ? !onCompare.equals(that.onCompare) : that.onCompare != null) {
+            return false;
+        }
+        if (trigger != that.trigger) {
+            return false;
+        }
+        if (within != null ? !within.equals(that.within) : that.within != null) {
+            return false;
+        }
+        return per != null ? per.equals(that.per) : that.per == null;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = leftInputStream != null ? leftInputStream.hashCode() : 0;
+        result = 31 * result + (type != null ? type.hashCode() : 0);
+        result = 31 * result + (rightInputStream != null ? rightInputStream.hashCode() : 0);
+        result = 31 * result + (onCompare != null ? onCompare.hashCode() : 0);
+        result = 31 * result + (trigger != null ? trigger.hashCode() : 0);
+        result = 31 * result + (within != null ? within.hashCode() : 0);
+        result = 31 * result + (per != null ? per.hashCode() : 0);
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "JoinInputStream{" +
+                "leftInputStream=" + leftInputStream +
+                ", type=" + type +
+                ", rightInputStream=" + rightInputStream +
+                ", onCompare=" + onCompare +
+                ", trigger=" + trigger +
+                ", within=" + within +
+                ", per=" + per +
+                '}';
+    }
+
+    /**
+     * Different join types
+     */
+    public enum Type {
+        JOIN,
+        INNER_JOIN,
+        LEFT_OUTER_JOIN,
+        RIGHT_OUTER_JOIN,
+        FULL_OUTER_JOIN
+    }
+
+    /**
+     * Different triggers to start joining process
+     */
+    public enum EventTrigger {
+        LEFT,
+        RIGHT,
+        ALL
+    }
 }

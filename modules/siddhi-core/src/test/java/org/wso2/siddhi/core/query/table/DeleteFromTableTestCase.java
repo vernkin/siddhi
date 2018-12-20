@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -19,10 +19,10 @@
 package org.wso2.siddhi.core.query.table;
 
 import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.wso2.siddhi.core.ExecutionPlanRuntime;
+import org.testng.AssertJUnit;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+import org.wso2.siddhi.core.SiddhiAppRuntime;
 import org.wso2.siddhi.core.SiddhiManager;
 import org.wso2.siddhi.core.event.Event;
 import org.wso2.siddhi.core.query.output.callback.QueryCallback;
@@ -36,7 +36,7 @@ public class DeleteFromTableTestCase {
     private int removeEventCount;
     private boolean eventArrived;
 
-    @Before
+    @BeforeMethod
     public void init() {
         inEventCount = 0;
         removeEventCount = 0;
@@ -63,20 +63,20 @@ public class DeleteFromTableTestCase {
                 "delete StockTable " +
                 "   on symbol=='IBM' ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
 
-        InputHandler stockStream = executionPlanRuntime.getInputHandler("StockStream");
-        InputHandler deleteStockStream = executionPlanRuntime.getInputHandler("DeleteStockStream");
+        InputHandler stockStream = siddhiAppRuntime.getInputHandler("StockStream");
+        InputHandler deleteStockStream = siddhiAppRuntime.getInputHandler("DeleteStockStream");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
-        stockStream.send(new Object[]{"WSO2", 55.6f, 100l});
-        stockStream.send(new Object[]{"IBM", 75.6f, 100l});
-        stockStream.send(new Object[]{"WSO2", 57.6f, 100l});
-        deleteStockStream.send(new Object[]{"WSO2", 57.6f, 100l});
+        stockStream.send(new Object[]{"WSO2", 55.6f, 100L});
+        stockStream.send(new Object[]{"IBM", 75.6f, 100L});
+        stockStream.send(new Object[]{"WSO2", 57.6f, 100L});
+        deleteStockStream.send(new Object[]{"WSO2", 57.6f, 100L});
 
         Thread.sleep(500);
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
 
     }
 
@@ -100,20 +100,20 @@ public class DeleteFromTableTestCase {
                 "delete StockTable " +
                 "   on StockTable.symbol=='IBM' ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
 
-        InputHandler stockStream = executionPlanRuntime.getInputHandler("StockStream");
-        InputHandler deleteStockStream = executionPlanRuntime.getInputHandler("DeleteStockStream");
+        InputHandler stockStream = siddhiAppRuntime.getInputHandler("StockStream");
+        InputHandler deleteStockStream = siddhiAppRuntime.getInputHandler("DeleteStockStream");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
-        stockStream.send(new Object[]{"WSO2", 55.6f, 100l});
-        stockStream.send(new Object[]{"IBM", 75.6f, 100l});
-        stockStream.send(new Object[]{"WSO2", 57.6f, 100l});
-        deleteStockStream.send(new Object[]{"WSO2", 57.6f, 100l});
+        stockStream.send(new Object[]{"WSO2", 55.6f, 100L});
+        stockStream.send(new Object[]{"IBM", 75.6f, 100L});
+        stockStream.send(new Object[]{"WSO2", 57.6f, 100L});
+        deleteStockStream.send(new Object[]{"WSO2", 57.6f, 100L});
 
         Thread.sleep(500);
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
 
     }
 
@@ -137,20 +137,20 @@ public class DeleteFromTableTestCase {
                 "delete StockTable " +
                 "   on symbol=='IBM' ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
 
-        InputHandler stockStream = executionPlanRuntime.getInputHandler("StockStream");
-        InputHandler deleteStockStream = executionPlanRuntime.getInputHandler("DeleteStockStream");
+        InputHandler stockStream = siddhiAppRuntime.getInputHandler("StockStream");
+        InputHandler deleteStockStream = siddhiAppRuntime.getInputHandler("DeleteStockStream");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
-        stockStream.send(new Object[]{"WSO2", 55.6f, 100l});
-        stockStream.send(new Object[]{"IBM", 75.6f, 100l});
-        stockStream.send(new Object[]{"WSO2", 57.6f, 100l});
-        deleteStockStream.send(new Object[]{"IBM", 57.6f, 100l});
+        stockStream.send(new Object[]{"WSO2", 55.6f, 100L});
+        stockStream.send(new Object[]{"IBM", 75.6f, 100L});
+        stockStream.send(new Object[]{"WSO2", 57.6f, 100L});
+        deleteStockStream.send(new Object[]{"IBM", 57.6f, 100L});
 
         Thread.sleep(500);
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
 
     }
 
@@ -179,27 +179,27 @@ public class DeleteFromTableTestCase {
                 "from CheckStockStream[symbol==StockTable.symbol in StockTable] " +
                 "insert into OutStream;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
 
-        executionPlanRuntime.addCallback("query3", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query3", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     for (Event event : inEvents) {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{"IBM"}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"IBM"}, event.getData());
                                 break;
                             case 2:
-                                Assert.assertArrayEquals(new Object[]{"WSO2"}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"WSO2"}, event.getData());
                                 break;
                             case 3:
-                                Assert.assertArrayEquals(new Object[]{"WSO2"}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"WSO2"}, event.getData());
                                 break;
                             default:
-                                Assert.assertSame(3, inEventCount);
+                                AssertJUnit.assertSame(3, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -212,27 +212,27 @@ public class DeleteFromTableTestCase {
 
         });
 
-        InputHandler stockStream = executionPlanRuntime.getInputHandler("StockStream");
-        InputHandler checkStockStream = executionPlanRuntime.getInputHandler("CheckStockStream");
-        InputHandler deleteStockStream = executionPlanRuntime.getInputHandler("DeleteStockStream");
+        InputHandler stockStream = siddhiAppRuntime.getInputHandler("StockStream");
+        InputHandler checkStockStream = siddhiAppRuntime.getInputHandler("CheckStockStream");
+        InputHandler deleteStockStream = siddhiAppRuntime.getInputHandler("DeleteStockStream");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
-        stockStream.send(new Object[]{"WSO2", 55.6f, 100l});
-        stockStream.send(new Object[]{"IBM", 55.6f, 100l});
+        stockStream.send(new Object[]{"WSO2", 55.6f, 100L});
+        stockStream.send(new Object[]{"IBM", 55.6f, 100L});
         checkStockStream.send(new Object[]{"IBM"});
         checkStockStream.send(new Object[]{"WSO2"});
-        deleteStockStream.send(new Object[]{"IBM", 57.6f, 100l});
+        deleteStockStream.send(new Object[]{"IBM", 57.6f, 100L});
         checkStockStream.send(new Object[]{"IBM"});
         checkStockStream.send(new Object[]{"WSO2"});
 
         Thread.sleep(500);
 
-        Assert.assertEquals("Number of success events", 3, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 3, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
 
     }
 
@@ -257,38 +257,38 @@ public class DeleteFromTableTestCase {
                 "from DeleteStockStream[vol>=100] " +
                 "delete StockTable " +
                 "   on StockTable.symbol==symbol ;" +
-                ""+
+                "" +
                 "@info(name = 'query3') " +
                 "from CountStockStream#window.length(0) join StockTable" +
                 " on CountStockStream.symbol==StockTable.symbol " +
                 "select CountStockStream.symbol as symbol " +
                 "insert into CountResultsStream ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
 
-        InputHandler stockStream = executionPlanRuntime.getInputHandler("StockStream");
-        InputHandler deleteStockStream = executionPlanRuntime.getInputHandler("DeleteStockStream");
-        InputHandler countStockStream = executionPlanRuntime.getInputHandler("CountStockStream");
+        InputHandler stockStream = siddhiAppRuntime.getInputHandler("StockStream");
+        InputHandler deleteStockStream = siddhiAppRuntime.getInputHandler("DeleteStockStream");
+        InputHandler countStockStream = siddhiAppRuntime.getInputHandler("CountStockStream");
 
 
-        executionPlanRuntime.addCallback("CountResultsStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("CountResultsStream", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 EventPrinter.print(events);
-                inEventCount+=events.length;
+                inEventCount += events.length;
             }
         });
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
-        stockStream.send(new Object[]{"WSO2", 55.6f, 100l});
-        stockStream.send(new Object[]{"IBM", 75.6f, 100l});
-        stockStream.send(new Object[]{"WSO2", 57.6f, 100l});
-        deleteStockStream.send(new Object[]{"IBM", 57.6f, 100l});
+        stockStream.send(new Object[]{"WSO2", 55.6f, 100L});
+        stockStream.send(new Object[]{"IBM", 75.6f, 100L});
+        stockStream.send(new Object[]{"WSO2", 57.6f, 100L});
+        deleteStockStream.send(new Object[]{"IBM", 57.6f, 100L});
         countStockStream.send(new Object[]{"WSO2"});
 
         Thread.sleep(500);
-        Assert.assertEquals(2,inEventCount);
-        executionPlanRuntime.shutdown();
+        AssertJUnit.assertEquals(2, inEventCount);
+        siddhiAppRuntime.shutdown();
 
     }
 

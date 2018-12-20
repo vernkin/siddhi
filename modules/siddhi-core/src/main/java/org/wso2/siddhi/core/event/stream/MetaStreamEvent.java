@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -38,8 +38,7 @@ public class MetaStreamEvent implements MetaComplexEvent {
     private List<AbstractDefinition> inputDefinitions = new ArrayList<AbstractDefinition>();
     private String inputReferenceId;
     private StreamDefinition outputStreamDefinition;
-    private boolean tableEvent = false;
-    private boolean windowEvent = false;
+    private EventType eventType = EventType.DEFAULT;
 
     public List<Attribute> getBeforeWindowData() {
         return beforeWindowData;
@@ -94,6 +93,15 @@ public class MetaStreamEvent implements MetaComplexEvent {
         if (outputData == null) {
             outputData = new ArrayList<Attribute>();
         }
+        if (!outputData.contains(attribute)) {
+            outputData.add(attribute);
+        }
+    }
+
+    public void addOutputDataAllowingDuplicate(Attribute attribute) {
+        if (outputData == null) {
+            outputData = new ArrayList<Attribute>();
+        }
         outputData.add(attribute);
     }
 
@@ -123,23 +131,22 @@ public class MetaStreamEvent implements MetaComplexEvent {
         return outputStreamDefinition;
     }
 
-    public boolean isTableEvent() {
-        return tableEvent;
+    public EventType getEventType() {
+        return eventType;
     }
 
-    public void setTableEvent(boolean tableEvent) {
-        this.tableEvent = tableEvent;
-    }
-
-    public boolean isWindowEvent() {
-        return windowEvent;
-    }
-
-    public void setWindowEvent(boolean windowEvent) {
-        this.windowEvent = windowEvent;
+    public void setEventType(EventType eventType) {
+        this.eventType = eventType;
     }
 
     public AbstractDefinition getLastInputDefinition() {
         return inputDefinitions.get(inputDefinitions.size() - 1);
+    }
+
+    /**
+     * Type of Meta Events
+     */
+    public enum EventType {
+        TABLE, WINDOW, AGGREGATE, DEFAULT
     }
 }

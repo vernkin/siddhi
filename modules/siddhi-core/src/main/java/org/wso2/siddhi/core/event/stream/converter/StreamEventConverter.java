@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -20,6 +20,8 @@ package org.wso2.siddhi.core.event.stream.converter;
 import org.wso2.siddhi.core.event.ComplexEvent;
 import org.wso2.siddhi.core.event.Event;
 import org.wso2.siddhi.core.event.stream.StreamEvent;
+
+import java.io.Serializable;
 
 /**
  * The converter that converts data of the events into StreamEvents
@@ -53,7 +55,8 @@ public interface StreamEventConverter {
 
     /**
      * Method to construct(change format) timeStamp and data from StreamEvent
-     *  @param timeStamp     timeStamp of the event
+     *
+     * @param timeStamp     timeStamp of the event
      * @param data          output data of the event
      * @param type          output type of the event
      * @param borrowedEvent Event that will be populated
@@ -63,7 +66,8 @@ public interface StreamEventConverter {
     /**
      * Element to hold information about event conversion
      */
-    class ConversionMapping {
+    class ConversionMapping implements Serializable {
+        private static final long serialVersionUID = 4986399180249934830L;
         private int fromPosition;               //position in StreamEvent/data[]
         private int[] toPosition = new int[2];  //new position in StreamEvent
 

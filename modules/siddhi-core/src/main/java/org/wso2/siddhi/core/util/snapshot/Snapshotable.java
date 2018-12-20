@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,6 +17,12 @@
  */
 package org.wso2.siddhi.core.util.snapshot;
 
+import java.util.Map;
+
+/**
+ * Parent interface which should be implemented by every processing elements of Siddhi event processing chain so
+ * that they can save the current state and poll for previous state in case of an issue.
+ */
 public interface Snapshotable {
 
     /**
@@ -25,7 +31,7 @@ public interface Snapshotable {
      *
      * @return stateful objects of the processing element as an array
      */
-    Object[] currentState();
+    Map<String, Object> currentState();
 
     /**
      * Used to restore serialized state of the processing element, for reconstructing
@@ -34,7 +40,7 @@ public interface Snapshotable {
      * @param state the stateful objects of the element as an array on
      *              the same order provided by currentState().
      */
-    void restoreState(Object[] state);
+    void restoreState(Map<String, Object> state);
 
     String getElementId();
 }

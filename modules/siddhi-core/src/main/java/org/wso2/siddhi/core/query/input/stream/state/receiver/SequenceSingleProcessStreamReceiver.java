@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,18 +18,27 @@
 
 package org.wso2.siddhi.core.query.input.stream.state.receiver;
 
+import org.wso2.siddhi.core.config.SiddhiAppContext;
 import org.wso2.siddhi.core.event.ComplexEvent;
 import org.wso2.siddhi.core.event.Event;
 import org.wso2.siddhi.core.query.input.SingleProcessStreamReceiver;
 import org.wso2.siddhi.core.query.input.stream.state.StateStreamRuntime;
 import org.wso2.siddhi.core.util.statistics.LatencyTracker;
 
+import java.util.List;
+
+/**
+ * {@link org.wso2.siddhi.core.stream.StreamJunction.Receiver} implementation to receive events into sequence queries
+ * with single stream.
+ */
 public class SequenceSingleProcessStreamReceiver extends SingleProcessStreamReceiver {
 
     private StateStreamRuntime stateStreamRuntime;
 
-    public SequenceSingleProcessStreamReceiver(String streamId, StateStreamRuntime stateStreamRuntime, String lockKey, LatencyTracker latencyTracker, String queryName) {
-        super(streamId, lockKey, latencyTracker, queryName);
+    public SequenceSingleProcessStreamReceiver(String streamId, StateStreamRuntime stateStreamRuntime,
+                                               String lockKey, LatencyTracker latencyTracker, String queryName,
+                                               SiddhiAppContext siddhiAppContext) {
+        super(streamId, lockKey, latencyTracker, queryName, siddhiAppContext);
         this.stateStreamRuntime = stateStreamRuntime;
     }
 
@@ -38,7 +47,8 @@ public class SequenceSingleProcessStreamReceiver extends SingleProcessStreamRece
     }
 
     public SequenceSingleProcessStreamReceiver clone(String key) {
-        return new SequenceSingleProcessStreamReceiver(streamId + key, null, key, latencyTracker, queryName);
+        return new SequenceSingleProcessStreamReceiver(streamId + key, null, key,
+                latencyTracker, queryName, siddhiAppContext);
     }
 
     protected void stabilizeStates() {
@@ -61,12 +71,12 @@ public class SequenceSingleProcessStreamReceiver extends SingleProcessStreamRece
     }
 
     @Override
-    public void receive(Event event, boolean endOfBatch) {
-        super.receive(event, endOfBatch);
+    public void receive(List<Event> events) {
+        super.receive(events);
     }
 
     @Override
-    public void receive(long timeStamp, Object[] data) {
-        super.receive(timeStamp, data);
+    public void receive(long timestamp, Object[] data) {
+        super.receive(timestamp, data);
     }
 }

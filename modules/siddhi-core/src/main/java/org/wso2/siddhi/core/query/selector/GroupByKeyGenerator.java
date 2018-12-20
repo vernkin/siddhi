@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,33 +17,37 @@
  */
 package org.wso2.siddhi.core.query.selector;
 
-import org.wso2.siddhi.core.config.ExecutionPlanContext;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
 import org.wso2.siddhi.core.event.ComplexEvent;
 import org.wso2.siddhi.core.event.MetaComplexEvent;
 import org.wso2.siddhi.core.executor.ExpressionExecutor;
 import org.wso2.siddhi.core.executor.VariableExpressionExecutor;
-import org.wso2.siddhi.core.table.EventTable;
+import org.wso2.siddhi.core.table.Table;
 import org.wso2.siddhi.core.util.SiddhiConstants;
 import org.wso2.siddhi.core.util.parser.ExpressionParser;
-import org.wso2.siddhi.query.api.expression.Variable;
+import org.wso2.siddhi.query.api.expression.Expression;
 
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Class to generate keys for GroupBy groups
+ */
 public class GroupByKeyGenerator {
 
-    private VariableExpressionExecutor[] groupByExecutors = null;
+    private ExpressionExecutor[] groupByExecutors = null;
 
-    public GroupByKeyGenerator(List<Variable> groupByList,
+    public GroupByKeyGenerator(List<Expression> groupByList,
                                MetaComplexEvent metaComplexEvent,
-                               Map<String, EventTable> eventTableMap,
+                               int currentState, Map<String, Table> tableMap,
                                List<VariableExpressionExecutor> executors,
-                               ExecutionPlanContext siddhiContext, String queryName) {
+                               SiddhiAppContext siddhiContext, String queryName) {
         if (!groupByList.isEmpty()) {
-            groupByExecutors = new VariableExpressionExecutor[groupByList.size()];
+            groupByExecutors = new ExpressionExecutor[groupByList.size()];
             for (int i = 0, expressionsSize = groupByList.size(); i < expressionsSize; i++) {
-                groupByExecutors[i] = (VariableExpressionExecutor) ExpressionParser.parseExpression(groupByList.get(i),
-                        metaComplexEvent, SiddhiConstants.UNKNOWN_STATE, eventTableMap, executors, siddhiContext, false, 0, queryName);
+                groupByExecutors[i] = ExpressionParser.parseExpression(
+                        groupByList.get(i), metaComplexEvent, currentState, tableMap, executors,
+                        siddhiContext, false, 0, queryName);
             }
         }
     }
@@ -54,11 +58,11 @@ public class GroupByKeyGenerator {
      * @param event complexEvent
      * @return GroupByKey
      */
-    protected String constructEventKey(ComplexEvent event) {
+    public String constructEventKey(ComplexEvent event) {
         if (groupByExecutors != null) {
             StringBuilder sb = new StringBuilder();
             for (ExpressionExecutor executor : groupByExecutors) {
-                sb.append(executor.execute(event)).append("::");
+                sb.append(executor.execute(event)).append(SiddhiConstants.KEY_DELIMITER);
             }
             return sb.toString();
         } else {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -20,9 +20,15 @@ package org.wso2.siddhi.query.api.execution.partition;
 
 import org.wso2.siddhi.query.api.expression.Expression;
 
+/**
+ * Partition type supporting values
+ */
 public class ValuePartitionType implements PartitionType {
+    private static final long serialVersionUID = 1L;
     private Expression expression;
     private String streamId;
+    private int[] queryContextStartIndex;
+    private int[] queryContextEndIndex;
 
     public ValuePartitionType(String streamId, Expression expression) {
         this.streamId = streamId;
@@ -47,13 +53,21 @@ public class ValuePartitionType implements PartitionType {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         ValuePartitionType that = (ValuePartitionType) o;
 
-        if (!expression.equals(that.expression)) return false;
-        if (!streamId.equals(that.streamId)) return false;
+        if (!expression.equals(that.expression)) {
+            return false;
+        }
+        if (!streamId.equals(that.streamId)) {
+            return false;
+        }
 
         return true;
     }
@@ -63,5 +77,25 @@ public class ValuePartitionType implements PartitionType {
         int result = expression.hashCode();
         result = 31 * result + streamId.hashCode();
         return result;
+    }
+
+    @Override
+    public int[] getQueryContextStartIndex() {
+        return queryContextStartIndex;
+    }
+
+    @Override
+    public void setQueryContextStartIndex(int[] lineAndColumn) {
+        queryContextStartIndex = lineAndColumn;
+    }
+
+    @Override
+    public int[] getQueryContextEndIndex() {
+        return queryContextEndIndex;
+    }
+
+    @Override
+    public void setQueryContextEndIndex(int[] lineAndColumn) {
+        queryContextEndIndex = lineAndColumn;
     }
 }

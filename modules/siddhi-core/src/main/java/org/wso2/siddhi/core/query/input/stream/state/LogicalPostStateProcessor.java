@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -28,7 +28,7 @@ import org.wso2.siddhi.query.api.execution.query.input.state.LogicalStateElement
  */
 public class LogicalPostStateProcessor extends StreamPostStateProcessor {
 
-    private LogicalStateElement.Type type;
+    protected LogicalStateElement.Type type;
     private LogicalPreStateProcessor partnerPreStateProcessor;
     private LogicalPostStateProcessor partnerPostStateProcessor;
 
@@ -59,7 +59,15 @@ public class LogicalPostStateProcessor extends StreamPostStateProcessor {
     protected void process(StateEvent stateEvent, ComplexEventChunk complexEventChunk) {
         switch (type) {
             case AND:
-                if (stateEvent.getStreamEvent(partnerPreStateProcessor.getStateId()) != null) {
+                boolean process = false;
+                if (partnerPreStateProcessor instanceof AbsentLogicalPreStateProcessor) {
+                    process = ((AbsentLogicalPreStateProcessor) partnerPreStateProcessor).partnerCanProceed(stateEvent);
+                } else if (stateEvent.getStreamEvent(partnerPreStateProcessor.getStateId()) != null) {
+                    // Event received from a present processor
+                    process = true;
+                }
+
+                if (process) {
                     super.process(stateEvent, complexEventChunk);
                 } else {
                     thisStatePreProcessor.stateChanged();
@@ -67,8 +75,13 @@ public class LogicalPostStateProcessor extends StreamPostStateProcessor {
                 break;
             case OR:
                 super.process(stateEvent, complexEventChunk);
+                if (partnerPostStateProcessor.nextProcessor != null && thisStatePreProcessor.thisLastProcessor ==
+                        partnerPostStateProcessor) {
+                    // 'from A or B select' scenario require this
+                    partnerPostStateProcessor.isEventReturned = true;
+                }
                 break;
-            case NOT:
+            default:
                 break;
         }
     }
@@ -119,12 +132,12 @@ public class LogicalPostStateProcessor extends StreamPostStateProcessor {
     }
 
     public void setNextStatePreProcessor(PreStateProcessor preStateProcessor) {
-        this.nextStatePerProcessor = preStateProcessor;
-        partnerPostStateProcessor.nextStatePerProcessor = preStateProcessor;
+        this.nextStatePreProcessor = preStateProcessor;
+        partnerPostStateProcessor.nextStatePreProcessor = preStateProcessor;
     }
 
-    public void setNextEveryStatePerProcessor(PreStateProcessor nextEveryStatePerProcessor) {
-        this.nextEveryStatePerProcessor = nextEveryStatePerProcessor;
-        partnerPostStateProcessor.nextEveryStatePerProcessor = nextEveryStatePerProcessor;
+    public void setNextEveryStatePreProcessor(PreStateProcessor nextEveryStatePreProcessor) {
+        this.nextEveryStatePreProcessor = nextEveryStatePreProcessor;
+        partnerPostStateProcessor.nextEveryStatePreProcessor = nextEveryStatePreProcessor;
     }
 }

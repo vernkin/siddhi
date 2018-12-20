@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,19 +18,24 @@
 
 package org.wso2.siddhi.query.test;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.testng.AssertJUnit;
+import org.testng.annotations.Test;
 import org.wso2.siddhi.query.api.execution.partition.Partition;
 import org.wso2.siddhi.query.api.expression.Expression;
 import org.wso2.siddhi.query.api.expression.condition.Compare;
 import org.wso2.siddhi.query.compiler.SiddhiCompiler;
 
+/**
+ * Partition testing testcase
+ */
 public class DefinePartitionTestCase {
     @Test
-    public void Test1() {
-        Partition partition = SiddhiCompiler.parsePartition("partition with (200>volume as 'LessValue' or 200<=volume as 'HighValue' of cseEventStream) begin from cseEventStream select sum(volume) as sumvolume insert into StockStream ;  end ");
+    public void test1() {
+        Partition partition = SiddhiCompiler.parsePartition("partition with (200>volume as 'LessValue' or 200<=volume" +
+                " as 'HighValue' of cseEventStream) begin from cseEventStream select sum(volume) as sumvolume insert " +
+                "into StockStream ;  end ");
 
-        Assert.assertEquals(Partition.partition().
+        AssertJUnit.assertEquals(Partition.partition().
                         with("cseEventStream",
                                 Partition.range("LessValue",
                                         Expression.compare(
@@ -48,10 +53,11 @@ public class DefinePartitionTestCase {
     }
 
     @Test
-    public void Test2() {
-        Partition partition = SiddhiCompiler.parsePartition("partition with (symbol of cseEventStream) begin from cseEventStream select sum(volume) as sumvolume insert into StockStream ;  end ");
+    public void test2() {
+        Partition partition = SiddhiCompiler.parsePartition("partition with (symbol of cseEventStream) begin from " +
+                "cseEventStream select sum(volume) as sumvolume insert into StockStream ;  end ");
 
-        Assert.assertEquals(Partition.partition().
+        AssertJUnit.assertEquals(Partition.partition().
                         with("cseEventStream", Expression.variable("symbol")).toString().split("queryList")[0],
                 partition.toString().split("queryList")[0]);
     }

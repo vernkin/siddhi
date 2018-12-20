@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,7 +18,7 @@
 
 package org.wso2.siddhi.sample;
 
-import org.wso2.siddhi.core.ExecutionPlanRuntime;
+import org.wso2.siddhi.core.SiddhiAppRuntime;
 import org.wso2.siddhi.core.SiddhiManager;
 import org.wso2.siddhi.core.event.Event;
 import org.wso2.siddhi.core.query.output.callback.QueryCallback;
@@ -31,8 +31,9 @@ public class FunctionSample {
         // Creating Siddhi Manager
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        String executionPlan = "" +
-                "define stream cseEventStream (symbol string, price1 float, price2 float, volume long , quantity int);" +
+        String siddhiApp = "" +
+                "define stream cseEventStream (symbol string, price1 float, price2 float, volume long , quantity int)" +
+                ";" +
                 "" +
                 "@info(name = 'query1') " +
                 "from cseEventStream " +
@@ -40,30 +41,30 @@ public class FunctionSample {
                 "insert into outputStream;";
 
         //Generating runtime
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(executionPlan);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiApp);
 
         //Adding callback to retrieve output events from query
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
             }
         });
 
         //Retrieving InputHandler to push events into Siddhi
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("cseEventStream");
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("cseEventStream");
 
         //Starting event processing
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         //Sending events to Siddhi
-        inputHandler.send(new Object[]{"WSO2", 50f, 60f, 60l, 6});
-        inputHandler.send(new Object[]{"WSO2", 70f, null, 40l, 10});
-        inputHandler.send(new Object[]{"WSO2", null, 44f, 200l, 56});
+        inputHandler.send(new Object[]{"WSO2", 50f, 60f, 60L, 6});
+        inputHandler.send(new Object[]{"WSO2", 70f, null, 40L, 10});
+        inputHandler.send(new Object[]{"WSO2", null, 44f, 200L, 56});
         Thread.sleep(100);
 
         //Shutting down the runtime
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
 
         //Shutting down Siddhi
         siddhiManager.shutdown();

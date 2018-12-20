@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -55,8 +55,8 @@ public class CountPostStateProcessor extends StreamPostStateProcessor {
         if (streamEvents >= minCount) {
 
             if (thisStatePreProcessor.stateType == StateInputStream.Type.SEQUENCE) {
-                if (nextStatePerProcessor != null) {
-                    nextStatePerProcessor.addState(stateEvent);
+                if (nextStatePreProcessor != null) {
+                    nextStatePreProcessor.addState(stateEvent);
                 }
                 if (streamEvents != maxCount) {
                     thisStatePreProcessor.addState(stateEvent);
@@ -76,16 +76,16 @@ public class CountPostStateProcessor extends StreamPostStateProcessor {
             complexEventChunk.reset();
             this.isEventReturned = true;
         }
-        if (nextStatePerProcessor != null) {
-            nextStatePerProcessor.addState(stateEvent);
+        if (nextStatePreProcessor != null) {
+            nextStatePreProcessor.addState(stateEvent);
         }
-        if (nextEveryStatePerProcessor != null) {
-            nextEveryStatePerProcessor.addEveryState(stateEvent);
+        if (nextEveryStatePreProcessor != null) {
+            nextEveryStatePreProcessor.addEveryState(stateEvent);
         }
     }
 
     public void setNextStatePreProcessor(PreStateProcessor preStateProcessor) {
-        this.nextStatePerProcessor = preStateProcessor;
+        this.nextStatePreProcessor = preStateProcessor;
         if (thisStatePreProcessor.isStartState &&
                 thisStatePreProcessor.stateType == StateInputStream.Type.SEQUENCE &&
                 minCount == 0) {

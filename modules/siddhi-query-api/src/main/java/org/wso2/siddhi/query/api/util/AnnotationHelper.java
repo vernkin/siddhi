@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -25,11 +25,11 @@ import org.wso2.siddhi.query.api.exception.DuplicateAnnotationException;
 import java.util.List;
 
 /**
- * Created by suho on 8/8/14.
+ * Helper class to extract annotations
  */
 public class AnnotationHelper {
 
-
+    // TODO: 1/28/17 update helper methods to work with nested annotations.
     public static Annotation getAnnotation(String annotationName, List<Annotation> annotationList) {
         Annotation annotation = null;
         for (Annotation aAnnotation : annotationList) {
@@ -37,14 +37,17 @@ public class AnnotationHelper {
                 if (annotation == null) {
                     annotation = aAnnotation;
                 } else {
-                    throw new DuplicateAnnotationException("Annotation @" + annotationName + " is defined twice");
+                    throw new DuplicateAnnotationException("Annotation @" + annotationName + " is defined twice",
+                            aAnnotation.getQueryContextStartIndex(), aAnnotation.getQueryContextEndIndex());
                 }
             }
         }
         return annotation;
     }
 
-    public static Element getAnnotationElement(String annotationName, String elementName, List<Annotation> annotationList) {
+    // TODO: 1/28/17 update helper methods to work with nested annotations.
+    public static Element getAnnotationElement(String annotationName, String elementName,
+                                               List<Annotation> annotationList) {
         Annotation annotation = getAnnotation(annotationName, annotationList);
         if (annotation != null) {
             Element element = null;
@@ -55,7 +58,9 @@ public class AnnotationHelper {
                         if (element == null) {
                             element = aElement;
                         } else {
-                            throw new DuplicateAnnotationException("Annotation element @" + annotationName + "(...) is defined twice");
+                            throw new DuplicateAnnotationException("Annotation element @" + annotationName + "(...) " +
+                                    "is defined twice", aElement.getQueryContextStartIndex(),
+                                    aElement.getQueryContextEndIndex());
                         }
                     }
                 } else {
@@ -64,7 +69,9 @@ public class AnnotationHelper {
                         if (element == null) {
                             element = aElement;
                         } else {
-                            throw new DuplicateAnnotationException("Annotation element @" + annotationName + "(" + elementName + "=...) is defined twice");
+                            throw new DuplicateAnnotationException("Annotation element @" + annotationName + "(" +
+                                    elementName + "=...) is defined twice", aElement.getQueryContextStartIndex(),
+                                    aElement.getQueryContextEndIndex());
                         }
                     }
                 }

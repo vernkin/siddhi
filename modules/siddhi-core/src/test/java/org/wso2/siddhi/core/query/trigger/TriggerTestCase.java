@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,28 +18,28 @@
 
 package org.wso2.siddhi.core.query.trigger;
 
-import junit.framework.Assert;
 import org.apache.log4j.Logger;
-import org.junit.Before;
-import org.junit.Test;
-import org.wso2.siddhi.core.ExecutionPlanRuntime;
+import org.testng.AssertJUnit;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+import org.wso2.siddhi.core.SiddhiAppRuntime;
 import org.wso2.siddhi.core.SiddhiManager;
 import org.wso2.siddhi.core.event.Event;
 import org.wso2.siddhi.core.stream.output.StreamCallback;
 import org.wso2.siddhi.core.util.EventPrinter;
-import org.wso2.siddhi.query.api.ExecutionPlan;
+import org.wso2.siddhi.query.api.SiddhiApp;
 import org.wso2.siddhi.query.api.definition.TriggerDefinition;
 import org.wso2.siddhi.query.api.exception.DuplicateDefinitionException;
-import org.wso2.siddhi.query.api.exception.ExecutionPlanValidationException;
+import org.wso2.siddhi.query.api.exception.SiddhiAppValidationException;
 import org.wso2.siddhi.query.api.expression.Expression;
 
 public class TriggerTestCase {
-    static final Logger log = Logger.getLogger(TriggerTestCase.class);
+    private static final Logger log = Logger.getLogger(TriggerTestCase.class);
     private volatile int count;
     private volatile long lastTimeStamp;
     private volatile boolean eventArrived;
 
-    @Before
+    @BeforeMethod
     public void init() {
         count = 0;
         lastTimeStamp = 0;
@@ -52,30 +52,32 @@ public class TriggerTestCase {
 
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        TriggerDefinition triggerDefinition = TriggerDefinition.id("cseEventStream").atEvery(Expression.Time.milliSec(500));
+        TriggerDefinition triggerDefinition = TriggerDefinition.id("cseEventStream").atEvery(Expression.Time.milliSec
+                (500));
 
-        ExecutionPlan executionPlan = new ExecutionPlan("ep1");
-        executionPlan.defineTrigger(triggerDefinition);
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(executionPlan);
-        executionPlanRuntime.shutdown();
+        SiddhiApp siddhiApp = new SiddhiApp("ep1");
+        siddhiApp.defineTrigger(triggerDefinition);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiApp);
+        siddhiAppRuntime.shutdown();
     }
 
-    @Test(expected = ExecutionPlanValidationException.class)
+    @Test(expectedExceptions = SiddhiAppValidationException.class)
     public void testQuery2() throws InterruptedException {
         log.info("testTrigger2 - OUT 0");
 
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        TriggerDefinition triggerDefinition = TriggerDefinition.id("cseEventStream").atEvery(Expression.Time.milliSec(500)).at("start");
+        TriggerDefinition triggerDefinition = TriggerDefinition.id("cseEventStream").atEvery(Expression.Time.milliSec
+                (500)).at("start");
 
-        ExecutionPlan executionPlan = new ExecutionPlan("ep1");
-        executionPlan.defineTrigger(triggerDefinition);
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(executionPlan);
+        SiddhiApp siddhiApp = new SiddhiApp("ep1");
+        siddhiApp.defineTrigger(triggerDefinition);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiApp);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
-    @Test(expected = DuplicateDefinitionException.class)
+    @Test(expectedExceptions = DuplicateDefinitionException.class)
     public void testQuery3() throws InterruptedException {
         log.info("testTrigger3 - OUT 0");
 
@@ -85,10 +87,10 @@ public class TriggerTestCase {
                 "define stream StockStream (symbol string, price float, volume long); " +
                 "define trigger StockStream at 'start' ";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams);
 
-        executionPlanRuntime.start();
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.start();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -101,10 +103,10 @@ public class TriggerTestCase {
                 "define stream StockStream (triggered_time long); " +
                 "define trigger StockStream at 'start' ";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams);
 
-        executionPlanRuntime.start();
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.start();
+        siddhiAppRuntime.shutdown();
     }
 
 
@@ -118,9 +120,9 @@ public class TriggerTestCase {
                 "define stream cseEventStream (symbol string, price float, volume long);" +
                 "define trigger triggerStream at 'start';";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(plan);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(plan);
 
-        executionPlanRuntime.addCallback("triggerStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("triggerStream", new StreamCallback() {
 
             @Override
             public void receive(Event[] events) {
@@ -130,12 +132,12 @@ public class TriggerTestCase {
             }
         });
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         Thread.sleep(100);
-        Assert.assertEquals(1, count);
-        Assert.assertEquals(true, eventArrived);
-        executionPlanRuntime.shutdown();
+        AssertJUnit.assertEquals(1, count);
+        AssertJUnit.assertEquals(true, eventArrived);
+        siddhiAppRuntime.shutdown();
 
     }
 
@@ -149,9 +151,9 @@ public class TriggerTestCase {
                 "define stream cseEventStream (symbol string, price float, volume long);" +
                 "define trigger triggerStream at every 500 milliseconds ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(plan);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(plan);
 
-        executionPlanRuntime.addCallback("triggerStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("triggerStream", new StreamCallback() {
 
             @Override
             public void receive(Event[] events) {
@@ -161,12 +163,12 @@ public class TriggerTestCase {
             }
         });
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         Thread.sleep(1100);
-        Assert.assertEquals(2, count);
-        Assert.assertEquals(true, eventArrived);
-        executionPlanRuntime.shutdown();
+        AssertJUnit.assertEquals(2, count);
+        AssertJUnit.assertEquals(true, eventArrived);
+        siddhiAppRuntime.shutdown();
 
     }
 
@@ -180,19 +182,19 @@ public class TriggerTestCase {
                 "define stream cseEventStream (symbol string, price float, volume long);" +
                 "define trigger triggerStream at '*/1 * * * * ?' ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(plan);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(plan);
 
-        executionPlanRuntime.addCallback("triggerStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("triggerStream", new StreamCallback() {
 
             @Override
             public void receive(Event[] events) {
                 EventPrinter.print(events);
-                for(Event event:events){
-                    long timestamp  = event.getTimestamp();
+                for (Event event : events) {
+                    long timestamp = event.getTimestamp();
                     count++;
-                    if(count>1){
-                        float triggerTimeDiff = timestamp/1000 - lastTimeStamp/ 1000;
-                        Assert.assertEquals(1.0f,triggerTimeDiff);
+                    if (count > 1) {
+                        float triggerTimeDiff = timestamp / 1000 - lastTimeStamp / 1000;
+                        AssertJUnit.assertTrue(1.0f == triggerTimeDiff);
                     }
                     lastTimeStamp = timestamp;
                 }
@@ -200,11 +202,11 @@ public class TriggerTestCase {
             }
         });
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         Thread.sleep(1000);
-        executionPlanRuntime.shutdown();
-        Assert.assertEquals(true, eventArrived);
+        siddhiAppRuntime.shutdown();
+        AssertJUnit.assertEquals(true, eventArrived);
 
     }
 

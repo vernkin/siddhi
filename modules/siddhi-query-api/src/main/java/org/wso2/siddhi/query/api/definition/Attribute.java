@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,16 +17,18 @@
  */
 package org.wso2.siddhi.query.api.definition;
 
-import java.io.Serializable;
+import org.wso2.siddhi.query.api.SiddhiElement;
 
-public class Attribute implements Serializable {
+/**
+ * Attributes of the Siddhi Definitions
+ */
+public class Attribute implements SiddhiElement {
 
+    private static final long serialVersionUID = 1L;
     private String name;
     private Type type;
-
-    public enum Type {
-        STRING, INT, LONG, FLOAT, DOUBLE, BOOL, OBJECT
-    }
+    private int[] queryContextStartIndex;
+    private int[] queryContextEndIndex;
 
     public Attribute(String name, Type type) {
         this.name = name;
@@ -51,13 +53,21 @@ public class Attribute implements Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         Attribute attribute = (Attribute) o;
 
-        if (name != null ? !name.equals(attribute.name) : attribute.name != null) return false;
-        if (type != attribute.type) return false;
+        if (name != null ? !name.equals(attribute.name) : attribute.name != null) {
+            return false;
+        }
+        if (type != attribute.type) {
+            return false;
+        }
 
         return true;
     }
@@ -67,5 +77,38 @@ public class Attribute implements Serializable {
         int result = name != null ? name.hashCode() : 0;
         result = 31 * result + (type != null ? type.hashCode() : 0);
         return result;
+    }
+
+    @Override
+    public int[] getQueryContextStartIndex() {
+        return queryContextStartIndex;
+    }
+
+    @Override
+    public void setQueryContextStartIndex(int[] lineAndColumn) {
+        queryContextStartIndex = lineAndColumn;
+    }
+
+    @Override
+    public int[] getQueryContextEndIndex() {
+        return queryContextEndIndex;
+    }
+
+    @Override
+    public void setQueryContextEndIndex(int[] lineAndColumn) {
+        queryContextEndIndex = lineAndColumn;
+    }
+
+    /**
+     * Different Type of Attribute Types
+     */
+    public enum Type {
+        STRING,
+        INT,
+        LONG,
+        FLOAT,
+        DOUBLE,
+        BOOL,
+        OBJECT
     }
 }

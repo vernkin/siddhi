@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,11 +18,11 @@
 
 package org.wso2.siddhi.core.query.window;
 
-import junit.framework.Assert;
 import org.apache.log4j.Logger;
-import org.junit.Before;
-import org.junit.Test;
-import org.wso2.siddhi.core.ExecutionPlanRuntime;
+import org.testng.AssertJUnit;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+import org.wso2.siddhi.core.SiddhiAppRuntime;
 import org.wso2.siddhi.core.SiddhiManager;
 import org.wso2.siddhi.core.event.Event;
 import org.wso2.siddhi.core.query.output.callback.QueryCallback;
@@ -35,7 +35,7 @@ public class ExternalTimeWindowTestCase {
     private int removeEventCount;
     private boolean eventArrived;
 
-    @Before
+    @BeforeMethod
     public void init() {
         inEventCount = 0;
         removeEventCount = 0;
@@ -49,19 +49,19 @@ public class ExternalTimeWindowTestCase {
         SiddhiManager siddhiManager = new SiddhiManager();
 
         String cseEventStream = "" +
-                "define stream LoginEvents (timeStamp long, ip string) ;";
+                "define stream LoginEvents (timestamp long, ip string) ;";
         String query = "" +
                 "@info(name = 'query1') " +
-                "from LoginEvents#window.externalTime(timeStamp,5 sec) " +
-                "select timeStamp, ip  " +
+                "from LoginEvents#window.externalTime(timestamp,5 sec) " +
+                "select timestamp, ip  " +
                 "insert all events into uniqueIps ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(cseEventStream + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(cseEventStream + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     inEventCount = inEventCount + inEvents.length;
                 }
@@ -74,22 +74,21 @@ public class ExternalTimeWindowTestCase {
         });
 
 
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("LoginEvents");
+        siddhiAppRuntime.start();
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("LoginEvents");
-        executionPlanRuntime.start();
-
-        inputHandler.send(new Object[]{1366335804341l, "192.10.1.3"});
-        inputHandler.send(new Object[]{1366335804342l, "192.10.1.4"});
-        inputHandler.send(new Object[]{1366335814341l, "192.10.1.5"});
-        inputHandler.send(new Object[]{1366335814345l, "192.10.1.6"});
-        inputHandler.send(new Object[]{1366335824341l, "192.10.1.7"});
+        inputHandler.send(new Object[]{1366335804341L, "192.10.1.3"});
+        inputHandler.send(new Object[]{1366335804342L, "192.10.1.4"});
+        inputHandler.send(new Object[]{1366335814341L, "192.10.1.5"});
+        inputHandler.send(new Object[]{1366335814345L, "192.10.1.6"});
+        inputHandler.send(new Object[]{1366335824341L, "192.10.1.7"});
 
         Thread.sleep(1000);
 
-        Assert.assertEquals("Event arrived", true, eventArrived);
-        Assert.assertEquals("In Events ", 5, inEventCount);
-        Assert.assertEquals("Remove Events ", 4, removeEventCount);
-        executionPlanRuntime.shutdown();
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("In Events ", 5, inEventCount);
+        AssertJUnit.assertEquals("Remove Events ", 4, removeEventCount);
+        siddhiAppRuntime.shutdown();
 
 
     }

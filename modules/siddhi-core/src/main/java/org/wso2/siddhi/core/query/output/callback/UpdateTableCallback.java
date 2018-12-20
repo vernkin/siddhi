@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,48 +18,57 @@
 
 package org.wso2.siddhi.core.query.output.callback;
 
+import org.wso2.siddhi.core.debugger.SiddhiDebugger;
 import org.wso2.siddhi.core.event.ComplexEventChunk;
 import org.wso2.siddhi.core.event.state.StateEvent;
 import org.wso2.siddhi.core.event.state.StateEventPool;
 import org.wso2.siddhi.core.event.stream.StreamEventPool;
 import org.wso2.siddhi.core.event.stream.converter.StreamEventConverter;
-import org.wso2.siddhi.core.table.EventTable;
-import org.wso2.siddhi.core.util.collection.UpdateAttributeMapper;
-import org.wso2.siddhi.core.util.collection.operator.Operator;
-import org.wso2.siddhi.core.util.parser.MatcherParser;
-import org.wso2.siddhi.query.api.definition.AbstractDefinition;
+import org.wso2.siddhi.core.table.CompiledUpdateSet;
+import org.wso2.siddhi.core.table.Table;
+import org.wso2.siddhi.core.util.collection.operator.CompiledCondition;
 
+/**
+ * Implementation of {@link OutputCallback} to receive processed Siddhi events from
+ * Siddhi queries and update data into a {@link Table}
+ * based on received events and condition.
+ */
 public class UpdateTableCallback extends OutputCallback {
     private final int matchingStreamIndex;
-    private final UpdateAttributeMapper[] updateAttributeMappers;
-    private EventTable eventTable;
-    private Operator operator;
+    private Table table;
+    private CompiledCondition compiledCondition;
+    private CompiledUpdateSet compiledUpdateSet;
     private boolean convertToStreamEvent;
     private StateEventPool stateEventPool;
     private StreamEventPool streamEventPool;
-    private StreamEventConverter streamEventConvertor;
+    private StreamEventConverter streamEventConverter;
 
-    public UpdateTableCallback(EventTable eventTable, Operator operator, AbstractDefinition updatingStreamDefinition,
+    public UpdateTableCallback(Table table, CompiledCondition compiledCondition, CompiledUpdateSet compiledUpdateSet,
                                int matchingStreamIndex, boolean convertToStreamEvent, StateEventPool stateEventPool,
-                               StreamEventPool streamEventPool, StreamEventConverter streamEventConvertor) {
-        this.eventTable = eventTable;
-        this.operator = operator;
+                               StreamEventPool streamEventPool, StreamEventConverter streamEventConverter,
+                               String queryName) {
+        super(queryName);
+        this.table = table;
+        this.compiledCondition = compiledCondition;
+        this.compiledUpdateSet = compiledUpdateSet;
         this.matchingStreamIndex = matchingStreamIndex;
         this.convertToStreamEvent = convertToStreamEvent;
         this.stateEventPool = stateEventPool;
         this.streamEventPool = streamEventPool;
-        this.streamEventConvertor = streamEventConvertor;
-        this.updateAttributeMappers = MatcherParser.constructUpdateAttributeMapper(eventTable.getTableDefinition(),
-                updatingStreamDefinition.getAttributeList(), matchingStreamIndex);
+        this.streamEventConverter = streamEventConverter;
     }
 
     @Override
-    public synchronized void send(ComplexEventChunk updatingEventChunk) {
+    public synchronized void send(ComplexEventChunk updatingEventChunk, int noOfEvents) {
+        if (getSiddhiDebugger() != null) {
+            getSiddhiDebugger()
+                    .checkBreakPoint(getQueryName(), SiddhiDebugger.QueryTerminal.OUT, updatingEventChunk.getFirst());
+        }
         updatingEventChunk.reset();
         if (updatingEventChunk.hasNext()) {
             ComplexEventChunk<StateEvent> updatingStateEventChunk = constructMatchingStateEventChunk(updatingEventChunk,
-                    convertToStreamEvent, stateEventPool, matchingStreamIndex, streamEventPool, streamEventConvertor);
-            eventTable.update(updatingStateEventChunk, operator, updateAttributeMappers);
+                    convertToStreamEvent, stateEventPool, matchingStreamIndex, streamEventPool, streamEventConverter);
+            table.updateEvents(updatingStateEventChunk, compiledCondition, compiledUpdateSet, noOfEvents);
         }
     }
 

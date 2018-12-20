@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -20,11 +20,16 @@ package org.wso2.siddhi.query.api.execution.query.input.state;
 import org.wso2.siddhi.query.api.execution.query.input.stream.BasicSingleInputStream;
 import org.wso2.siddhi.query.api.expression.constant.TimeConstant;
 
-
+/**
+ * State element containing the event stream
+ */
 public class StreamStateElement implements StateElement {
 
+    private static final long serialVersionUID = 1L;
     private final BasicSingleInputStream basicSingleInputStream;
     private TimeConstant within;
+    private int[] queryContextStartIndex;
+    private int[] queryContextEndIndex;
 
     public StreamStateElement(BasicSingleInputStream basicSingleInputStream, TimeConstant within) {
 
@@ -60,14 +65,22 @@ public class StreamStateElement implements StateElement {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof StreamStateElement)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof StreamStateElement)) {
+            return false;
+        }
 
         StreamStateElement that = (StreamStateElement) o;
 
-        if (basicSingleInputStream != null ? !basicSingleInputStream.equals(that.basicSingleInputStream) : that.basicSingleInputStream != null)
+        if (basicSingleInputStream != null ? !basicSingleInputStream.equals(that.basicSingleInputStream) : that
+                .basicSingleInputStream != null) {
             return false;
-        if (within != null ? !within.equals(that.within) : that.within != null) return false;
+        }
+        if (within != null ? !within.equals(that.within) : that.within != null) {
+            return false;
+        }
 
         return true;
     }
@@ -77,5 +90,25 @@ public class StreamStateElement implements StateElement {
         int result = basicSingleInputStream != null ? basicSingleInputStream.hashCode() : 0;
         result = 31 * result + (within != null ? within.hashCode() : 0);
         return result;
+    }
+
+    @Override
+    public int[] getQueryContextStartIndex() {
+        return queryContextStartIndex;
+    }
+
+    @Override
+    public void setQueryContextStartIndex(int[] lineAndColumn) {
+        queryContextStartIndex = lineAndColumn;
+    }
+
+    @Override
+    public int[] getQueryContextEndIndex() {
+        return queryContextEndIndex;
+    }
+
+    @Override
+    public void setQueryContextEndIndex(int[] lineAndColumn) {
+        queryContextEndIndex = lineAndColumn;
     }
 }

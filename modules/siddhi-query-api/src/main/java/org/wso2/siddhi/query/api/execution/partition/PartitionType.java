@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,11 +18,12 @@
 
 package org.wso2.siddhi.query.api.execution.partition;
 
+import org.wso2.siddhi.query.api.SiddhiElement;
+
 /**
- * Created by suho on 7/3/14.
+ * Type of Siddhi partition
  */
-public interface PartitionType {
+public interface PartitionType extends SiddhiElement {
 
-    public String getStreamId();
-
+    String getStreamId();
 }

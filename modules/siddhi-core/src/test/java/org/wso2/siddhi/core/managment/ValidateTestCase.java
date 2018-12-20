@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -19,19 +19,19 @@
 package org.wso2.siddhi.core.managment;
 
 import org.apache.log4j.Logger;
-import org.junit.Before;
-import org.junit.Test;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
 import org.wso2.siddhi.core.SiddhiManager;
-import org.wso2.siddhi.query.api.exception.ExecutionPlanValidationException;
+import org.wso2.siddhi.core.exception.SiddhiAppCreationException;
 
 public class ValidateTestCase {
-    static final Logger log = Logger.getLogger(ValidateTestCase.class);
+    private static final Logger log = Logger.getLogger(ValidateTestCase.class);
     private int count;
     private boolean eventArrived;
     private int inEventCount;
     private int removeEventCount;
 
-    @Before
+    @BeforeMethod
     public void init() {
         count = 0;
         inEventCount = 0;
@@ -41,12 +41,12 @@ public class ValidateTestCase {
 
 
     @Test
-    public void ValidateTest1() throws InterruptedException {
+    public void validateTest1() throws InterruptedException {
         log.info("validate test1");
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        String executionPlan = "" +
-                "@Plan:name('validateTest') " +
+        String siddhiApp = "" +
+                "@app:name('validateTest') " +
                 "" +
                 "define stream cseEventStream (symbol string, price float, volume long);" +
                 "" +
@@ -55,18 +55,18 @@ public class ValidateTestCase {
                 "select symbol, price " +
                 "insert into outputStream;";
 
-        siddhiManager.validateExecutionPlan(executionPlan);
+        siddhiManager.validateSiddhiApp(siddhiApp);
 
     }
 
 
-    @Test(expected = ExecutionPlanValidationException.class)
-    public void ValidateTest2() throws InterruptedException {
+    @Test(expectedExceptions = SiddhiAppCreationException.class)
+    public void validateTest2() throws InterruptedException {
         log.info("validate test2");
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        String executionPlan = "" +
-                "@Plan:name('validateTest') " +
+        String siddhiApp = "" +
+                "@app:name('validateTest') " +
                 "" +
                 "define stream cseEventStream (symbol string, price float, volume long);" +
                 "" +
@@ -76,7 +76,7 @@ public class ValidateTestCase {
                 "insert into outputStream;";
 
 
-        siddhiManager.validateExecutionPlan(executionPlan);
+        siddhiManager.validateSiddhiApp(siddhiApp);
 
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,24 +17,24 @@
  */
 package org.wso2.siddhi.core.query.function;
 
-import junit.framework.Assert;
 import org.apache.log4j.Logger;
-import org.junit.Before;
-import org.junit.Test;
-import org.wso2.siddhi.core.ExecutionPlanRuntime;
+import org.testng.AssertJUnit;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+import org.wso2.siddhi.core.SiddhiAppRuntime;
 import org.wso2.siddhi.core.SiddhiManager;
 import org.wso2.siddhi.core.event.Event;
-import org.wso2.siddhi.query.api.exception.ExecutionPlanValidationException;
+import org.wso2.siddhi.core.exception.SiddhiAppCreationException;
 import org.wso2.siddhi.core.query.output.callback.QueryCallback;
 import org.wso2.siddhi.core.stream.input.InputHandler;
 import org.wso2.siddhi.core.util.EventPrinter;
 
 public class IfThenElseFunctionTestCase {
-    static final Logger log = Logger.getLogger(IfThenElseFunctionTestCase.class);
+    private static final Logger log = Logger.getLogger(IfThenElseFunctionTestCase.class);
 
     private int count;
 
-    @Before
+    @BeforeMethod
     public void init() {
         count = 0;
     }
@@ -52,23 +52,23 @@ public class IfThenElseFunctionTestCase {
                 "select sensorValue, ifThenElse(sensorValue>35,'High','Low') as status " +
                 "insert into outputStream;");
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(sensorEventStream + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(sensorEventStream + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 for (Event inEvent : inEvents) {
                     count++;
-                    Assert.assertTrue(inEvent.getData(0) instanceof Double);
-                    Assert.assertTrue(inEvent.getData(1) instanceof String);
+                    AssertJUnit.assertTrue(inEvent.getData(0) instanceof Double);
+                    AssertJUnit.assertTrue(inEvent.getData(1) instanceof String);
                     if (count == 1) {
-                        Assert.assertEquals(50.4, inEvent.getData(0));
-                        Assert.assertEquals("High", inEvent.getData(1));
+                        AssertJUnit.assertEquals(50.4, inEvent.getData(0));
+                        AssertJUnit.assertEquals("High", inEvent.getData(1));
                     }
                     if (count == 2) {
-                        Assert.assertEquals(20.4, inEvent.getData(0));
-                        Assert.assertEquals("Low", inEvent.getData(1));
+                        AssertJUnit.assertEquals(20.4, inEvent.getData(0));
+                        AssertJUnit.assertEquals("Low", inEvent.getData(1));
                     }
 
                 }
@@ -76,16 +76,16 @@ public class IfThenElseFunctionTestCase {
             }
         });
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("sensorEventStream");
-        executionPlanRuntime.start();
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("sensorEventStream");
+        siddhiAppRuntime.start();
         inputHandler.send(new Object[]{50.4});
         inputHandler.send(new Object[]{20.4});
         Thread.sleep(100);
-        executionPlanRuntime.shutdown();
-        Assert.assertEquals(2, count);
+        siddhiAppRuntime.shutdown();
+        AssertJUnit.assertEquals(2, count);
     }
 
-    @Test (expected = ExecutionPlanValidationException.class)
+    @Test(expectedExceptions = SiddhiAppCreationException.class)
     public void ifFunctionExtensionTestCase2() throws InterruptedException {
         log.info("IfThenElseFunctionExtension TestCase2");
 
@@ -98,23 +98,23 @@ public class IfThenElseFunctionTestCase {
                 "select sensorValue, ifThenElse(sensorValue>35,'High',5) as status " +
                 "insert into outputStream;");
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(sensorEventStream + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(sensorEventStream + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 for (Event inEvent : inEvents) {
                     count++;
-                    Assert.assertTrue(inEvent.getData(0) instanceof Double);
-                    Assert.assertTrue(inEvent.getData(1) instanceof String);
+                    AssertJUnit.assertTrue(inEvent.getData(0) instanceof Double);
+                    AssertJUnit.assertTrue(inEvent.getData(1) instanceof String);
                     if (count == 1) {
-                        Assert.assertEquals(50.4, inEvent.getData(0));
-                        Assert.assertEquals("High", inEvent.getData(1));
+                        AssertJUnit.assertEquals(50.4, inEvent.getData(0));
+                        AssertJUnit.assertEquals("High", inEvent.getData(1));
                     }
                     if (count == 2) {
-                        Assert.assertEquals(20.4, inEvent.getData(0));
-                        Assert.assertEquals("Low", inEvent.getData(1));
+                        AssertJUnit.assertEquals(20.4, inEvent.getData(0));
+                        AssertJUnit.assertEquals("Low", inEvent.getData(1));
                     }
 
                 }
@@ -122,16 +122,16 @@ public class IfThenElseFunctionTestCase {
             }
         });
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("sensorEventStream");
-        executionPlanRuntime.start();
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("sensorEventStream");
+        siddhiAppRuntime.start();
         inputHandler.send(new Object[]{50.4});
         inputHandler.send(new Object[]{20.4});
         Thread.sleep(100);
-        executionPlanRuntime.shutdown();
-        Assert.assertEquals(2, count);
+        siddhiAppRuntime.shutdown();
+        AssertJUnit.assertEquals(2, count);
     }
 
-    @Test (expected = ExecutionPlanValidationException.class)
+    @Test(expectedExceptions = SiddhiAppCreationException.class)
     public void ifFunctionExtensionTestCase3() throws InterruptedException {
         log.info("IfThenElseFunctionExtension TestCase3");
 
@@ -144,23 +144,23 @@ public class IfThenElseFunctionTestCase {
                 "select sensorValue, ifThenElse(35,'High','Low') as status " +
                 "insert into outputStream;");
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(sensorEventStream + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(sensorEventStream + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 for (Event inEvent : inEvents) {
                     count++;
-                    Assert.assertTrue(inEvent.getData(0) instanceof Double);
-                    Assert.assertTrue(inEvent.getData(1) instanceof String);
+                    AssertJUnit.assertTrue(inEvent.getData(0) instanceof Double);
+                    AssertJUnit.assertTrue(inEvent.getData(1) instanceof String);
                     if (count == 1) {
-                        Assert.assertEquals(50.4, inEvent.getData(0));
-                        Assert.assertEquals("High", inEvent.getData(1));
+                        AssertJUnit.assertEquals(50.4, inEvent.getData(0));
+                        AssertJUnit.assertEquals("High", inEvent.getData(1));
                     }
                     if (count == 2) {
-                        Assert.assertEquals(20.4, inEvent.getData(0));
-                        Assert.assertEquals("Low", inEvent.getData(1));
+                        AssertJUnit.assertEquals(20.4, inEvent.getData(0));
+                        AssertJUnit.assertEquals("Low", inEvent.getData(1));
                     }
 
                 }
@@ -168,16 +168,16 @@ public class IfThenElseFunctionTestCase {
             }
         });
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("sensorEventStream");
-        executionPlanRuntime.start();
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("sensorEventStream");
+        siddhiAppRuntime.start();
         inputHandler.send(new Object[]{50.4});
         inputHandler.send(new Object[]{20.4});
         Thread.sleep(100);
-        executionPlanRuntime.shutdown();
-        Assert.assertEquals(2, count);
+        siddhiAppRuntime.shutdown();
+        AssertJUnit.assertEquals(2, count);
     }
 
-    @Test (expected = ExecutionPlanValidationException.class)
+    @Test(expectedExceptions = SiddhiAppCreationException.class)
     public void ifFunctionExtensionTestCase4() throws InterruptedException {
         log.info("IfThenElseFunctionExtension TestCase4");
 
@@ -190,23 +190,23 @@ public class IfThenElseFunctionTestCase {
                 "select sensorValue, ifThenElse(sensorValue>35,'High') as status " +
                 "insert into outputStream;");
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(sensorEventStream + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(sensorEventStream + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 for (Event inEvent : inEvents) {
                     count++;
-                    Assert.assertTrue(inEvent.getData(0) instanceof Double);
-                    Assert.assertTrue(inEvent.getData(1) instanceof String);
+                    AssertJUnit.assertTrue(inEvent.getData(0) instanceof Double);
+                    AssertJUnit.assertTrue(inEvent.getData(1) instanceof String);
                     if (count == 1) {
-                        Assert.assertEquals(50.4, inEvent.getData(0));
-                        Assert.assertEquals("High", inEvent.getData(1));
+                        AssertJUnit.assertEquals(50.4, inEvent.getData(0));
+                        AssertJUnit.assertEquals("High", inEvent.getData(1));
                     }
                     if (count == 2) {
-                        Assert.assertEquals(20.4, inEvent.getData(0));
-                        Assert.assertEquals("Low", inEvent.getData(1));
+                        AssertJUnit.assertEquals(20.4, inEvent.getData(0));
+                        AssertJUnit.assertEquals("Low", inEvent.getData(1));
                     }
 
                 }
@@ -214,13 +214,13 @@ public class IfThenElseFunctionTestCase {
             }
         });
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("sensorEventStream");
-        executionPlanRuntime.start();
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("sensorEventStream");
+        siddhiAppRuntime.start();
         inputHandler.send(new Object[]{50.4});
         inputHandler.send(new Object[]{20.4});
         Thread.sleep(100);
-        executionPlanRuntime.shutdown();
-        Assert.assertEquals(2, count);
+        siddhiAppRuntime.shutdown();
+        AssertJUnit.assertEquals(2, count);
     }
 
     @Test
@@ -236,23 +236,23 @@ public class IfThenElseFunctionTestCase {
                 "select sensorValue, ifThenElse(sensorValue>35,sensorValue*5,sensorValue*10) as gainValue " +
                 "insert into outputStream;");
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(sensorEventStream + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(sensorEventStream + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 for (Event inEvent : inEvents) {
                     count++;
-                    Assert.assertTrue(inEvent.getData(0) instanceof Integer);
-                    Assert.assertTrue(inEvent.getData(1) instanceof Integer);
+                    AssertJUnit.assertTrue(inEvent.getData(0) instanceof Integer);
+                    AssertJUnit.assertTrue(inEvent.getData(1) instanceof Integer);
                     if (count == 1) {
-                        Assert.assertEquals(50, inEvent.getData(0));
-                        Assert.assertEquals(250, inEvent.getData(1));
+                        AssertJUnit.assertEquals(50, inEvent.getData(0));
+                        AssertJUnit.assertEquals(250, inEvent.getData(1));
                     }
                     if (count == 2) {
-                        Assert.assertEquals(20, inEvent.getData(0));
-                        Assert.assertEquals(200, inEvent.getData(1));
+                        AssertJUnit.assertEquals(20, inEvent.getData(0));
+                        AssertJUnit.assertEquals(200, inEvent.getData(1));
                     }
 
                 }
@@ -260,13 +260,13 @@ public class IfThenElseFunctionTestCase {
             }
         });
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("sensorEventStream");
-        executionPlanRuntime.start();
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("sensorEventStream");
+        siddhiAppRuntime.start();
         inputHandler.send(new Object[]{50});
         inputHandler.send(new Object[]{20});
         Thread.sleep(100);
-        executionPlanRuntime.shutdown();
-        Assert.assertEquals(2, count);
+        siddhiAppRuntime.shutdown();
+        AssertJUnit.assertEquals(2, count);
     }
 
     @Test
@@ -282,23 +282,23 @@ public class IfThenElseFunctionTestCase {
                 "select sensorValue, ifThenElse(ifThenElse(sensorValue>35,true,false),'High','Low') as status " +
                 "insert into outputStream;");
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(sensorEventStream + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(sensorEventStream + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 for (Event inEvent : inEvents) {
                     count++;
-                    Assert.assertTrue(inEvent.getData(0) instanceof Double);
-                    Assert.assertTrue(inEvent.getData(1) instanceof String);
+                    AssertJUnit.assertTrue(inEvent.getData(0) instanceof Double);
+                    AssertJUnit.assertTrue(inEvent.getData(1) instanceof String);
                     if (count == 1) {
-                        Assert.assertEquals(50.4, inEvent.getData(0));
-                        Assert.assertEquals("High", inEvent.getData(1));
+                        AssertJUnit.assertEquals(50.4, inEvent.getData(0));
+                        AssertJUnit.assertEquals("High", inEvent.getData(1));
                     }
                     if (count == 2) {
-                        Assert.assertEquals(20.4, inEvent.getData(0));
-                        Assert.assertEquals("Low", inEvent.getData(1));
+                        AssertJUnit.assertEquals(20.4, inEvent.getData(0));
+                        AssertJUnit.assertEquals("Low", inEvent.getData(1));
                     }
 
                 }
@@ -306,14 +306,12 @@ public class IfThenElseFunctionTestCase {
             }
         });
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("sensorEventStream");
-        executionPlanRuntime.start();
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("sensorEventStream");
+        siddhiAppRuntime.start();
         inputHandler.send(new Object[]{50.4});
         inputHandler.send(new Object[]{20.4});
         Thread.sleep(100);
-        executionPlanRuntime.shutdown();
-        Assert.assertEquals(2, count);
+        siddhiAppRuntime.shutdown();
+        AssertJUnit.assertEquals(2, count);
     }
-
-
 }

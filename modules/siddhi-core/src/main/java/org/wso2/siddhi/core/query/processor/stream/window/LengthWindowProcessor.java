@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,31 +17,66 @@
  */
 package org.wso2.siddhi.core.query.processor.stream.window;
 
-import org.wso2.siddhi.core.config.ExecutionPlanContext;
+import org.wso2.siddhi.annotation.Example;
+import org.wso2.siddhi.annotation.Extension;
+import org.wso2.siddhi.annotation.Parameter;
+import org.wso2.siddhi.annotation.util.DataType;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
+import org.wso2.siddhi.core.event.ComplexEvent;
 import org.wso2.siddhi.core.event.ComplexEventChunk;
 import org.wso2.siddhi.core.event.state.StateEvent;
 import org.wso2.siddhi.core.event.stream.StreamEvent;
 import org.wso2.siddhi.core.event.stream.StreamEventCloner;
+import org.wso2.siddhi.core.event.stream.holder.SnapshotableStreamEventQueue;
 import org.wso2.siddhi.core.executor.ConstantExpressionExecutor;
 import org.wso2.siddhi.core.executor.ExpressionExecutor;
 import org.wso2.siddhi.core.executor.VariableExpressionExecutor;
 import org.wso2.siddhi.core.query.processor.Processor;
-import org.wso2.siddhi.core.table.EventTable;
-import org.wso2.siddhi.core.util.collection.operator.Finder;
-import org.wso2.siddhi.core.util.collection.operator.MatchingMetaStateHolder;
+import org.wso2.siddhi.core.table.Table;
+import org.wso2.siddhi.core.util.collection.operator.CompiledCondition;
+import org.wso2.siddhi.core.util.collection.operator.MatchingMetaInfoHolder;
+import org.wso2.siddhi.core.util.collection.operator.Operator;
+import org.wso2.siddhi.core.util.config.ConfigReader;
 import org.wso2.siddhi.core.util.parser.OperatorParser;
-import org.wso2.siddhi.query.api.exception.ExecutionPlanValidationException;
+import org.wso2.siddhi.core.util.snapshot.state.SnapshotStateList;
+import org.wso2.siddhi.query.api.exception.SiddhiAppValidationException;
 import org.wso2.siddhi.query.api.expression.Expression;
 
-import java.util.AbstractMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Implementation of {@link WindowProcessor} which represent a Window operating based on a pre-defined length.
+ */
+@Extension(
+        name = "length",
+        namespace = "",
+        description = "A sliding length window that holds the last windowLength events at a given time, " +
+                "and gets updated for each arrival and expiry.",
+        parameters = {
+                @Parameter(name = "window.length",
+                        description = "The number of events that should be included in a sliding length window.",
+                        type = {DataType.INT})
+        },
+        examples = @Example(
+                syntax = "define window cseEventWindow (symbol string, price float, volume int) " +
+                        "length(10) output all events;\n" +
+                        "@info(name = 'query0')\n" +
+                        "from cseEventStream\n" +
+                        "insert into cseEventWindow;\n" +
+                        "@info(name = 'query1')\n" +
+                        "from cseEventWindow\n" +
+                        "select symbol, sum(price) as price\n" +
+                        "insert all events into outputStream ;",
+                description = "This will processing 10 events and out put all events."
+        )
+)
 public class LengthWindowProcessor extends WindowProcessor implements FindableProcessor {
 
     private int length;
     private int count = 0;
-    private ComplexEventChunk<StreamEvent> expiredEventChunk;
+    private SnapshotableStreamEventQueue expiredEventQueue;
 
     public int getLength() {
         return length;
@@ -52,34 +87,49 @@ public class LengthWindowProcessor extends WindowProcessor implements FindablePr
     }
 
     @Override
-    protected void init(ExpressionExecutor[] attributeExpressionExecutors, ExecutionPlanContext executionPlanContext) {
-        expiredEventChunk = new ComplexEventChunk<StreamEvent>(false);
+    protected void init(ExpressionExecutor[] attributeExpressionExecutors, ConfigReader configReader, boolean
+            outputExpectsExpiredEvents, SiddhiAppContext siddhiAppContext) {
         if (attributeExpressionExecutors.length == 1) {
             length = (Integer) ((ConstantExpressionExecutor) attributeExpressionExecutors[0]).getValue();
         } else {
-            throw new ExecutionPlanValidationException("Length window should only have one parameter (<int> windowLength), but found " + attributeExpressionExecutors.length + " input attributes");
+            throw new SiddhiAppValidationException("Length window should only have one parameter (<int> " +
+                    "windowLength), but found " + attributeExpressionExecutors.length + " input attributes");
         }
+        expiredEventQueue = new SnapshotableStreamEventQueue(streamEventClonerHolder, length);
     }
 
     @Override
-    protected void process(ComplexEventChunk<StreamEvent> streamEventChunk, Processor nextProcessor, StreamEventCloner streamEventCloner) {
+    protected void process(ComplexEventChunk<StreamEvent> streamEventChunk, Processor nextProcessor,
+                           StreamEventCloner streamEventCloner) {
         synchronized (this) {
-            long currentTime = executionPlanContext.getTimestampGenerator().currentTime();
+            long currentTime = siddhiAppContext.getTimestampGenerator().currentTime();
             while (streamEventChunk.hasNext()) {
                 StreamEvent streamEvent = streamEventChunk.next();
                 StreamEvent clonedEvent = streamEventCloner.copyStreamEvent(streamEvent);
                 clonedEvent.setType(StreamEvent.Type.EXPIRED);
                 if (count < length) {
                     count++;
-                    this.expiredEventChunk.add(clonedEvent);
+                    this.expiredEventQueue.add(clonedEvent);
                 } else {
-                    StreamEvent firstEvent = this.expiredEventChunk.poll();
+                    StreamEvent firstEvent = this.expiredEventQueue.poll();
                     if (firstEvent != null) {
                         firstEvent.setTimestamp(currentTime);
                         streamEventChunk.insertBeforeCurrent(firstEvent);
-                        this.expiredEventChunk.add(clonedEvent);
+                        this.expiredEventQueue.add(clonedEvent);
                     } else {
-                        streamEventChunk.insertBeforeCurrent(clonedEvent);
+                        StreamEvent resetEvent = streamEventCloner.copyStreamEvent(streamEvent);
+                        resetEvent.setType(ComplexEvent.Type.RESET);
+                        // adding resetEvent and clonedEvent event to the streamEventChunk
+                        // since we are using insertAfterCurrent(), the final order will be
+                        // currentEvent > clonedEvent (or expiredEvent) > resetEvent
+                        streamEventChunk.insertAfterCurrent(resetEvent);
+                        streamEventChunk.insertAfterCurrent(clonedEvent);
+
+                        // since we manually added resetEvent and clonedEvent in earlier step
+                        // we have to skip those two events from getting processed in the next
+                        // iteration. Hence, calling next() twice.
+                        streamEventChunk.next();
+                        streamEventChunk.next();
                     }
                 }
             }
@@ -88,14 +138,17 @@ public class LengthWindowProcessor extends WindowProcessor implements FindablePr
     }
 
     @Override
-    public synchronized StreamEvent find(StateEvent matchingEvent, Finder finder) {
-        return finder.find(matchingEvent, expiredEventChunk, streamEventCloner);
+    public synchronized StreamEvent find(StateEvent matchingEvent, CompiledCondition compiledCondition) {
+        return ((Operator) compiledCondition).find(matchingEvent, expiredEventQueue, streamEventCloner);
     }
 
     @Override
-    public Finder constructFinder(Expression expression, MatchingMetaStateHolder matchingMetaStateHolder, ExecutionPlanContext executionPlanContext,
-                                  List<VariableExpressionExecutor> variableExpressionExecutors, Map<String, EventTable> eventTableMap) {
-        return OperatorParser.constructOperator(expiredEventChunk, expression, matchingMetaStateHolder, executionPlanContext, variableExpressionExecutors, eventTableMap, queryName);
+    public CompiledCondition compileCondition(Expression condition, MatchingMetaInfoHolder matchingMetaInfoHolder,
+                                              SiddhiAppContext siddhiAppContext,
+                                              List<VariableExpressionExecutor> variableExpressionExecutors,
+                                              Map<String, Table> tableMap, String queryName) {
+        return OperatorParser.constructOperator(expiredEventQueue, condition, matchingMetaInfoHolder,
+                siddhiAppContext, variableExpressionExecutors, tableMap, this.queryName);
     }
 
     @Override
@@ -108,17 +161,22 @@ public class LengthWindowProcessor extends WindowProcessor implements FindablePr
         //Do nothing
     }
 
-    @Override
-    public Object[] currentState() {
-        return new Object[]{new AbstractMap.SimpleEntry<String, Object>("ExpiredEventChunk", expiredEventChunk.getFirst()), new AbstractMap.SimpleEntry<String, Object>("Count", count)};
-    }
 
     @Override
-    public void restoreState(Object[] state) {
-        expiredEventChunk.clear();
-        Map.Entry<String, Object> stateEntry = (Map.Entry<String, Object>) state[0];
-        expiredEventChunk.add((StreamEvent) stateEntry.getValue());
-        Map.Entry<String, Object> stateEntry2 = (Map.Entry<String, Object>) state[1];
-        count = (Integer) stateEntry2.getValue();
+    public Map<String, Object> currentState() {
+        Map<String, Object> state = new HashMap<>();
+        synchronized (this) {
+            state.put("Count", count);
+            state.put("ExpiredEventQueue", expiredEventQueue.getSnapshot());
+        }
+        return state;
+    }
+
+
+    @Override
+    public synchronized void restoreState(Map<String, Object> state) {
+        count = (int) state.get("Count");
+        expiredEventQueue.clear();
+        expiredEventQueue.restore((SnapshotStateList) state.get("ExpiredEventQueue"));
     }
 }

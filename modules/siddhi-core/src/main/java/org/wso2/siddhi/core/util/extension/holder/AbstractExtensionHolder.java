@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,25 +18,31 @@
 package org.wso2.siddhi.core.util.extension.holder;
 
 import org.apache.log4j.Logger;
-import org.wso2.siddhi.core.config.ExecutionPlanContext;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
+import org.wso2.siddhi.core.util.SiddhiConstants;
 
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Abstract Holder class to retrieve added extensions and store them in a map.
+ */
 public abstract class AbstractExtensionHolder {
-    private static final String EXTENSION_SEPARATOR = ":";
     private static final Logger log = Logger.getLogger(AbstractExtensionHolder.class);
 
     protected Map<String, Class> extensionMap = new HashMap<String, Class>();
 
-    protected AbstractExtensionHolder(Class clazz, ExecutionPlanContext executionPlanContext) {
-        Map<String, Class> extensions = executionPlanContext.getSiddhiContext().getSiddhiExtensions();
+    protected AbstractExtensionHolder(Class clazz, SiddhiAppContext siddhiAppContext) {
+        Map<String, Class> extensions = siddhiAppContext.getSiddhiContext().getSiddhiExtensions();
         if (extensions != null) {
-            for (String extensionKey : executionPlanContext.getSiddhiContext().getSiddhiExtensions().keySet()) {
+            for (String extensionKey : siddhiAppContext.getSiddhiContext().getSiddhiExtensions().keySet()) {
                 Class extension = extensions.get(extensionKey);
                 if (clazz.isAssignableFrom(extension)) {
                     if (extensionMap.containsKey(extensionKey)) {
-                        log.error("Extension class " + extension.getName() + " not loaded, as there is already an matching extension '" + extensionKey + "' implemented as " + extensionMap.get(extensionKey).getName());
+                        log.error("Extension class " + extension.getName() + " not loaded, as there is already an" +
+                                          " matching extension '" + extensionKey + "' implemented as " + extensionMap
+                                .get
+                                        (extensionKey).getName());
                     } else {
                         extensionMap.put(extensionKey, extension);
                     }
@@ -45,13 +51,14 @@ public abstract class AbstractExtensionHolder {
 
             }
         }
-
     }
 
     public Class getExtension(String namespace, String function) {
-        String extensionKey = namespace + EXTENSION_SEPARATOR + function;
-        return extensionMap.get(extensionKey);
-
+        if (!namespace.isEmpty()) {
+            return extensionMap.get(namespace + SiddhiConstants.EXTENSION_SEPARATOR + function);
+        } else {
+            return extensionMap.get(function);
+        }
     }
 
 }

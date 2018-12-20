@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -21,6 +21,9 @@ package org.wso2.siddhi.core.executor.condition;
 import org.wso2.siddhi.core.event.ComplexEvent;
 import org.wso2.siddhi.core.executor.ExpressionExecutor;
 
+/**
+ * Executor class for IsNull condition. Condition evaluation logic is implemented within executor.
+ */
 public class IsNullConditionExpressionExecutor extends ConditionExpressionExecutor {
 
     private ExpressionExecutor expressionExecutor;

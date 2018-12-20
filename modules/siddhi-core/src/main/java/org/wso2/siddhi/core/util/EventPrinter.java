@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,23 +17,28 @@
  */
 package org.wso2.siddhi.core.util;
 
+import org.apache.log4j.Logger;
 import org.wso2.siddhi.core.event.Event;
 
 import java.util.Arrays;
 
+/**
+ * Utility class to print incoming {@link Event}
+ */
 public class EventPrinter {
+    private static final Logger log = Logger.getLogger(EventPrinter.class);
 
     public static void print(Event[] events) {
-        System.out.println(Arrays.deepToString(events));
+        log.info(Arrays.deepToString(events));
     }
 
 
-    public static void print(long timeStamp, Event[] inEvents, Event[] removeEvents) {
+    public static void print(long timestamp, Event[] inEvents, Event[] removeEvents) {
         StringBuilder sb = new StringBuilder();
-        sb.append("Events{ @timestamp = ").append(timeStamp).
+        sb.append("Events{ @timestamp = ").append(timestamp).
                 append(", inEvents = ").append(Arrays.deepToString(inEvents)).
                 append(", RemoveEvents = ").append(Arrays.deepToString(removeEvents)).append(" }");
-        System.out.println(sb.toString());
+        log.info(sb.toString());
     }
 
 }

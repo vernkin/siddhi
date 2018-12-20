@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -21,6 +21,10 @@ import org.wso2.siddhi.core.query.QueryRuntime;
 
 import java.util.List;
 
+/**
+ * Class to represent each partition key instance. These will be created dynamically and will contain
+ * {@link QueryRuntime}s belonging to that partition key.
+ */
 public class PartitionInstanceRuntime {
     private String key;
     private List<QueryRuntime> queryRuntimeList;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,9 +17,13 @@
  */
 package org.wso2.siddhi.query.api.execution.query.input.state;
 
+import org.wso2.siddhi.query.api.SiddhiElement;
 import org.wso2.siddhi.query.api.expression.constant.TimeConstant;
 
-public interface StateElement {
+/**
+ * Element representing states in pattern
+ */
+public interface StateElement extends SiddhiElement {
 
     public TimeConstant getWithin();
 

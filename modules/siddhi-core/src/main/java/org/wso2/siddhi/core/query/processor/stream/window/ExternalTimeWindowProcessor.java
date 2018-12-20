@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -19,56 +19,105 @@
 package org.wso2.siddhi.core.query.processor.stream.window;
 
 import org.apache.log4j.Logger;
-import org.wso2.siddhi.core.config.ExecutionPlanContext;
+import org.wso2.siddhi.annotation.Example;
+import org.wso2.siddhi.annotation.Extension;
+import org.wso2.siddhi.annotation.Parameter;
+import org.wso2.siddhi.annotation.util.DataType;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
 import org.wso2.siddhi.core.event.ComplexEventChunk;
 import org.wso2.siddhi.core.event.state.StateEvent;
 import org.wso2.siddhi.core.event.stream.StreamEvent;
 import org.wso2.siddhi.core.event.stream.StreamEventCloner;
+import org.wso2.siddhi.core.event.stream.holder.SnapshotableStreamEventQueue;
 import org.wso2.siddhi.core.executor.ConstantExpressionExecutor;
 import org.wso2.siddhi.core.executor.ExpressionExecutor;
 import org.wso2.siddhi.core.executor.VariableExpressionExecutor;
 import org.wso2.siddhi.core.query.processor.Processor;
-import org.wso2.siddhi.core.table.EventTable;
-import org.wso2.siddhi.core.util.collection.operator.Finder;
-import org.wso2.siddhi.core.util.collection.operator.MatchingMetaStateHolder;
+import org.wso2.siddhi.core.table.Table;
+import org.wso2.siddhi.core.util.collection.operator.CompiledCondition;
+import org.wso2.siddhi.core.util.collection.operator.MatchingMetaInfoHolder;
+import org.wso2.siddhi.core.util.collection.operator.Operator;
+import org.wso2.siddhi.core.util.config.ConfigReader;
 import org.wso2.siddhi.core.util.parser.OperatorParser;
+import org.wso2.siddhi.core.util.snapshot.state.SnapshotStateList;
 import org.wso2.siddhi.query.api.definition.Attribute;
-import org.wso2.siddhi.query.api.exception.ExecutionPlanValidationException;
+import org.wso2.siddhi.query.api.exception.SiddhiAppValidationException;
 import org.wso2.siddhi.query.api.expression.Expression;
 
-import java.util.AbstractMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Implementation of {@link WindowProcessor} which represent a Window operating based on external time.
+ */
+@Extension(
+        name = "externalTime",
+        namespace = "",
+        description = "A sliding time window based on external time. It holds events that arrived during the last " +
+                "windowTime period from the external timestamp, and gets updated on every monotonically " +
+                "increasing timestamp.",
+        parameters = {
+                @Parameter(name = "timestamp",
+                        description = "The time which the window determines as current time and will act upon. " +
+                                "The value of this parameter should be monotonically increasing.",
+                        type = {DataType.LONG}),
+
+                @Parameter(name = "window.time",
+                        description = "The sliding time period for which the window should hold events.",
+                        type = {DataType.INT, DataType.LONG, DataType.TIME}),
+        },
+        examples = @Example(
+                syntax = "define window cseEventWindow (symbol string, price float, volume int) " +
+                        "externalTime(eventTime, 20 sec) output expired events;\n\n" +
+                        "@info(name = 'query0')\n" +
+                        "from cseEventStream\n" +
+                        "insert into cseEventWindow;\n\n" +
+                        "@info(name = 'query1')\n" +
+                        "from cseEventWindow\n" +
+                        "select symbol, sum(price) as price\n" +
+                        "insert expired events into outputStream ;",
+                description = "processing events arrived within the last 20 seconds " +
+                        "from the eventTime and output expired events."
+        )
+)
 public class ExternalTimeWindowProcessor extends WindowProcessor implements FindableProcessor {
-    static final Logger log = Logger.getLogger(ExternalTimeWindowProcessor.class);
+    private static final Logger log = Logger.getLogger(ExternalTimeWindowProcessor.class);
     private long timeToKeep;
-    private ComplexEventChunk<StreamEvent> expiredEventChunk;
+    private SnapshotableStreamEventQueue expiredEventQueue;
     private VariableExpressionExecutor timeStampVariableExpressionExecutor;
 
     @Override
-    protected void init(ExpressionExecutor[] attributeExpressionExecutors, ExecutionPlanContext executionPlanContext) {
-        this.expiredEventChunk = new ComplexEventChunk<StreamEvent>(false);
+    protected void init(ExpressionExecutor[] attributeExpressionExecutors, ConfigReader configReader, boolean
+            outputExpectsExpiredEvents, SiddhiAppContext siddhiAppContext) {
+        this.expiredEventQueue = new SnapshotableStreamEventQueue(streamEventClonerHolder);
         if (attributeExpressionExecutors.length == 2) {
             if (attributeExpressionExecutors[1].getReturnType() == Attribute.Type.INT) {
-                timeToKeep = Integer.parseInt(String.valueOf(((ConstantExpressionExecutor) attributeExpressionExecutors[1]).getValue()));
+                timeToKeep = Integer.parseInt(String.valueOf(((ConstantExpressionExecutor)
+                        attributeExpressionExecutors[1]).getValue()));
             } else {
-                timeToKeep = Long.parseLong(String.valueOf(((ConstantExpressionExecutor) attributeExpressionExecutors[1]).getValue()));
+                timeToKeep = Long.parseLong(String.valueOf(((ConstantExpressionExecutor)
+                        attributeExpressionExecutors[1]).getValue()));
             }
             if (!(attributeExpressionExecutors[0] instanceof VariableExpressionExecutor)) {
-                throw new ExecutionPlanValidationException("ExternalTime window's 1st parameter timeStamp should be a type long stream attribute but found " + attributeExpressionExecutors[0].getClass());
+                throw new SiddhiAppValidationException("ExternalTime window's 1st parameter timeStamp should be a" +
+                        " type long stream attribute but found " + attributeExpressionExecutors[0].getClass());
             }
             timeStampVariableExpressionExecutor = ((VariableExpressionExecutor) attributeExpressionExecutors[0]);
             if (timeStampVariableExpressionExecutor.getReturnType() != Attribute.Type.LONG) {
-                throw new ExecutionPlanValidationException("ExternalTime window's 1st parameter timeStamp should be type long, but found " + timeStampVariableExpressionExecutor.getReturnType());
+                throw new SiddhiAppValidationException("ExternalTime window's 1st parameter timeStamp should be " +
+                        "type long, but found " + timeStampVariableExpressionExecutor.getReturnType());
             }
         } else {
-            throw new ExecutionPlanValidationException("ExternalTime window should only have two parameter (<long> timeStamp, <int|long|time> windowTime), but found " + attributeExpressionExecutors.length + " input attributes");
+            throw new SiddhiAppValidationException("ExternalTime window should only have two parameter (<long> " +
+                    "timeStamp, <int|long|time> windowTime), but found " + attributeExpressionExecutors.length + " " +
+                    "input attributes");
         }
     }
 
     @Override
-    protected synchronized void process(ComplexEventChunk<StreamEvent> streamEventChunk, Processor nextProcessor, StreamEventCloner streamEventCloner) {
+    protected synchronized void process(ComplexEventChunk<StreamEvent> streamEventChunk, Processor nextProcessor,
+                                        StreamEventCloner streamEventCloner) {
         synchronized (this) {
             while (streamEventChunk.hasNext()) {
 
@@ -78,24 +127,27 @@ public class ExternalTimeWindowProcessor extends WindowProcessor implements Find
                 StreamEvent clonedEvent = streamEventCloner.copyStreamEvent(streamEvent);
                 clonedEvent.setType(StreamEvent.Type.EXPIRED);
 
-                while (expiredEventChunk.hasNext()) {
-                    StreamEvent expiredEvent = expiredEventChunk.next();
+                // reset expiredEventQueue to make sure all of the expired events get removed,
+                // otherwise lastReturned.next will always return null and here while check is always false
+                expiredEventQueue.reset();
+                while (expiredEventQueue.hasNext()) {
+                    StreamEvent expiredEvent = expiredEventQueue.next();
                     long expiredEventTime = (Long) timeStampVariableExpressionExecutor.execute(expiredEvent);
                     long timeDiff = expiredEventTime - currentTime + timeToKeep;
                     if (timeDiff <= 0) {
-                        expiredEventChunk.remove();
+                        expiredEventQueue.remove();
                         expiredEvent.setTimestamp(currentTime);
                         streamEventChunk.insertBeforeCurrent(expiredEvent);
                     } else {
-                        expiredEventChunk.reset();
+                        expiredEventQueue.reset();
                         break;
                     }
                 }
 
                 if (streamEvent.getType() == StreamEvent.Type.CURRENT) {
-                    this.expiredEventChunk.add(clonedEvent);
+                    this.expiredEventQueue.add(clonedEvent);
                 }
-                expiredEventChunk.reset();
+                expiredEventQueue.reset();
             }
         }
         nextProcessor.process(streamEventChunk);
@@ -112,25 +164,29 @@ public class ExternalTimeWindowProcessor extends WindowProcessor implements Find
     }
 
     @Override
-    public Object[] currentState() {
-        return new Object[]{new AbstractMap.SimpleEntry<String, Object>("ExpiredEventChunk", expiredEventChunk.getFirst())};
+    public Map<String, Object> currentState() {
+        Map<String, Object> state = new HashMap<>();
+        state.put("ExpiredEventQueue", expiredEventQueue.getSnapshot());
+        return state;
     }
 
     @Override
-    public void restoreState(Object[] state) {
-        expiredEventChunk.clear();
-        Map.Entry<String, Object> stateEntry = (Map.Entry<String, Object>) state[0];
-        expiredEventChunk.add((StreamEvent) stateEntry.getValue());
+    public void restoreState(Map<String, Object> state) {
+        expiredEventQueue.clear();
+        expiredEventQueue.restore((SnapshotStateList) state.get("ExpiredEventQueue"));
     }
 
     @Override
-    public synchronized StreamEvent find(StateEvent matchingEvent, Finder finder) {
-        return finder.find(matchingEvent, expiredEventChunk, streamEventCloner);
+    public synchronized StreamEvent find(StateEvent matchingEvent, CompiledCondition compiledCondition) {
+        return ((Operator) compiledCondition).find(matchingEvent, expiredEventQueue, streamEventCloner);
     }
 
     @Override
-    public Finder constructFinder(Expression expression, MatchingMetaStateHolder matchingMetaStateHolder, ExecutionPlanContext executionPlanContext,
-                                  List<VariableExpressionExecutor> variableExpressionExecutors, Map<String, EventTable> eventTableMap) {
-        return OperatorParser.constructOperator(expiredEventChunk, expression, matchingMetaStateHolder, executionPlanContext, variableExpressionExecutors, eventTableMap, queryName);
+    public CompiledCondition compileCondition(Expression condition, MatchingMetaInfoHolder matchingMetaInfoHolder,
+                                               SiddhiAppContext siddhiAppContext,
+                                               List<VariableExpressionExecutor> variableExpressionExecutors,
+                                               Map<String, Table> tableMap, String queryName) {
+        return OperatorParser.constructOperator(expiredEventQueue, condition, matchingMetaInfoHolder,
+                siddhiAppContext, variableExpressionExecutors, tableMap, this.queryName);
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -20,16 +20,19 @@ package org.wso2.siddhi.core.util;
 
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * unique id generator for elements inside a given siddhi app
+ */
 public class ElementIdGenerator {
 
-    private String executionPlanName;
+    private String siddhiAppName;
     private AtomicLong id = new AtomicLong(0);
 
-    public ElementIdGenerator(String executionPlanName) {
-        this.executionPlanName = executionPlanName;
+    public ElementIdGenerator(String siddhiAppName) {
+        this.siddhiAppName = siddhiAppName;
     }
 
     public String createNewId() {
-        return executionPlanName + "-" + id.incrementAndGet();
+        return siddhiAppName + "-" + id.incrementAndGet();
     }
 }

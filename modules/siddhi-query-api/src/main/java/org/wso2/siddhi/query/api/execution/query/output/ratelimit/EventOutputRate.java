@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,7 +17,12 @@
  */
 package org.wso2.siddhi.query.api.execution.query.output.ratelimit;
 
+/**
+ * Rate limiting of query output based on number of events
+ */
 public class EventOutputRate extends OutputRate {
+
+    private static final long serialVersionUID = 1L;
     private Integer value;
     private OutputRate.Type type = OutputRate.Type.ALL;
 
@@ -48,13 +53,21 @@ public class EventOutputRate extends OutputRate {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof EventOutputRate)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof EventOutputRate)) {
+            return false;
+        }
 
         EventOutputRate that = (EventOutputRate) o;
 
-        if (type != that.type) return false;
-        if (value != null ? !value.equals(that.value) : that.value != null) return false;
+        if (type != that.type) {
+            return false;
+        }
+        if (value != null ? !value.equals(that.value) : that.value != null) {
+            return false;
+        }
 
         return true;
     }

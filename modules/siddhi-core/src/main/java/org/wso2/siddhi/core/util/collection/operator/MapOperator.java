@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -23,8 +23,8 @@ import org.wso2.siddhi.core.event.state.StateEvent;
 import org.wso2.siddhi.core.event.stream.StreamEvent;
 import org.wso2.siddhi.core.event.stream.StreamEventCloner;
 import org.wso2.siddhi.core.executor.ExpressionExecutor;
-import org.wso2.siddhi.core.util.collection.OverwritingStreamEventExtractor;
-import org.wso2.siddhi.core.util.collection.UpdateAttributeMapper;
+import org.wso2.siddhi.core.table.InMemoryCompiledUpdateSet;
+import org.wso2.siddhi.core.util.collection.AddingStreamEventExtractor;
 
 import java.util.Map;
 
@@ -33,42 +33,43 @@ import java.util.Map;
  */
 public class MapOperator extends CollectionOperator {
 
-    public MapOperator(ExpressionExecutor expressionExecutor, int candidateEventPosition) {
-        super(expressionExecutor, candidateEventPosition);
+    public MapOperator(ExpressionExecutor expressionExecutor, int storeEventPosition) {
+        super(expressionExecutor, storeEventPosition);
     }
 
     @Override
-    public Finder cloneFinder(String key) {
-        return new MapOperator(expressionExecutor.cloneExecutor(key), candidateEventPosition);
+    public CompiledCondition cloneCompilation(String key) {
+        return new MapOperator(expressionExecutor.cloneExecutor(key), storeEventPosition);
     }
 
     @Override
-    public StreamEvent find(StateEvent matchingEvent, Object candidateEvents, StreamEventCloner candidateEventCloner) {
-        return super.find(matchingEvent, ((Map<Object, StreamEvent>) candidateEvents).values(), candidateEventCloner);
+    public StreamEvent find(StateEvent matchingEvent, Object storeEvents, StreamEventCloner storeEventCloner) {
+        return super.find(matchingEvent, ((Map<Object, StreamEvent>) storeEvents).values(), storeEventCloner);
     }
 
     @Override
-    public boolean contains(StateEvent matchingEvent, Object candidateEvents) {
-        return super.contains(matchingEvent, ((Map<Object, StreamEvent>) candidateEvents).values());
+    public boolean contains(StateEvent matchingEvent, Object storeEvents) {
+        return super.contains(matchingEvent, ((Map<Object, StreamEvent>) storeEvents).values());
     }
 
     @Override
-    public void delete(ComplexEventChunk<StateEvent> deletingEventChunk, Object candidateEvents) {
-        super.delete(deletingEventChunk, ((Map<Object, StreamEvent>) candidateEvents).values());
+    public void delete(ComplexEventChunk<StateEvent> deletingEventChunk, Object storeEvents) {
+        super.delete(deletingEventChunk, ((Map<Object, StreamEvent>) storeEvents).values());
     }
 
     @Override
-    public void update(ComplexEventChunk<StateEvent> updatingEventChunk, Object candidateEvents, UpdateAttributeMapper[] updateAttributeMappers) {
-        super.update(updatingEventChunk, ((Map<Object, StreamEvent>) candidateEvents).values(), updateAttributeMappers);
+    public void update(ComplexEventChunk<StateEvent> updatingEventChunk, Object storeEvents,
+                       InMemoryCompiledUpdateSet compiledUpdateSet) {
+        super.update(updatingEventChunk, ((Map<Object, StreamEvent>) storeEvents).values(), compiledUpdateSet);
     }
 
     @Override
-    public ComplexEventChunk<StreamEvent> overwriteOrAdd(ComplexEventChunk<StateEvent> overwritingOrAddingEventChunk,
-                                                         Object candidateEvents,
-                                                         UpdateAttributeMapper[] updateAttributeMappers,
-                                                         OverwritingStreamEventExtractor overwritingStreamEventExtractor) {
-        return super.overwriteOrAdd(overwritingOrAddingEventChunk, ((Map<Object, StreamEvent>) candidateEvents).values(),
-                updateAttributeMappers, overwritingStreamEventExtractor);
+    public ComplexEventChunk<StreamEvent> tryUpdate(ComplexEventChunk<StateEvent> updatingOrAddingEventChunk,
+                                                    Object storeEvents,
+                                                  InMemoryCompiledUpdateSet compiledUpdateSet,
+                                                    AddingStreamEventExtractor addingStreamEventExtractor) {
+        return super.tryUpdate(updatingOrAddingEventChunk, ((Map<Object, StreamEvent>) storeEvents).values(),
+                compiledUpdateSet, addingStreamEventExtractor);
     }
 
 }

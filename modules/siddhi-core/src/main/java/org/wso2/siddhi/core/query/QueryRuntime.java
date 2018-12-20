@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,9 +17,11 @@
  */
 package org.wso2.siddhi.core.query;
 
-import org.wso2.siddhi.core.config.ExecutionPlanContext;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
 import org.wso2.siddhi.core.event.MetaComplexEvent;
+import org.wso2.siddhi.core.query.input.MultiProcessStreamReceiver;
 import org.wso2.siddhi.core.query.input.stream.StreamRuntime;
+import org.wso2.siddhi.core.query.input.stream.single.SingleStreamRuntime;
 import org.wso2.siddhi.core.query.output.callback.OutputCallback;
 import org.wso2.siddhi.core.query.output.callback.QueryCallback;
 import org.wso2.siddhi.core.query.output.ratelimit.OutputRateLimiter;
@@ -28,23 +30,23 @@ import org.wso2.siddhi.core.stream.StreamJunction;
 import org.wso2.siddhi.core.util.lock.LockWrapper;
 import org.wso2.siddhi.core.util.parser.OutputParser;
 import org.wso2.siddhi.core.util.parser.helper.QueryParserHelper;
-import org.wso2.siddhi.query.api.annotation.Element;
+import org.wso2.siddhi.core.util.statistics.MemoryCalculable;
 import org.wso2.siddhi.query.api.definition.StreamDefinition;
-import org.wso2.siddhi.query.api.exception.DuplicateAnnotationException;
 import org.wso2.siddhi.query.api.execution.query.Query;
 import org.wso2.siddhi.query.api.execution.query.input.stream.JoinInputStream;
 import org.wso2.siddhi.query.api.execution.query.input.stream.SingleInputStream;
 import org.wso2.siddhi.query.api.execution.query.input.stream.StateInputStream;
-import org.wso2.siddhi.query.api.util.AnnotationHelper;
 
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class QueryRuntime {
+/**
+ * Query Runtime represent holder object for a single Siddhi query and holds all runtime objects related to that query.
+ */
+public class QueryRuntime implements MemoryCalculable {
 
-    private final ExecutionPlanContext executionPlanContext;
+    private final SiddhiAppContext siddhiAppContext;
     private StreamRuntime streamRuntime;
     private OutputRateLimiter outputRateLimiter;
     private String queryId;
@@ -56,36 +58,21 @@ public class QueryRuntime {
     private QuerySelector selector;
     private MetaComplexEvent metaComplexEvent;
 
-    public QueryRuntime(Query query, ExecutionPlanContext executionPlanContext, StreamRuntime streamRuntime, QuerySelector selector,
-                        OutputRateLimiter outputRateLimiter, OutputCallback outputCallback, MetaComplexEvent metaComplexEvent, boolean synchronised) {
+    public QueryRuntime(Query query, SiddhiAppContext siddhiAppContext, StreamRuntime streamRuntime,
+                        QuerySelector selector,
+                        OutputRateLimiter outputRateLimiter, OutputCallback outputCallback, MetaComplexEvent
+                                metaComplexEvent, boolean synchronised, String queryName) {
         this.query = query;
-        this.executionPlanContext = executionPlanContext;
+        this.siddhiAppContext = siddhiAppContext;
         this.streamRuntime = streamRuntime;
         this.selector = selector;
         this.outputCallback = outputCallback;
         this.synchronised = synchronised;
-
+        this.queryId = queryName;
         outputRateLimiter.setOutputCallback(outputCallback);
         setOutputRateLimiter(outputRateLimiter);
         setMetaComplexEvent(metaComplexEvent);
-        setId();
         init();
-    }
-
-    private void setId() {
-        try {
-            Element element = AnnotationHelper.getAnnotationElement("info", "name", query.getAnnotations());
-            if (element != null) {
-                queryId = element.getValue();
-
-            }
-        } catch (DuplicateAnnotationException e) {
-            throw new DuplicateAnnotationException(e.getMessage() + " for the same Query " + query.toString());
-        }
-        if (queryId == null) {
-            queryId = UUID.randomUUID().toString();
-        }
-
     }
 
     public String getQueryId() {
@@ -120,7 +107,9 @@ public class QueryRuntime {
         if (query.getInputStream() instanceof SingleInputStream) {
             return ((SingleInputStream) query.getInputStream()).isInnerStream();
         } else if (query.getInputStream() instanceof JoinInputStream) {
-            return ((SingleInputStream) ((JoinInputStream) query.getInputStream()).getLeftInputStream()).isInnerStream() || ((SingleInputStream) ((JoinInputStream) query.getInputStream()).getRightInputStream()).isInnerStream();
+            return ((SingleInputStream) ((JoinInputStream) query.getInputStream()).getLeftInputStream())
+                    .isInnerStream() || ((SingleInputStream) ((JoinInputStream) query.getInputStream())
+                    .getRightInputStream()).isInnerStream();
         } else if (query.getInputStream() instanceof StateInputStream) {
             for (String streamId : query.getInputStream().getAllStreamIds()) {
                 if (streamId.startsWith("#")) {
@@ -141,24 +130,29 @@ public class QueryRuntime {
         StreamRuntime clonedStreamRuntime = this.streamRuntime.clone(key);
         QuerySelector clonedSelector = this.selector.clone(key);
         OutputRateLimiter clonedOutputRateLimiter = outputRateLimiter.clone(key);
-        clonedOutputRateLimiter.init(executionPlanContext, lockWrapper, queryId);
+        clonedOutputRateLimiter.init(siddhiAppContext, lockWrapper, queryId);
 
-        QueryRuntime queryRuntime = new QueryRuntime(query, executionPlanContext, clonedStreamRuntime, clonedSelector,
-                clonedOutputRateLimiter, outputCallback, this.metaComplexEvent, synchronised);
+        QueryRuntime queryRuntime = new QueryRuntime(query, siddhiAppContext, clonedStreamRuntime, clonedSelector,
+                clonedOutputRateLimiter, outputCallback, this.metaComplexEvent,
+                synchronised, this.queryId + key);
         QueryParserHelper.initStreamRuntime(clonedStreamRuntime, metaComplexEvent, lockWrapper, queryId);
 
-        queryRuntime.queryId = this.queryId + key;
         queryRuntime.setToLocalStream(toLocalStream);
 
         if (!toLocalStream) {
             queryRuntime.outputRateLimiter.setOutputCallback(outputCallback);
             queryRuntime.outputCallback = this.outputCallback;
         } else {
-            OutputCallback clonedQueryOutputCallback = OutputParser.constructOutputCallback(query.getOutputStream(), key,
-                    localStreamJunctionMap, outputStreamDefinition, executionPlanContext, queryId);
+            OutputCallback clonedQueryOutputCallback = OutputParser.constructOutputCallback(query.getOutputStream(),
+                    key,
+                    localStreamJunctionMap,
+                    outputStreamDefinition,
+                    siddhiAppContext,
+                    queryId);
             queryRuntime.outputRateLimiter.setOutputCallback(clonedQueryOutputCallback);
             queryRuntime.outputCallback = clonedQueryOutputCallback;
         }
+        queryRuntime.outputRateLimiter.start();
         return queryRuntime;
 
     }
@@ -191,9 +185,16 @@ public class QueryRuntime {
 
     public void init() {
         streamRuntime.setCommonProcessor(selector);
+        for (SingleStreamRuntime singleStreamRuntime : streamRuntime.getSingleStreamRuntimes()) {
+            if (singleStreamRuntime.getProcessStreamReceiver() instanceof MultiProcessStreamReceiver) {
+                ((MultiProcessStreamReceiver) singleStreamRuntime.getProcessStreamReceiver())
+                        .setOutputRateLimiter(outputRateLimiter);
+            }
+        }
     }
 
     public QuerySelector getSelector() {
         return selector;
     }
+
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -21,12 +21,14 @@ import org.wso2.siddhi.core.event.ComplexEvent;
 import org.wso2.siddhi.core.event.Event;
 import org.wso2.siddhi.core.event.stream.StreamEvent;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
  * The converter class that only converts the OutputData of the events to StreamEvent
  */
-public class SimpleStreamEventConverter implements StreamEventConverter {
+public class SimpleStreamEventConverter implements StreamEventConverter, Serializable {
+    private static final long serialVersionUID = 8941977469225523543L;
     private List<ConversionMapping> conversionMappings;
 
     public SimpleStreamEventConverter(List<ConversionMapping> conversionMappings) {
@@ -42,7 +44,8 @@ public class SimpleStreamEventConverter implements StreamEventConverter {
     }
 
     public void convertEvent(Event event, StreamEvent borrowedEvent) {
-        convertData(event.getTimestamp(), event.getData(), event.isExpired() ? StreamEvent.Type.EXPIRED : StreamEvent.Type.CURRENT,
+        convertData(event.getTimestamp(), event.getData(), event.isExpired() ? StreamEvent.Type.EXPIRED : StreamEvent
+                        .Type.CURRENT,
                 borrowedEvent);
     }
 
@@ -52,8 +55,8 @@ public class SimpleStreamEventConverter implements StreamEventConverter {
     }
 
     @Override
-    public void convertData(long timeStamp, Object[] data, StreamEvent borrowedEvent) {
-        convertData(timeStamp, data, StreamEvent.Type.CURRENT, borrowedEvent);
+    public void convertData(long timestamp, Object[] data, StreamEvent borrowedEvent) {
+        convertData(timestamp, data, StreamEvent.Type.CURRENT, borrowedEvent);
     }
 
 }

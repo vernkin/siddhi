@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -19,7 +19,7 @@
 package org.wso2.siddhi.core.query.output.callback;
 
 import org.apache.log4j.Logger;
-import org.wso2.siddhi.core.config.ExecutionPlanContext;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
 import org.wso2.siddhi.core.event.ComplexEvent;
 import org.wso2.siddhi.core.event.ComplexEventChunk;
 import org.wso2.siddhi.core.event.Event;
@@ -30,26 +30,30 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Query Callback is used to get resulting output events from a Siddhi query. Users can create and register a callback
+ * to a specific query and onEvent() of callback will be called upon query emitting results.
+ */
 public abstract class QueryCallback {
 
     private static final Logger log = Logger.getLogger(QueryCallback.class);
 
-    private ExecutionPlanContext executionPlanContext;
+    private SiddhiAppContext siddhiAppContext;
     private Query query;
 
     public void setQuery(Query query) {
         this.query = query;
     }
 
-    public void setContext(ExecutionPlanContext executionPlanContext) {
-        this.executionPlanContext = executionPlanContext;
+    public void setContext(SiddhiAppContext siddhiAppContext) {
+        this.siddhiAppContext = siddhiAppContext;
     }
 
     public void receiveStreamEvent(ComplexEventChunk complexEventChunk) {
 
         Event[] currentEvents = null;
         Event[] expiredEvents = null;
-        long timeStamp = -1;
+        long timestamp = -1;
         List<Event> currentEventBuffer = new ArrayList<Event>();
         List<Event> expiredEventBuffer = new ArrayList<Event>();
 
@@ -61,7 +65,7 @@ public abstract class QueryCallback {
             } else if (streamEvent.getType() == StreamEvent.Type.CURRENT) {
                 bufferEvent(streamEvent, currentEventBuffer);
             }
-            timeStamp = streamEvent.getTimestamp();
+            timestamp = streamEvent.getTimestamp();
         }
 
         if (!currentEventBuffer.isEmpty()) {
@@ -74,14 +78,15 @@ public abstract class QueryCallback {
             expiredEventBuffer.clear();
         }
 
-        send(timeStamp, currentEvents, expiredEvents);
+        send(timestamp, currentEvents, expiredEvents);
     }
 
-    private void send(long timeStamp, Event[] currentEvents, Event[] expiredEvents) {
+    private void send(long timestamp, Event[] currentEvents, Event[] expiredEvents) {
         try {
-            receive(timeStamp, currentEvents, expiredEvents);
+            receive(timestamp, currentEvents, expiredEvents);
         } catch (RuntimeException e) {
-            log.error("Error on sending events" + Arrays.deepToString(currentEvents) + ", " + Arrays.deepToString(expiredEvents), e);
+            log.error("Error on sending events" + Arrays.deepToString(currentEvents) + ", " +
+                    Arrays.deepToString(expiredEvents), e);
         }
     }
 
@@ -97,6 +102,6 @@ public abstract class QueryCallback {
 
     }
 
-    public abstract void receive(long timeStamp, Event[] inEvents, Event[] removeEvents);
+    public abstract void receive(long timestamp, Event[] inEvents, Event[] removeEvents);
 
 }

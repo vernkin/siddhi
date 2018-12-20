@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,24 +17,31 @@
  */
 package org.wso2.siddhi.query.api.execution.query.input.stream;
 
-import org.wso2.siddhi.query.api.execution.query.input.handler.*;
+import org.wso2.siddhi.query.api.execution.query.input.handler.Filter;
+import org.wso2.siddhi.query.api.execution.query.input.handler.StreamFunction;
+import org.wso2.siddhi.query.api.execution.query.input.handler.StreamHandler;
+import org.wso2.siddhi.query.api.execution.query.input.handler.Window;
 import org.wso2.siddhi.query.api.expression.Expression;
 
 import java.util.List;
 
+/**
+ * Basic single input stream using filters, windows and functions
+ */
 public class BasicSingleInputStream extends SingleInputStream {
+
+    private static final long serialVersionUID = 1L;
 
     protected BasicSingleInputStream(String streamId) {
         this(streamId, false);
     }
 
     protected BasicSingleInputStream(String streamId, boolean isInnerStream) {
-        this(streamId, null, isInnerStream);
+        super(streamId, isInnerStream);
     }
 
     public BasicSingleInputStream(String streamReferenceId, String streamId) {
         this(streamReferenceId, streamId, false);
-
     }
 
     public BasicSingleInputStream(String streamReferenceId, String streamId, boolean isInnerStream) {
@@ -49,7 +56,7 @@ public class BasicSingleInputStream extends SingleInputStream {
         return streamReferenceId;
     }
 
-    public SingleInputStream as(String streamReferenceId) {
+    public BasicSingleInputStream as(String streamReferenceId) {
         this.streamReferenceId = streamReferenceId;
         return this;
     }
@@ -77,7 +84,7 @@ public class BasicSingleInputStream extends SingleInputStream {
     }
 
     public SingleInputStream window(String namespace, String function, Expression... parameters) {
-        return new SingleInputStream(this, new WindowExtension(namespace, function, parameters));
+        return new SingleInputStream(this, new Window(namespace, function, parameters));
     }
 
     public SingleInputStream window(Window window) {
@@ -89,9 +96,9 @@ public class BasicSingleInputStream extends SingleInputStream {
         return this;
     }
 
-    public BasicSingleInputStream function(String extensionName, String functionName,
+    public BasicSingleInputStream function(String extensionNamespace, String functionName,
                                            Expression... parameters) {
-        streamHandlers.add(new StreamFunctionExtension(extensionName, functionName, parameters));
+        streamHandlers.add(new StreamFunction(extensionNamespace, functionName, parameters));
         return this;
     }
 
@@ -99,6 +106,4 @@ public class BasicSingleInputStream extends SingleInputStream {
         streamHandlers.add(streamFunction);
         return this;
     }
-
-
 }

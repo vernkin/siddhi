@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,17 +17,23 @@
  */
 package org.wso2.siddhi.query.api.exception;
 
-public class DuplicateDefinitionException extends ExecutionPlanValidationException {
+/**
+ * Exception thrown when a similar definition is defined again
+ */
+public class DuplicateDefinitionException extends SiddhiAppValidationException {
 
-    public DuplicateDefinitionException(String message) {
-        super(message);
+    public DuplicateDefinitionException(String message, Throwable throwable, int[] queryContextStartIndex,
+                                        int[] queryContextEndIndex) {
+        super(message, throwable, queryContextStartIndex, queryContextEndIndex);
     }
 
-    public DuplicateDefinitionException(String message, Throwable throwable) {
-        super(message, throwable);
+    public DuplicateDefinitionException(String message, int[] queryContextStartIndex,
+                                        int[] queryContextEndIndex) {
+        super(message, queryContextStartIndex, queryContextEndIndex);
     }
 
-    public DuplicateDefinitionException(Throwable throwable) {
-        super(throwable);
+    public DuplicateDefinitionException(String message, Throwable throwable, int[] queryContextStartIndex,
+                                        int[] queryContextEndIndex, String siddhiAppName, String siddhiAppString) {
+        super(message, throwable, queryContextStartIndex, queryContextEndIndex, siddhiAppName, siddhiAppString);
     }
 }

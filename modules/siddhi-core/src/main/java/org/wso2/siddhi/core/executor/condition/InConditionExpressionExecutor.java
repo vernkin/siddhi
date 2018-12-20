@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -22,26 +22,30 @@ import org.wso2.siddhi.core.event.ComplexEvent;
 import org.wso2.siddhi.core.event.state.StateEvent;
 import org.wso2.siddhi.core.event.stream.StreamEvent;
 import org.wso2.siddhi.core.executor.ExpressionExecutor;
-import org.wso2.siddhi.core.table.EventTable;
+import org.wso2.siddhi.core.table.Table;
 import org.wso2.siddhi.core.util.collection.FinderStateEvent;
-import org.wso2.siddhi.core.util.collection.operator.Finder;
+import org.wso2.siddhi.core.util.collection.operator.CompiledCondition;
 
+/**
+ * Executor class for In condition. Condition evaluation logic is implemented within executor.
+ */
 public class InConditionExpressionExecutor extends ConditionExpressionExecutor {
 
     private final int streamEventSize;
     private final boolean isMatchingEventAStateEvent;
     private final int matchingStreamIndex;
-    private EventTable eventTable;
-    private final Finder finder;
+    private Table table;
+    private final CompiledCondition compiledCondition;
     private FinderStateEvent finderStateEvent;
 
-    public InConditionExpressionExecutor(EventTable eventTable, Finder finder, int streamEventSize, boolean isMatchingEventAStateEvent, int matchingStreamIndex) {
+    public InConditionExpressionExecutor(Table table, CompiledCondition compiledCondition, int
+            streamEventSize, boolean isMatchingEventAStateEvent, int matchingStreamIndex) {
         this.streamEventSize = streamEventSize;
         this.isMatchingEventAStateEvent = isMatchingEventAStateEvent;
         this.matchingStreamIndex = matchingStreamIndex;
         this.finderStateEvent = new FinderStateEvent(streamEventSize, 0);
-        this.eventTable = eventTable;
-        this.finder = finder;
+        this.table = table;
+        this.compiledCondition = compiledCondition;
     }
 
     public synchronized Boolean execute(ComplexEvent event) {
@@ -51,7 +55,7 @@ public class InConditionExpressionExecutor extends ConditionExpressionExecutor {
             } else {
                 finderStateEvent.setEvent(matchingStreamIndex, (StreamEvent) event);
             }
-            return eventTable.contains(finderStateEvent, finder);
+            return table.containsEvent(finderStateEvent, compiledCondition);
         } finally {
             if (isMatchingEventAStateEvent) {
                 finderStateEvent.setEvent(null);
@@ -63,7 +67,8 @@ public class InConditionExpressionExecutor extends ConditionExpressionExecutor {
 
     @Override
     public ExpressionExecutor cloneExecutor(String key) {
-        return new InConditionExpressionExecutor(eventTable, finder.cloneFinder(key), streamEventSize, isMatchingEventAStateEvent, matchingStreamIndex);
+        return new InConditionExpressionExecutor(table, compiledCondition.cloneCompilation(key),
+                streamEventSize, isMatchingEventAStateEvent, matchingStreamIndex);
     }
 
 

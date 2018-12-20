@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -24,10 +24,6 @@ import java.io.Serializable;
  */
 public interface ComplexEvent extends Serializable {
 
-    enum Type {
-        CURRENT, EXPIRED, TIMER, RESET
-    }
-
     ComplexEvent getNext();
 
     void setNext(ComplexEvent events);
@@ -45,4 +41,14 @@ public interface ComplexEvent extends Serializable {
     Type getType();
 
     void setType(Type type);
+
+    /**
+     * Enums to represent Event.Type
+     */
+    enum Type {
+        CURRENT,
+        EXPIRED,
+        TIMER,
+        RESET
+    }
 }

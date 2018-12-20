@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -19,10 +19,31 @@ package org.wso2.siddhi.query.api.execution.query.output.stream;
 
 import org.wso2.siddhi.query.api.expression.Expression;
 
+/**
+ * Query output stream update events on table
+ */
 public class UpdateStream extends OutputStream {
-    protected Expression onUpdateExpression;
 
-    public UpdateStream(String tableId, OutputEventType outputEventType, Expression onUpdateExpression) {
+    private static final long serialVersionUID = 1L;
+    private Expression onUpdateExpression;
+    private UpdateSet updateSetter;
+
+    public UpdateStream(String tableId, OutputEventType outputEventType, UpdateSet updateSet,
+                        Expression onUpdateExpression) {
+        this.updateSetter = updateSet;
+        this.id = tableId;
+        this.outputEventType = outputEventType;
+        this.onUpdateExpression = onUpdateExpression;
+    }
+
+    public UpdateStream(String tableId, UpdateSet updateSet, Expression onUpdateExpression) {
+        this.updateSetter = updateSet;
+        this.id = tableId;
+        this.outputEventType = OutputEventType.CURRENT_EVENTS;
+        this.onUpdateExpression = onUpdateExpression;
+    }
+
+    public UpdateStream(String tableId, OutputEventType outputEventType,  Expression onUpdateExpression) {
         this.id = tableId;
         this.outputEventType = outputEventType;
         this.onUpdateExpression = onUpdateExpression;
@@ -34,39 +55,60 @@ public class UpdateStream extends OutputStream {
         this.onUpdateExpression = onUpdateExpression;
     }
 
-    public void setOnUpdateExpression(Expression onUpdateExpression) {
-        this.onUpdateExpression = onUpdateExpression;
+    public static UpdateSet updateSet() {
+        return new UpdateSet();
     }
 
     public Expression getOnUpdateExpression() {
         return onUpdateExpression;
     }
 
+    public void setOnUpdateExpression(Expression onUpdateExpression) {
+        this.onUpdateExpression = onUpdateExpression;
+    }
+
+    public UpdateSet getUpdateSet() {
+        return updateSetter;
+    }
+
+    public void setUpdateSet(UpdateSet updateSet) {
+        this.updateSetter = updateSet;
+    }
+
     @Override
     public String toString() {
         return "UpdateStream{" +
-                "onOverwriteExpression=" + onUpdateExpression +
-                "} " + super.toString();
+                "onUpdateExpression=" + onUpdateExpression +
+                ", updateSet=" + updateSetter +
+                '}';
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof UpdateStream)) return false;
-        if (!super.equals(o)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
 
         UpdateStream that = (UpdateStream) o;
 
-        if (onUpdateExpression != null ? !onUpdateExpression.equals(that.onUpdateExpression) : that.onUpdateExpression != null)
+        if (onUpdateExpression != null ? !onUpdateExpression.equals(that.onUpdateExpression) :
+                that.onUpdateExpression != null) {
             return false;
-
-        return true;
+        }
+        return updateSetter != null ? updateSetter.equals(that.updateSetter) : that.updateSetter == null;
     }
 
     @Override
     public int hashCode() {
         int result = super.hashCode();
         result = 31 * result + (onUpdateExpression != null ? onUpdateExpression.hashCode() : 0);
+        result = 31 * result + (updateSetter != null ? updateSetter.hashCode() : 0);
         return result;
     }
 }

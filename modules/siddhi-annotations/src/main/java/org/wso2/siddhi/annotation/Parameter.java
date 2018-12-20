@@ -19,35 +19,39 @@ package org.wso2.siddhi.annotation;
 
 import org.wso2.siddhi.annotation.util.DataType;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Repeatable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Annotation for storing the parameters of a processor.
- * Can be applied to windows, stream processors, stream functions, function executors and attribute aggregators
- *
+ * Annotation for storing the parameters of a Siddhi Extension.
  * <pre><code>
  * eg:-
- *      {@literal @}Parameter(name = "parameter1", type = {DataType.INT, DataType.LONG})
- *      {@literal @}Parameter(name = "parameter2", type = {DataType.BOOL}, description="description about the parameter")
- *      {@literal @}Parameter(name = "parameter3", type = {DataType.DOUBLE, DataType.FLOAT}, optional=true)
- *      public CustomProcessor extends ProcessorSuperClass {
+ *      {@literal @}Extension(
+ *                      ...
+ *                      parameters = {
+ *                          {@literal @}Parameter(name = "firstParameterName", type = {DataType.INT, DataType.LONG}),
+ *                          {@literal @}Parameter(name = "SecondParameterName", type = {DataType.STRING})
+ *                      },
+ *                      ...
+ *      )
+ *      public CustomExtension extends ExtensionSuperClass {
  *          ...
  *      }
  * </code></pre>
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.TYPE)
-@Repeatable(Parameters.class)
+@Target({})
 public @interface Parameter {
-    String name();
+    String name() default "";
 
-    DataType[] type();
+    DataType[] type() default {};
 
-    String description() default "";        // optional
+    String description() default "";
 
-    boolean optional() default false;       // optional
+    boolean optional() default false;
+
+    boolean dynamic() default false;
+
+    String defaultValue() default "";
 }

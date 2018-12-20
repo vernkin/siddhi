@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,71 +17,143 @@
  */
 package org.wso2.siddhi.core.query;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+import org.wso2.siddhi.core.SiddhiAppRuntime;
+import org.wso2.siddhi.core.SiddhiManager;
 import org.wso2.siddhi.core.config.SiddhiContext;
-import org.wso2.siddhi.core.util.SiddhiConstants;
-import org.wso2.siddhi.core.util.parser.ExecutionPlanParser;
-import org.wso2.siddhi.query.api.exception.ExecutionPlanValidationException;
+import org.wso2.siddhi.core.exception.SiddhiAppCreationException;
+import org.wso2.siddhi.core.util.parser.SiddhiAppParser;
+import org.wso2.siddhi.query.api.exception.SiddhiAppValidationException;
 import org.wso2.siddhi.query.compiler.SiddhiCompiler;
 
 public class SimpleQueryValidatorTestCase {
     private SiddhiContext siddhiContext;
 
-    @Before
+    @BeforeMethod
     public void init() {
         siddhiContext = new SiddhiContext();
     }
 
-
-    @Test(expected = ExecutionPlanValidationException.class)
+    @Test(expectedExceptions = SiddhiAppValidationException.class)
     public void testQueryWithNotExistingAttributes() throws InterruptedException {
 
         String cseEventStream = "define stream cseEventStream (symbol string, price float, volume long);";
-        String query = "@info(name = 'query1') from cseEventStream[volume >= 50] select symbol1,price,volume insert into outputStream ;";
+        String query = "@info(name = 'query1') from cseEventStream[volume >= 50] select symbol1,price,volume insert " +
+                "into outputStream ;";
 
-        ExecutionPlanParser.parse(SiddhiCompiler.parse(cseEventStream + query), siddhiContext);
+        SiddhiAppParser.parse(SiddhiCompiler.parse(cseEventStream + query),
+                cseEventStream + query, siddhiContext);
     }
 
-    @Test(expected = ExecutionPlanValidationException.class)
+    @Test(expectedExceptions = SiddhiAppValidationException.class)
     public void testQueryWithDuplicateDefinition() throws InterruptedException {
-        String cseEventStream = "define stream cseEventStream (symbol string, price float, volume long);";
+        String cseEventStream = "define stream \n cseEventStream (symbol string, price float, volume long);";
         String duplicateStream = "define stream outputStream (symbol string, price float);";
-        String query = "@info(name = 'query1') from cseEventStream[volume >= 50] select symbol,price,volume insert into outputStream ;";
+        String query = "@info(name = 'query1') from cseEventStream[volume >= 50] select symbol,price,volume insert " +
+                "into outputStream ;";
 
-        ExecutionPlanParser.parse(SiddhiCompiler.parse(cseEventStream + duplicateStream + query), siddhiContext);
+        SiddhiAppParser.parse(SiddhiCompiler.parse(cseEventStream + duplicateStream + query),
+                cseEventStream + duplicateStream + query, siddhiContext);
     }
 
-    @Test(expected = ExecutionPlanValidationException.class)
+    @Test(expectedExceptions = SiddhiAppCreationException.class)
     public void testInvalidFilterCondition1() throws InterruptedException {
         String cseEventStream = "define stream cseEventStream (symbol string, price float, volume long);";
-        String query = "@info(name = 'query1') from cseEventStream[volume >= 50 and volume] select symbol,price,volume insert into outputStream ;";
+        String query = "@info(name = 'query1') from cseEventStream[volume >= 50 and volume] select symbol,price," +
+                "volume insert into outputStream ;";
 
-        ExecutionPlanParser.parse(SiddhiCompiler.parse(cseEventStream + query), siddhiContext);
+        SiddhiAppParser.parse(SiddhiCompiler.parse(cseEventStream + query),
+                cseEventStream + query, siddhiContext);
     }
 
-    @Test(expected = ExecutionPlanValidationException.class)
+    @Test(expectedExceptions = SiddhiAppCreationException.class)
     public void testInvalidFilterCondition2() throws InterruptedException {
         String cseEventStream = "define stream cseEventStream (symbol string, price float, volume long);";
-        String query = "@info(name = 'query1') from cseEventStream[not(price)] select symbol,price,volume insert into outputStream ;";
+        String query = "@info(name = 'query1') from cseEventStream[not(price)] select symbol,price,volume insert into" +
+                " outputStream ;";
 
-        ExecutionPlanParser.parse(SiddhiCompiler.parse(cseEventStream + query), siddhiContext);
-
+        SiddhiAppParser.parse(SiddhiCompiler.parse(cseEventStream + query),
+                cseEventStream + query, siddhiContext);
     }
 
     @Test
     public void testComplexFilterQuery1() throws InterruptedException {
-        String cseEventStream = "define stream cseEventStream (symbol string, price float, volume long, available bool);";
-        String query = "@info(name = 'query1') from cseEventStream[available] select symbol,price,volume insert into outputStream ;";
+        String cseEventStream = "define stream cseEventStream (symbol string, price float, volume long, available " +
+                "bool);";
+        String query = "@info(name = 'query1') from cseEventStream[available] select symbol,price,volume insert into " +
+                "outputStream ;";
 
-        ExecutionPlanParser.parse(SiddhiCompiler.parse(cseEventStream + query), siddhiContext);
+        SiddhiAppParser.parse(SiddhiCompiler.parse(cseEventStream + query),
+                cseEventStream + query, siddhiContext);
     }
 
     @Test
     public void testComplexFilterQuery2() throws InterruptedException {
-        String cseEventStream = "define stream cseEventStream (symbol string, price float, volume long, available bool);";
-        String query = "@info(name = 'query1') from cseEventStream[available and price>50] select symbol,price,volume insert into outputStream ;";
+        String cseEventStream = "define stream cseEventStream (symbol string, price float, volume long, available " +
+                "bool);";
+        String query = "@info(name = 'query1') from cseEventStream[available and price>50] select symbol,price,volume" +
+                " insert into outputStream ;";
 
-        ExecutionPlanParser.parse(SiddhiCompiler.parse(cseEventStream + query), siddhiContext);
+        SiddhiAppParser.parse(SiddhiCompiler.parse(cseEventStream + query),
+                cseEventStream + query, siddhiContext);
+    }
+
+    @Test(expectedExceptions = SiddhiAppCreationException.class)
+    public void testQueryWithTable() throws InterruptedException {
+        SiddhiManager siddhiManager = new SiddhiManager();
+        String tables = "define table TestTable(symbol string, volume float); " +
+                "" +
+                "from TestTable " +
+                "select * " +
+                "insert into OutputStream; ";
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(tables);
+        siddhiAppRuntime.shutdown();
+    }
+
+    @Test(expectedExceptions = SiddhiAppCreationException.class)
+    public void testQueryWithAggregation() throws InterruptedException {
+        SiddhiManager siddhiManager = new SiddhiManager();
+        String tables = "define stream TradeStream (symbol string, price double, volume long, timestamp long);\n" +
+                "define aggregation TradeAggregation\n" +
+                "  from TradeStream\n" +
+                "  select symbol, avg(price) as avgPrice, sum(price) as total\n" +
+                "    group by symbol\n" +
+                "    aggregate by symbol every sec ... year; " +
+                "" +
+                "from every TradeAggregation \n" +
+                "select * \n" +
+                "insert into OutputStream; ";
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(tables);
+        siddhiAppRuntime.shutdown();
+    }
+
+    @Test(expectedExceptions = SiddhiAppCreationException.class)
+    public void testQueryWithEveryTable() throws InterruptedException {
+        SiddhiManager siddhiManager = new SiddhiManager();
+        String tables = "define table TestTable(symbol string, volume float);\n" +
+                "" +
+                "from every TestTable " +
+                "select * " +
+                "insert into OutputStream; ";
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(tables);
+        siddhiAppRuntime.shutdown();
+    }
+
+    @Test(expectedExceptions = SiddhiAppCreationException.class)
+    public void testQueryWithEveryAggregation() throws InterruptedException {
+        SiddhiManager siddhiManager = new SiddhiManager();
+        String tables = "define stream TradeStream (symbol string, price double, volume long, timestamp long);\n" +
+                "define aggregation TradeAggregation\n" +
+                "  from TradeStream\n" +
+                "  select symbol, avg(price) as avgPrice, sum(price) as total\n" +
+                "    group by symbol\n" +
+                "    aggregate by symbol every sec ... year; " +
+                "" +
+                "from every TradeAggregation " +
+                "select * " +
+                "insert into OutputStream; ";
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(tables);
+        siddhiAppRuntime.shutdown();
     }
 }

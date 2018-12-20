@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,8 +17,12 @@
  */
 package org.wso2.siddhi.query.api.execution.query.output.ratelimit;
 
+/**
+ * Rate limiting of query output and producing state snapshot as output
+ */
 public class SnapshotOutputRate extends OutputRate {
 
+    private static final long serialVersionUID = 1L;
     private Long value;
     private OutputRate.Type type = OutputRate.Type.ALL;
 
@@ -44,13 +48,21 @@ public class SnapshotOutputRate extends OutputRate {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof SnapshotOutputRate)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof SnapshotOutputRate)) {
+            return false;
+        }
 
         SnapshotOutputRate that = (SnapshotOutputRate) o;
 
-        if (type != that.type) return false;
-        if (value != null ? !value.equals(that.value) : that.value != null) return false;
+        if (type != that.type) {
+            return false;
+        }
+        if (value != null ? !value.equals(that.value) : that.value != null) {
+            return false;
+        }
 
         return true;
     }

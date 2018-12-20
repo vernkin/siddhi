@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,19 +17,20 @@
  */
 package org.wso2.siddhi.core.query.processor.stream;
 
-import org.wso2.siddhi.core.config.ExecutionPlanContext;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
 import org.wso2.siddhi.core.event.ComplexEventChunk;
 import org.wso2.siddhi.core.event.stream.StreamEvent;
 import org.wso2.siddhi.core.event.stream.StreamEventCloner;
 import org.wso2.siddhi.core.event.stream.populater.ComplexEventPopulater;
 import org.wso2.siddhi.core.executor.ExpressionExecutor;
 import org.wso2.siddhi.core.query.processor.Processor;
+import org.wso2.siddhi.core.util.config.ConfigReader;
 import org.wso2.siddhi.query.api.definition.AbstractDefinition;
 import org.wso2.siddhi.query.api.definition.Attribute;
 
 import java.util.List;
 
-/*
+/**
  * For Siddhi extensions, extend this class to use the functionality of
  * AbstractStreamProcessor. This class processes only StreamEvents. Use
  * StreamFunctionProcessor to process StateEvents.
@@ -40,7 +41,8 @@ public abstract class StreamProcessor extends AbstractStreamProcessor {
     protected boolean outputExpectsExpiredEvents;
 
     @Override
-    protected void processEventChunk(ComplexEventChunk<StreamEvent> streamEventChunk, Processor nextProcessor, StreamEventCloner streamEventCloner, ComplexEventPopulater complexEventPopulater) {
+    protected void processEventChunk(ComplexEventChunk<StreamEvent> streamEventChunk, Processor nextProcessor,
+                                     StreamEventCloner streamEventCloner, ComplexEventPopulater complexEventPopulater) {
         streamEventChunk.reset();
         process(streamEventChunk, nextProcessor, streamEventCloner, complexEventPopulater);
     }
@@ -58,21 +60,26 @@ public abstract class StreamProcessor extends AbstractStreamProcessor {
                                     StreamEventCloner streamEventCloner, ComplexEventPopulater complexEventPopulater);
 
     /**
-     * The init method of the StreamProcessor, this method will be called before other methods
+     * The configure method of the StreamProcessor, this method will be called before other methods
      *
      * @param inputDefinition              the incoming stream definition
      * @param attributeExpressionExecutors the executors of each function parameters
-     * @param executionPlanContext         the context of the execution plan
-     * @param outputExpectsExpiredEvents   is output expects ExpiredEvents
-     * @return the additional output attributes introduced by the function
+     * @param configReader                 the config reader of StreamProcessor
+     * @param siddhiAppContext         the context of the siddhi app
+     * @param outputExpectsExpiredEvents   is output expects ExpiredEvents   @return the additional output attributes
+     *                                     introduced by the function
      */
     protected List<Attribute> init(AbstractDefinition inputDefinition,
-                                   ExpressionExecutor[] attributeExpressionExecutors, ExecutionPlanContext executionPlanContext, boolean outputExpectsExpiredEvents){
+                                   ExpressionExecutor[] attributeExpressionExecutors, ConfigReader configReader,
+                                   SiddhiAppContext
+                                           siddhiAppContext, boolean outputExpectsExpiredEvents) {
         this.outputExpectsExpiredEvents = outputExpectsExpiredEvents;
-        return init(inputDefinition,attributeExpressionExecutors,executionPlanContext);
+        return init(inputDefinition, attributeExpressionExecutors, configReader, siddhiAppContext);
     }
 
     protected abstract List<Attribute> init(AbstractDefinition inputDefinition,
-                                            ExpressionExecutor[] attributeExpressionExecutors, ExecutionPlanContext executionPlanContext);
+                                            ExpressionExecutor[] attributeExpressionExecutors, ConfigReader
+                                                    configReader, SiddhiAppContext
+                                                    siddhiAppContext);
 
 }

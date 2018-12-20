@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,12 +17,11 @@
  */
 package org.wso2.siddhi.core.query.output.ratelimit;
 
-import org.wso2.siddhi.core.config.ExecutionPlanContext;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
 import org.wso2.siddhi.core.event.ComplexEvent;
 import org.wso2.siddhi.core.event.ComplexEventChunk;
-import org.wso2.siddhi.core.query.output.callback.InsertIntoStreamCallback;
+import org.wso2.siddhi.core.query.input.MultiProcessStreamReceiver;
 import org.wso2.siddhi.core.query.output.callback.OutputCallback;
-import org.wso2.siddhi.core.query.output.callback.PublishStreamCallback;
 import org.wso2.siddhi.core.query.output.callback.QueryCallback;
 import org.wso2.siddhi.core.util.extension.holder.EternalReferencedHolder;
 import org.wso2.siddhi.core.util.lock.LockWrapper;
@@ -32,33 +31,43 @@ import org.wso2.siddhi.core.util.statistics.LatencyTracker;
 import java.util.ArrayList;
 import java.util.List;
 
-
+/**
+ * Abstract parent implementation of Output Rate Limiting. Output Rate Limiting is used to throttle the output of
+ * Siddhi queries based on various criteria.
+ */
 public abstract class OutputRateLimiter implements EternalReferencedHolder, Snapshotable {
 
     protected List<QueryCallback> queryCallbacks = new ArrayList<QueryCallback>();
     protected OutputCallback outputCallback = null;
-    protected ExecutionPlanContext executionPlanContext;
+    protected SiddhiAppContext siddhiAppContext;
     protected LatencyTracker latencyTracker;
     protected LockWrapper lockWrapper;
     protected String queryName;
     private boolean hasCallBack = false;
     private String elementId;
 
-    public void init(ExecutionPlanContext executionPlanContext, LockWrapper lockWrapper, String queryName) {
-        this.executionPlanContext = executionPlanContext;
+    public void init(SiddhiAppContext siddhiAppContext, LockWrapper lockWrapper, String queryName) {
+        this.siddhiAppContext = siddhiAppContext;
         this.queryName = queryName;
-        if (outputCallback != null && (outputCallback instanceof InsertIntoStreamCallback ||
-                outputCallback instanceof PublishStreamCallback)) {
+        if (outputCallback != null) {
             this.lockWrapper = lockWrapper;
         }
         if (elementId == null) {
-            elementId = "OutputRateLimiter-" + executionPlanContext.getElementIdGenerator().createNewId();
+            elementId = "OutputRateLimiter-" + siddhiAppContext.getElementIdGenerator().createNewId();
         }
-        executionPlanContext.getSnapshotService().addSnapshotable(queryName, this);
+        siddhiAppContext.getSnapshotService().addSnapshotable(queryName, this);
     }
 
-    protected void sendToCallBacks(ComplexEventChunk complexEventChunk) {
-        if (latencyTracker != null) {
+    public void sendToCallBacks(ComplexEventChunk complexEventChunk) {
+        MultiProcessStreamReceiver.ReturnEventHolder returnEventHolder =
+                MultiProcessStreamReceiver.getMultiProcessReturn().get();
+        if (returnEventHolder != null) {
+            returnEventHolder.setReturnEvents(complexEventChunk);
+            return;
+        } else if (lockWrapper != null) {
+            lockWrapper.unlock();
+        }
+        if (siddhiAppContext.isStatsEnabled() && latencyTracker != null) {
             latencyTracker.markOut();
         }
         if (lockWrapper != null) {
@@ -71,15 +80,21 @@ public abstract class OutputRateLimiter implements EternalReferencedHolder, Snap
         }
         if (outputCallback != null && complexEventChunk.getFirst() != null) {
             complexEventChunk.reset();
+            int noOfEvents = 0;
             while (complexEventChunk.hasNext()) {
                 ComplexEvent complexEvent = complexEventChunk.next();
                 if (complexEvent.getType() == ComplexEvent.Type.EXPIRED) {
                     complexEvent.setType(ComplexEvent.Type.CURRENT);
+                    noOfEvents++;
                 } else if (complexEvent.getType() == ComplexEvent.Type.RESET) {
                     complexEventChunk.remove();
+                } else {
+                    noOfEvents++;
                 }
             }
-            outputCallback.send(complexEventChunk);
+            if (complexEventChunk.getFirst() != null) {
+                outputCallback.send(complexEventChunk, noOfEvents);
+            }
         }
 
     }

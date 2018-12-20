@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,6 +17,7 @@
  */
 package org.wso2.siddhi.core.query.input;
 
+import org.wso2.siddhi.core.config.SiddhiAppContext;
 import org.wso2.siddhi.core.debugger.SiddhiDebugger;
 import org.wso2.siddhi.core.event.ComplexEvent;
 import org.wso2.siddhi.core.event.ComplexEventChunk;
@@ -35,26 +36,32 @@ import org.wso2.siddhi.core.util.statistics.LatencyTracker;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Parent implementation for all process stream receivers(Multi/Single/State). Any newly written process stream
+ * receivers should extend this. ProcessStreamReceivers are the entry point to Siddhi queries.
+ */
 public class ProcessStreamReceiver implements StreamJunction.Receiver {
 
     protected String streamId;
     protected Processor next;
-    private StreamEventConverter streamEventConverter;
-    private MetaStreamEvent metaStreamEvent;
-    private StreamEventPool streamEventPool;
     protected List<PreStateProcessor> stateProcessors = new ArrayList<PreStateProcessor>();
     protected int stateProcessorsSize;
     protected LatencyTracker latencyTracker;
     protected LockWrapper lockWrapper;
-    protected ComplexEventChunk<StreamEvent> batchingStreamEventChunk = new ComplexEventChunk<StreamEvent>(false);
     protected boolean batchProcessingAllowed;
+    protected SiddhiAppContext siddhiAppContext;
+    private StreamEventConverter streamEventConverter;
+    private MetaStreamEvent metaStreamEvent;
+    private StreamEventPool streamEventPool;
     private SiddhiDebugger siddhiDebugger;
     private String queryName;
 
-    public ProcessStreamReceiver(String streamId, LatencyTracker latencyTracker, String queryName) {
+    public ProcessStreamReceiver(String streamId, LatencyTracker latencyTracker, String queryName,
+                                 SiddhiAppContext siddhiAppContext) {
         this.streamId = streamId;
         this.latencyTracker = latencyTracker;
         this.queryName = queryName;
+        this.siddhiAppContext = siddhiAppContext;
     }
 
     @Override
@@ -63,7 +70,8 @@ public class ProcessStreamReceiver implements StreamJunction.Receiver {
     }
 
     public ProcessStreamReceiver clone(String key) {
-        ProcessStreamReceiver processStreamReceiver = new ProcessStreamReceiver(streamId + key, latencyTracker, queryName);
+        ProcessStreamReceiver processStreamReceiver = new ProcessStreamReceiver(
+                streamId + key, latencyTracker, queryName, siddhiAppContext);
         processStreamReceiver.batchProcessingAllowed = this.batchProcessingAllowed;
         return processStreamReceiver;
     }
@@ -77,7 +85,7 @@ public class ProcessStreamReceiver implements StreamJunction.Receiver {
             lockWrapper.lock();
         }
         try {
-            if (latencyTracker != null) {
+            if (siddhiAppContext.isStatsEnabled() && latencyTracker != null) {
                 try {
                     latencyTracker.markIn();
                     processAndClear(streamEventChunk);
@@ -142,31 +150,31 @@ public class ProcessStreamReceiver implements StreamJunction.Receiver {
         process(new ComplexEventChunk<StreamEvent>(firstEvent, currentEvent, this.batchProcessingAllowed));
     }
 
-
     @Override
-    public void receive(Event event, boolean endOfBatch) {
-        StreamEvent borrowedEvent = streamEventPool.borrowEvent();
-        streamEventConverter.convertEvent(event, borrowedEvent);
-        ComplexEventChunk<StreamEvent> streamEventChunk = null;
-        synchronized (this) {
-            batchingStreamEventChunk.add(borrowedEvent);
-            if (endOfBatch) {
-                streamEventChunk = batchingStreamEventChunk;
-                batchingStreamEventChunk = new ComplexEventChunk<StreamEvent>(this.batchProcessingAllowed);
+    public void receive(List<Event> events) {
+        StreamEvent firstEvent = null;
+        StreamEvent currentEvent = null;
+        for (Event event : events) {
+            StreamEvent nextEvent = streamEventPool.borrowEvent();
+            streamEventConverter.convertEvent(event, nextEvent);
+            if (firstEvent == null) {
+                firstEvent = nextEvent;
+            } else {
+                currentEvent.setNext(nextEvent);
             }
+            currentEvent = nextEvent;
+
         }
-        if (streamEventChunk != null) {
-            if (siddhiDebugger != null) {
-                siddhiDebugger.checkBreakPoint(queryName, SiddhiDebugger.QueryTerminal.IN, streamEventChunk.getFirst());
-            }
-            process(streamEventChunk);
+        if (siddhiDebugger != null) {
+            siddhiDebugger.checkBreakPoint(queryName, SiddhiDebugger.QueryTerminal.IN, firstEvent);
         }
+        process(new ComplexEventChunk<StreamEvent>(firstEvent, currentEvent, this.batchProcessingAllowed));
     }
 
     @Override
-    public void receive(long timeStamp, Object[] data) {
+    public void receive(long timestamp, Object[] data) {
         StreamEvent borrowedEvent = streamEventPool.borrowEvent();
-        streamEventConverter.convertData(timeStamp, data, borrowedEvent);
+        streamEventConverter.convertData(timestamp, data, borrowedEvent);
         // Send to debugger
         if (siddhiDebugger != null) {
             siddhiDebugger.checkBreakPoint(queryName, SiddhiDebugger.QueryTerminal.IN, borrowedEvent);
@@ -183,8 +191,9 @@ public class ProcessStreamReceiver implements StreamJunction.Receiver {
         this.metaStreamEvent = metaStreamEvent;
     }
 
-    public boolean toTable() {
-        return metaStreamEvent.isTableEvent();
+    public boolean toStream() {
+        return metaStreamEvent.getEventType() == MetaStreamEvent.EventType.DEFAULT ||
+                metaStreamEvent.getEventType() == MetaStreamEvent.EventType.WINDOW;
     }
 
     public void setBatchProcessingAllowed(boolean batchProcessingAllowed) {

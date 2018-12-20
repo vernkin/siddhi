@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,13 +18,31 @@
 
 package org.wso2.siddhi.query.api.definition;
 
+import org.wso2.siddhi.query.api.SiddhiElement;
 import org.wso2.siddhi.query.api.expression.constant.TimeConstant;
 
-public class TriggerDefinition {
+/**
+ * Siddhi Trigger Definition
+ */
+public class TriggerDefinition implements SiddhiElement {
 
+    private static final long serialVersionUID = 1L;
     private String id;
     private Long atEvery;
     private String at;
+    private int[] queryContextStartIndex;
+    private int[] queryContextEndIndex;
+
+    public TriggerDefinition() {
+    }
+
+    protected TriggerDefinition(String id) {
+        this.id = id;
+    }
+
+    public static TriggerDefinition id(String id) {
+        return new TriggerDefinition(id);
+    }
 
     public String getId() {
         return id;
@@ -36,17 +54,6 @@ public class TriggerDefinition {
 
     public String getAt() {
         return at;
-    }
-
-    public TriggerDefinition() {
-    }
-
-    protected TriggerDefinition(String id) {
-        this.id = id;
-    }
-
-    public static TriggerDefinition id(String id) {
-        return new TriggerDefinition(id);
     }
 
     public TriggerDefinition atEvery(long timeInMilliSeconds) {
@@ -62,5 +69,25 @@ public class TriggerDefinition {
     public TriggerDefinition atEvery(TimeConstant time) {
         this.atEvery = time.value();
         return this;
+    }
+
+    @Override
+    public int[] getQueryContextStartIndex() {
+        return queryContextStartIndex;
+    }
+
+    @Override
+    public void setQueryContextStartIndex(int[] lineAndColumn) {
+        queryContextStartIndex = lineAndColumn;
+    }
+
+    @Override
+    public int[] getQueryContextEndIndex() {
+        return queryContextEndIndex;
+    }
+
+    @Override
+    public void setQueryContextEndIndex(int[] lineAndColumn) {
+        queryContextEndIndex = lineAndColumn;
     }
 }

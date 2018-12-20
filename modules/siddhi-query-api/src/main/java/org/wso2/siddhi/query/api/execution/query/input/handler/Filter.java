@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -19,9 +19,15 @@ package org.wso2.siddhi.query.api.execution.query.input.handler;
 
 import org.wso2.siddhi.query.api.expression.Expression;
 
+/**
+ * Siddhi query filter
+ */
 public class Filter implements StreamHandler {
 
+    private static final long serialVersionUID = 1L;
     private Expression filterExpression;
+    private int[] queryContextStartIndex;
+    private int[] queryContextEndIndex;
 
     public Filter(Expression filterExpression) {
         this.filterExpression = filterExpression;
@@ -36,12 +42,18 @@ public class Filter implements StreamHandler {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Filter)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof Filter)) {
+            return false;
+        }
 
         Filter filter = (Filter) o;
 
-        if (!filterExpression.equals(filter.filterExpression)) return false;
+        if (!filterExpression.equals(filter.filterExpression)) {
+            return false;
+        }
 
         return true;
     }
@@ -54,5 +66,25 @@ public class Filter implements StreamHandler {
     @Override
     public Expression[] getParameters() {
         return new Expression[]{filterExpression};
+    }
+
+    @Override
+    public int[] getQueryContextStartIndex() {
+        return queryContextStartIndex;
+    }
+
+    @Override
+    public void setQueryContextStartIndex(int[] lineAndColumn) {
+        queryContextStartIndex = lineAndColumn;
+    }
+
+    @Override
+    public int[] getQueryContextEndIndex() {
+        return queryContextEndIndex;
+    }
+
+    @Override
+    public void setQueryContextEndIndex(int[] lineAndColumn) {
+        queryContextEndIndex = lineAndColumn;
     }
 }

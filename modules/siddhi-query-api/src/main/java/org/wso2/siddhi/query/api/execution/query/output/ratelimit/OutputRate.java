@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,17 +17,20 @@
  */
 package org.wso2.siddhi.query.api.execution.query.output.ratelimit;
 
+import org.wso2.siddhi.query.api.SiddhiElement;
 import org.wso2.siddhi.query.api.exception.UnsupportedAttributeTypeException;
 import org.wso2.siddhi.query.api.expression.constant.Constant;
 import org.wso2.siddhi.query.api.expression.constant.IntConstant;
 import org.wso2.siddhi.query.api.expression.constant.LongConstant;
 import org.wso2.siddhi.query.api.expression.constant.TimeConstant;
 
-public abstract class OutputRate {
-
-    public enum Type {
-        ALL, FIRST, LAST, SNAPSHOT
-    }
+/**
+ * Rate limiting of query output
+ */
+public abstract class OutputRate implements SiddhiElement {
+    private static final long serialVersionUID = 1L;
+    private int[] queryContextStartIndex;
+    private int[] queryContextEndIndex;
 
     public static EventOutputRate perEvents(Constant events) {
         if (events instanceof LongConstant) {
@@ -35,7 +38,8 @@ public abstract class OutputRate {
         } else if (events instanceof IntConstant) {
             return new EventOutputRate(((IntConstant) events).getValue());
         }
-        throw new UnsupportedAttributeTypeException("Unsupported output event rate type, output event rate only supports int");
+        throw new UnsupportedAttributeTypeException("Unsupported output event rate type, output event rate only " +
+                "supports int");
     }
 
     public static TimeOutputRate perTimePeriod(TimeConstant timeConstant) {
@@ -54,4 +58,33 @@ public abstract class OutputRate {
         return new SnapshotOutputRate(longConstant.getValue());
     }
 
+    @Override
+    public int[] getQueryContextStartIndex() {
+        return queryContextStartIndex;
+    }
+
+    @Override
+    public void setQueryContextStartIndex(int[] lineAndColumn) {
+        queryContextStartIndex = lineAndColumn;
+    }
+
+    @Override
+    public int[] getQueryContextEndIndex() {
+        return queryContextEndIndex;
+    }
+
+    @Override
+    public void setQueryContextEndIndex(int[] lineAndColumn) {
+        queryContextEndIndex = lineAndColumn;
+    }
+
+    /**
+     * Output rate limiting types
+     */
+    public enum Type {
+        ALL,
+        FIRST,
+        LAST,
+        SNAPSHOT
+    }
 }

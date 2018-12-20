@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,19 +18,26 @@
 package org.wso2.siddhi.query.api.execution.query.input.stream;
 
 
-import org.wso2.siddhi.query.api.exception.ExecutionPlanValidationException;
+import org.wso2.siddhi.query.api.exception.SiddhiAppValidationException;
 import org.wso2.siddhi.query.api.execution.query.Query;
 import org.wso2.siddhi.query.api.execution.query.output.stream.ReturnStream;
 
 import java.util.UUID;
 
+/**
+ * Anonymous input query stream
+ */
 public class AnonymousInputStream extends SingleInputStream {
+
+    private static final long serialVersionUID = 1L;
     private Query query;
 
     public AnonymousInputStream(Query query) {
         super("Anonymous-" + UUID.randomUUID());
         if (query.getOutputStream() != null && !(query.getOutputStream() instanceof ReturnStream)) {
-            throw new ExecutionPlanValidationException("OutputStream of the query is not on type Return!");
+            throw new SiddhiAppValidationException("OutputStream of the query is not on type Return!",
+                    query.getOutputStream().getQueryContextStartIndex(),
+                    query.getOutputStream().getQueryContextEndIndex());
         }
         this.query = query;
 
@@ -47,20 +54,26 @@ public class AnonymousInputStream extends SingleInputStream {
                 "} ";
     }
 
+
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof AnonymousInputStream)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         AnonymousInputStream that = (AnonymousInputStream) o;
 
-        if (query != null ? !query.equals(that.query) : that.query != null) return false;
+        return (query != null ? query.equals(that.query) : that.query == null) || super.equals(o);
 
-        return true;
     }
 
     @Override
     public int hashCode() {
-        return query != null ? query.hashCode() : 0;
+        int result = super.hashCode();
+        result = 31 * result + (query != null ? query.hashCode() : 0);
+        return result;
     }
 }

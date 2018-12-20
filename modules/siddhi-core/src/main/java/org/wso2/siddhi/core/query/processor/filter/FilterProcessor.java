@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -24,7 +24,9 @@ import org.wso2.siddhi.core.executor.ExpressionExecutor;
 import org.wso2.siddhi.core.query.processor.Processor;
 import org.wso2.siddhi.query.api.definition.Attribute;
 
-
+/**
+ * Implementation of {@link Processor} which handles Filter expressions in Siddhi.
+ */
 public class FilterProcessor implements Processor {
 
     protected Processor next;
@@ -34,7 +36,8 @@ public class FilterProcessor implements Processor {
         if (Attribute.Type.BOOL.equals(conditionExecutor.getReturnType())) {
             this.conditionExecutor = conditionExecutor;
         } else {
-            throw new OperationNotSupportedException("Return type of " + conditionExecutor.toString() + " should be of type BOOL. " +
+            throw new OperationNotSupportedException("Return type of " + conditionExecutor.toString() + " should be " +
+                    "of type BOOL. " +
                     "Actual type: " + conditionExecutor.getReturnType().toString());
         }
     }
@@ -48,7 +51,8 @@ public class FilterProcessor implements Processor {
         complexEventChunk.reset();
         while (complexEventChunk.hasNext()) {
             ComplexEvent complexEvent = complexEventChunk.next();
-            if (!(Boolean) conditionExecutor.execute(complexEvent)) {
+            Object result = conditionExecutor.execute(complexEvent);
+            if (result == null || !(Boolean) result) {
                 complexEventChunk.remove();
             }
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,19 +17,27 @@
  */
 package org.wso2.siddhi.query.api.execution.partition;
 
+import org.wso2.siddhi.query.api.SiddhiElement;
 import org.wso2.siddhi.query.api.expression.Expression;
 
 import java.util.Arrays;
 
+/**
+ * Partition type supporting value ranges
+ */
 public class RangePartitionType implements PartitionType {
 
+    private static final long serialVersionUID = 1L;
     private final String streamId;
     private final RangePartitionProperty[] rangePartitionProperties;
+    private int[] queryContextStartIndex;
+    private int[] queryContextEndIndex;
 
     public RangePartitionType(String streamId, RangePartitionProperty[] rangePartitionProperties) {
 
         this.streamId = streamId;
-        this.rangePartitionProperties = rangePartitionProperties;
+        this.rangePartitionProperties = Arrays.copyOfRange(rangePartitionProperties, 0, rangePartitionProperties
+                .length);
     }
 
     public String getStreamId() {
@@ -37,12 +45,74 @@ public class RangePartitionType implements PartitionType {
     }
 
     public RangePartitionProperty[] getRangePartitionProperties() {
-        return rangePartitionProperties;
+        return Arrays.copyOfRange(rangePartitionProperties, 0, rangePartitionProperties.length);
     }
 
-    public static class RangePartitionProperty {
+    @Override
+    public String toString() {
+        return "RangePartitionType{" +
+                "id='" + streamId + '\'' +
+                ", rangePartitionProperties=" + Arrays.toString(rangePartitionProperties) +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof RangePartitionType)) {
+            return false;
+        }
+
+        RangePartitionType that = (RangePartitionType) o;
+
+        if (!Arrays.equals(rangePartitionProperties, that.rangePartitionProperties)) {
+            return false;
+        }
+        if (streamId != null ? !streamId.equals(that.streamId) : that.streamId != null) {
+            return false;
+        }
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = streamId != null ? streamId.hashCode() : 0;
+        result = 31 * result + (rangePartitionProperties != null ? Arrays.hashCode(rangePartitionProperties) : 0);
+        return result;
+    }
+
+    @Override
+    public int[] getQueryContextStartIndex() {
+        return queryContextStartIndex;
+    }
+
+    @Override
+    public void setQueryContextStartIndex(int[] lineAndColumn) {
+        queryContextStartIndex = lineAndColumn;
+    }
+
+    @Override
+    public int[] getQueryContextEndIndex() {
+        return queryContextEndIndex;
+    }
+
+    @Override
+    public void setQueryContextEndIndex(int[] lineAndColumn) {
+        queryContextEndIndex = lineAndColumn;
+    }
+
+    /**
+     * Each range partition property
+     */
+    public static class RangePartitionProperty implements SiddhiElement {
+        private static final long serialVersionUID = 1L;
         private final String partitionKey;
         private final Expression condition;
+        private int[] queryContextStartIndex;
+        private int[] queryContextEndIndex;
 
         public RangePartitionProperty(String partitionKey, Expression condition) {
 
@@ -68,13 +138,21 @@ public class RangePartitionType implements PartitionType {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
 
             RangePartitionProperty that = (RangePartitionProperty) o;
 
-            if (!condition.equals(that.condition)) return false;
-            if (!partitionKey.equals(that.partitionKey)) return false;
+            if (!condition.equals(that.condition)) {
+                return false;
+            }
+            if (!partitionKey.equals(that.partitionKey)) {
+                return false;
+            }
 
             return true;
         }
@@ -85,33 +163,25 @@ public class RangePartitionType implements PartitionType {
             result = 31 * result + condition.hashCode();
             return result;
         }
-    }
 
-    @Override
-    public String toString() {
-        return "RangePartitionType{" +
-                "id='" + streamId + '\'' +
-                ", rangePartitionProperties=" + Arrays.toString(rangePartitionProperties) +
-                '}';
-    }
+        @Override
+        public int[] getQueryContextStartIndex() {
+            return queryContextStartIndex;
+        }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof RangePartitionType)) return false;
+        @Override
+        public void setQueryContextStartIndex(int[] lineAndColumn) {
+            queryContextStartIndex = lineAndColumn;
+        }
 
-        RangePartitionType that = (RangePartitionType) o;
+        @Override
+        public int[] getQueryContextEndIndex() {
+            return queryContextEndIndex;
+        }
 
-        if (!Arrays.equals(rangePartitionProperties, that.rangePartitionProperties)) return false;
-        if (streamId != null ? !streamId.equals(that.streamId) : that.streamId != null) return false;
-
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = streamId != null ? streamId.hashCode() : 0;
-        result = 31 * result + (rangePartitionProperties != null ? Arrays.hashCode(rangePartitionProperties) : 0);
-        return result;
+        @Override
+        public void setQueryContextEndIndex(int[] lineAndColumn) {
+            queryContextEndIndex = lineAndColumn;
+        }
     }
 }

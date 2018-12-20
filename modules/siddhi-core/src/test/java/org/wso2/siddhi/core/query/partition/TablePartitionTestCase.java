@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,28 +18,28 @@
 
 package org.wso2.siddhi.core.query.partition;
 
-import junit.framework.Assert;
 import org.apache.log4j.Logger;
-import org.junit.Before;
-import org.junit.Test;
-import org.wso2.siddhi.core.ExecutionPlanRuntime;
+import org.testng.AssertJUnit;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+import org.wso2.siddhi.core.SiddhiAppRuntime;
 import org.wso2.siddhi.core.SiddhiManager;
 import org.wso2.siddhi.core.event.Event;
 import org.wso2.siddhi.core.stream.input.InputHandler;
 import org.wso2.siddhi.core.stream.output.StreamCallback;
-import org.wso2.siddhi.core.test.util.SiddhiTestHelper;
 import org.wso2.siddhi.core.util.EventPrinter;
+import org.wso2.siddhi.core.util.SiddhiTestHelper;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
 
 public class TablePartitionTestCase {
-    static final Logger log = Logger.getLogger(TablePartitionTestCase.class);
+    private static final Logger log = Logger.getLogger(TablePartitionTestCase.class);
     private AtomicInteger count = new AtomicInteger(0);
     private int stockStreamEventCount;
     private boolean eventArrived;
 
-    @Before
+    @BeforeMethod
     public void init() {
         count.set(0);
         eventArrived = false;
@@ -51,8 +51,8 @@ public class TablePartitionTestCase {
         log.info("Table Partition test");
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        String executionPlan = "" +
-                "@plan:name('PartitionTest') " +
+        String siddhiApp = "" +
+                "@app:name('PartitionTest') " +
                 "" +
                 "define stream streamA (symbol string, price int);" +
                 "define table tableA (symbol string, price int);" +
@@ -64,15 +64,15 @@ public class TablePartitionTestCase {
                 "   insert into tableA;  " +
                 "end ";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(executionPlan);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiApp);
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("streamA");
-        executionPlanRuntime.start();
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("streamA");
+        siddhiAppRuntime.start();
         inputHandler.send(new Object[]{"IBM", 700});
         inputHandler.send(new Object[]{"WSO2", 60});
         inputHandler.send(new Object[]{"WSO2", 60});
-        executionPlanRuntime.shutdown();
-        Assert.assertEquals(0, count.get());
+        siddhiAppRuntime.shutdown();
+        AssertJUnit.assertEquals(0, count.get());
     }
 
     @Test
@@ -80,8 +80,8 @@ public class TablePartitionTestCase {
         log.info("Table Partition test 1");
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        String executionPlan = "" +
-                "@plan:name('PartitionTest') " +
+        String siddhiApp = "" +
+                "@app:name('PartitionTest') " +
                 "define stream streamA (symbol string, price int);" +
                 "define stream streamB (symbol string);" +
                 "define table tableA (symbol string, price int);" +
@@ -98,9 +98,9 @@ public class TablePartitionTestCase {
                 "   insert into outputStream;  " +
                 "end ";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(executionPlan);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiApp);
 
-        executionPlanRuntime.addCallback("outputStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("outputStream", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 EventPrinter.print(events);
@@ -111,9 +111,9 @@ public class TablePartitionTestCase {
             }
         });
 
-        InputHandler streamAInputHandler = executionPlanRuntime.getInputHandler("streamA");
-        InputHandler streamBInputHandler = executionPlanRuntime.getInputHandler("streamB");
-        executionPlanRuntime.start();
+        InputHandler streamAInputHandler = siddhiAppRuntime.getInputHandler("streamA");
+        InputHandler streamBInputHandler = siddhiAppRuntime.getInputHandler("streamB");
+        siddhiAppRuntime.start();
         streamAInputHandler.send(new Object[]{"IBM", 700});
         streamAInputHandler.send(new Object[]{"WSO2", 60});
         streamAInputHandler.send(new Object[]{"WSO2", 60});
@@ -121,9 +121,9 @@ public class TablePartitionTestCase {
         streamBInputHandler.send(new Object[]{"FB"});
         streamBInputHandler.send(new Object[]{"IBM"});
         SiddhiTestHelper.waitForEvents(100, 2, count, 60000);
-        executionPlanRuntime.shutdown();
-        Assert.assertEquals(2, count.get());
-        Assert.assertEquals(true, eventArrived);
+        siddhiAppRuntime.shutdown();
+        AssertJUnit.assertEquals(2, count.get());
+        AssertJUnit.assertEquals(true, eventArrived);
     }
 
     @Test
@@ -131,8 +131,8 @@ public class TablePartitionTestCase {
         log.info("Table Partition test 2");
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        String executionPlan = "" +
-                "@plan:name('PartitionTest') " +
+        String siddhiApp = "" +
+                "@app:name('PartitionTest') " +
                 "define stream streamA (symbol string, price int);" +
                 "define stream streamB (symbol string);" +
                 "define table tableA (symbol string, price int);" +
@@ -152,10 +152,9 @@ public class TablePartitionTestCase {
                 "";
 
 
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiApp);
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(executionPlan);
-
-        executionPlanRuntime.addCallback("outputStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("outputStream", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 EventPrinter.print(events);
@@ -166,9 +165,9 @@ public class TablePartitionTestCase {
             }
         });
 
-        InputHandler streamAInputHandler = executionPlanRuntime.getInputHandler("streamA");
-        InputHandler streamBInputHandler = executionPlanRuntime.getInputHandler("streamB");
-        executionPlanRuntime.start();
+        InputHandler streamAInputHandler = siddhiAppRuntime.getInputHandler("streamA");
+        InputHandler streamBInputHandler = siddhiAppRuntime.getInputHandler("streamB");
+        siddhiAppRuntime.start();
         streamAInputHandler.send(new Object[]{"IBM", 700});
         streamAInputHandler.send(new Object[]{"WSO2", 60});
         streamAInputHandler.send(new Object[]{"WSO2", 60});
@@ -176,9 +175,9 @@ public class TablePartitionTestCase {
         streamBInputHandler.send(new Object[]{"FB"});
         streamBInputHandler.send(new Object[]{"IBM"});
         SiddhiTestHelper.waitForEvents(100, 2, count, 60000);
-        executionPlanRuntime.shutdown();
-        Assert.assertEquals(2, count.get());
-        Assert.assertEquals(true, eventArrived);
+        siddhiAppRuntime.shutdown();
+        AssertJUnit.assertEquals(2, count.get());
+        AssertJUnit.assertEquals(true, eventArrived);
     }
 
 

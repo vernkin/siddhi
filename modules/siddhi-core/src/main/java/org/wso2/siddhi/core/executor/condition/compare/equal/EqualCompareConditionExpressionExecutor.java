@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -20,6 +20,9 @@ package org.wso2.siddhi.core.executor.condition.compare.equal;
 import org.wso2.siddhi.core.executor.ExpressionExecutor;
 import org.wso2.siddhi.core.executor.condition.compare.CompareConditionExpressionExecutor;
 
+/**
+ * Parent Executor class for Equal condition. Data type specific sub classes will extend this.
+ */
 public abstract class EqualCompareConditionExpressionExecutor extends CompareConditionExpressionExecutor {
 
     public EqualCompareConditionExpressionExecutor(ExpressionExecutor leftExpressionExecutor,

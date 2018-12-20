@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -30,6 +30,7 @@ import org.wso2.siddhi.core.event.stream.StreamEventPool;
  */
 public class ConversionStreamEventChunk extends ComplexEventChunk<StreamEvent> {
 
+    private static final long serialVersionUID = 2754352338846132676L;
     private StreamEventConverter streamEventConverter;
     private StreamEventPool streamEventPool;
 
@@ -52,9 +53,9 @@ public class ConversionStreamEventChunk extends ComplexEventChunk<StreamEvent> {
         last = first;
     }
 
-    public void convertAndAssign(long timeStamp, Object[] data) {
+    public void convertAndAssign(long timestamp, Object[] data) {
         StreamEvent borrowedEvent = streamEventPool.borrowEvent();
-        streamEventConverter.convertData(timeStamp, data, borrowedEvent);
+        streamEventConverter.convertData(timestamp, data, borrowedEvent);
         first = borrowedEvent;
         last = first;
     }

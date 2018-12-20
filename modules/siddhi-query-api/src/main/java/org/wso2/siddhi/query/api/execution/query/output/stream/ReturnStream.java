@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,7 +17,12 @@
  */
 package org.wso2.siddhi.query.api.execution.query.output.stream;
 
+/**
+ * Query output anonymous stream deleting entry from table
+ */
 public class ReturnStream extends OutputStream {
+
+    private static final long serialVersionUID = 1L;
 
     public ReturnStream(OutputEventType outputEventType) {
         this.outputEventType = outputEventType;

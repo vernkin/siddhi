@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,7 +18,7 @@
 
 package org.wso2.siddhi.core.query.input.stream.state;
 
-import org.wso2.siddhi.core.config.ExecutionPlanContext;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
 import org.wso2.siddhi.core.event.MetaComplexEvent;
 import org.wso2.siddhi.core.event.state.MetaStateEvent;
 import org.wso2.siddhi.core.query.input.ProcessStreamReceiver;
@@ -31,14 +31,17 @@ import org.wso2.siddhi.core.query.processor.Processor;
 
 import java.util.List;
 
+/**
+ * Stream Runtime implementation to represent {@link org.wso2.siddhi.core.event.state.StateEvent}.
+ */
 public class StateStreamRuntime implements StreamRuntime {
 
-    private ExecutionPlanContext executionPlanContext;
+    private SiddhiAppContext siddhiAppContext;
     private MetaStateEvent metaStateEvent;
     private InnerStateRuntime innerStateRuntime;
 
-    public StateStreamRuntime(ExecutionPlanContext executionPlanContext, MetaStateEvent metaStateEvent) {
-        this.executionPlanContext = executionPlanContext;
+    public StateStreamRuntime(SiddhiAppContext siddhiAppContext, MetaStateEvent metaStateEvent) {
+        this.siddhiAppContext = siddhiAppContext;
         this.metaStateEvent = metaStateEvent;
     }
 
@@ -48,7 +51,7 @@ public class StateStreamRuntime implements StreamRuntime {
 
     @Override
     public StreamRuntime clone(String key) {
-        StateStreamRuntime stateStreamRuntime = new StateStreamRuntime(executionPlanContext, metaStateEvent);
+        StateStreamRuntime stateStreamRuntime = new StateStreamRuntime(siddhiAppContext, metaStateEvent);
         stateStreamRuntime.innerStateRuntime = this.innerStateRuntime.clone(key);
         for (SingleStreamRuntime singleStreamRuntime : stateStreamRuntime.getSingleStreamRuntimes()) {
             ProcessStreamReceiver processStreamReceiver = singleStreamRuntime.getProcessStreamReceiver();
@@ -58,8 +61,9 @@ public class StateStreamRuntime implements StreamRuntime {
                 ((SequenceSingleProcessStreamReceiver) processStreamReceiver).setStateStreamRuntime(stateStreamRuntime);
             }
         }
-        ((StreamPreStateProcessor) stateStreamRuntime.innerStateRuntime.getFirstProcessor()).setThisLastProcessor((StreamPostStateProcessor)
-                stateStreamRuntime.innerStateRuntime.getLastProcessor());
+        ((StreamPreStateProcessor) stateStreamRuntime.innerStateRuntime.getFirstProcessor()).setThisLastProcessor(
+                (StreamPostStateProcessor)
+                        stateStreamRuntime.innerStateRuntime.getLastProcessor());
         return stateStreamRuntime;
     }
 
@@ -75,12 +79,12 @@ public class StateStreamRuntime implements StreamRuntime {
         return metaStateEvent;
     }
 
-    public void setInnerStateRuntime(InnerStateRuntime innerStateRuntime) {
-        this.innerStateRuntime = innerStateRuntime;
-    }
-
     public InnerStateRuntime getInnerStateRuntime() {
         return innerStateRuntime;
+    }
+
+    public void setInnerStateRuntime(InnerStateRuntime innerStateRuntime) {
+        this.innerStateRuntime = innerStateRuntime;
     }
 
     public void resetAndUpdate() {

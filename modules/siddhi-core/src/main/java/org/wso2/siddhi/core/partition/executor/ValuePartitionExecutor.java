@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -20,6 +20,9 @@ package org.wso2.siddhi.core.partition.executor;
 import org.wso2.siddhi.core.event.ComplexEvent;
 import org.wso2.siddhi.core.executor.ExpressionExecutor;
 
+/**
+ * Value partition executor computes the partition key based on value of given {@link ComplexEvent} attribute/s.
+ */
 public class ValuePartitionExecutor implements PartitionExecutor {
 
     private ExpressionExecutor expressionExecutor;
@@ -29,9 +32,9 @@ public class ValuePartitionExecutor implements PartitionExecutor {
     }
 
     public String execute(ComplexEvent event) {
-        try{
+        try {
             return expressionExecutor.execute(event).toString();
-        }  catch (NullPointerException ex){
+        } catch (NullPointerException ex) {
             return null;
         }
     }

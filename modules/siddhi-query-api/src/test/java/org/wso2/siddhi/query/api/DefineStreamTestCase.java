@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,8 +17,8 @@
  */
 package org.wso2.siddhi.query.api;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.testng.AssertJUnit;
+import org.testng.annotations.Test;
 import org.wso2.siddhi.query.api.annotation.Annotation;
 import org.wso2.siddhi.query.api.definition.Attribute;
 import org.wso2.siddhi.query.api.definition.StreamDefinition;
@@ -30,33 +30,40 @@ public class DefineStreamTestCase {
 
     @Test
     public void testCreatingStreamDefinition() {
-        ExecutionPlan.executionPlan("Test").defineStream(StreamDefinition.id("StockStream").attribute("symbol", Attribute.Type.STRING).attribute("price", Attribute.Type.INT).attribute("volume", Attribute.Type.FLOAT));
+        SiddhiApp.siddhiApp("Test").defineStream(StreamDefinition.id("StockStream").attribute("symbol",
+                Attribute.Type.STRING).attribute("price", Attribute.Type.INT).attribute("volume", Attribute.Type
+                .FLOAT));
 
 
     }
 
-    @Test(expected = DuplicateAttributeException.class)
+    @Test(expectedExceptions = DuplicateAttributeException.class)
     public void testCreatingStreamWithDuplicateAttribute() {
-        StreamDefinition.id("StockStream").attribute("symbol", Attribute.Type.STRING).attribute("symbol", Attribute.Type.INT).attribute("volume", Attribute.Type.FLOAT);
+        StreamDefinition.id("StockStream").attribute("symbol", Attribute.Type.STRING).attribute("symbol", Attribute
+                .Type.INT).attribute("volume", Attribute.Type.FLOAT);
 
     }
 
     @Test
     public void testCreatingStreamDefinitionWithObject() {
-        StreamDefinition.id("StockStream").attribute("symbol", Attribute.Type.STRING).attribute("price", Attribute.Type.INT).attribute("volume", Attribute.Type.FLOAT).attribute("data", Attribute.Type.OBJECT);
+        StreamDefinition.id("StockStream").attribute("symbol", Attribute.Type.STRING).attribute("price", Attribute
+                .Type.INT).attribute("volume", Attribute.Type.FLOAT).attribute("data", Attribute.Type.OBJECT);
     }
 
     @Test
     public void testAnnotatingStreamDefinition() {
-        ExecutionPlan.executionPlan("Test").defineStream(StreamDefinition.id("StockStream").attribute("symbol", Attribute.Type.STRING).attribute("price", Attribute.Type.INT).attribute("volume", Attribute.Type.FLOAT).annotation(Annotation.annotation("distribute").element("true")));
+        SiddhiApp.siddhiApp("Test").defineStream(StreamDefinition.id("StockStream").attribute("symbol",
+                Attribute.Type.STRING).attribute("price", Attribute.Type.INT).attribute("volume", Attribute.Type
+                .FLOAT).annotation(Annotation.annotation("distribute").element("true")));
 
     }
 
     @Test
     public void testAttribute() {
-        StreamDefinition streamDefinition = StreamDefinition.id("StockStream").attribute("symbol", Attribute.Type.STRING).attribute("price", Attribute.Type.INT).attribute("volume", Attribute.Type.FLOAT);
-        Assert.assertEquals(1, streamDefinition.getAttributePosition("price"));
-        Assert.assertEquals(Attribute.Type.FLOAT, streamDefinition.getAttributeType("volume"));
+        StreamDefinition streamDefinition = StreamDefinition.id("StockStream").attribute("symbol", Attribute.Type
+                .STRING).attribute("price", Attribute.Type.INT).attribute("volume", Attribute.Type.FLOAT);
+        AssertJUnit.assertEquals(1, streamDefinition.getAttributePosition("price"));
+        AssertJUnit.assertEquals(Attribute.Type.FLOAT, streamDefinition.getAttributeType("volume"));
     }
 
 }

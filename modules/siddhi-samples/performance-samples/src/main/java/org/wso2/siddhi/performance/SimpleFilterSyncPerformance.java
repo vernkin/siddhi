@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,7 +17,7 @@
  */
 package org.wso2.siddhi.performance;
 
-import org.wso2.siddhi.core.ExecutionPlanRuntime;
+import org.wso2.siddhi.core.SiddhiAppRuntime;
 import org.wso2.siddhi.core.SiddhiManager;
 import org.wso2.siddhi.core.event.Event;
 import org.wso2.siddhi.core.stream.input.InputHandler;
@@ -31,13 +31,16 @@ public class SimpleFilterSyncPerformance {
         SiddhiManager siddhiManager = new SiddhiManager();
 
         String cseEventStream = " " +
-                "define stream RequestStream (messageID string, app_key string, api_key string, app_tier string, api_tier string, user_id string, properties string, timeNow long); " +
-                "define stream EligibilityStream (rule string, messageID string, isEligible bool, isLocallyThrottled bool, throttle_key string , timeNow long); ";
+                "define stream RequestStream (messageID string, app_key string, api_key string, app_tier string, " +
+                "api_tier string, user_id string, properties string, timeNow long); " +
+                "define stream EligibilityStream (rule string, messageID string, isEligible bool, isLocallyThrottled " +
+                "bool, throttle_key string , timeNow long); ";
 
         String query = "" +
                 "@info(name = 'query1') " +
                 "FROM RequestStream " +
-                "SELECT 'sub_gold' AS rule, messageID, ( api_tier == 'Gold') AS isEligible,false as isLocallyThrottled,  'sub_gold_TEST1TEST1Test1_key' AS throttle_key , timeNow \n" +
+                "SELECT 'sub_gold' AS rule, messageID, ( api_tier == 'Gold') AS isEligible,false as " +
+                "isLocallyThrottled,  'sub_gold_TEST1TEST1Test1_key' AS throttle_key , timeNow \n" +
                 "INSERT INTO EligibilityStream; " +
                 "@info(name = 'query2') " +
                 "FROM EligibilityStream[isEligible==false]\n" +
@@ -55,8 +58,8 @@ public class SimpleFilterSyncPerformance {
                 "\t\tINSERT INTO ThrottleStream;  ";
 
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(cseEventStream + query);
-        executionPlanRuntime.addCallback("ThrottleStream", new StreamCallback() {
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(cseEventStream + query);
+        siddhiAppRuntime.addCallback("ThrottleStream", new StreamCallback() {
                     public int eventCount = 0;
                     public int timeSpent = 0;
                     long startTime = System.currentTimeMillis();
@@ -67,8 +70,9 @@ public class SimpleFilterSyncPerformance {
                             eventCount++;
                             timeSpent += (System.currentTimeMillis() - (Long) event.getData(3));
                             if (eventCount % 1000000 == 0) {
-                                System.out.println("Throughput : " + (eventCount * 1000) / ((System.currentTimeMillis()) - startTime));
-                                System.out.println("Time spend :  " + (timeSpent * 1.0 / eventCount));
+                                System.out.println("Throughput : " + (eventCount * 1000) / ((System.currentTimeMillis
+                                        ()) - startTime));
+                                System.out.println("Time spent :  " + (timeSpent * 1.0 / eventCount));
                                 startTime = System.currentTimeMillis();
                                 eventCount = 0;
                                 timeSpent = 0;
@@ -78,14 +82,14 @@ public class SimpleFilterSyncPerformance {
                 }
         );
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("RequestStream");
-        executionPlanRuntime.start();
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("RequestStream");
+        siddhiAppRuntime.start();
 
         for (int i = 0; i <= 100; i++) {
             EventPublisher eventPublisher = new EventPublisher(inputHandler);
             eventPublisher.run();
         }
-        //executionPlanRuntime.shutdown();
+        //siddhiAppRuntime.shutdown();
     }
 
 
@@ -101,10 +105,14 @@ public class SimpleFilterSyncPerformance {
         public void run() {
             while (true) {
                 try {
-                    inputHandler.send(new Object[]{"IBM", "TEST1", "TEST1", "TEST1", "Gold", "Test1", null, System.currentTimeMillis()});
-                    inputHandler.send(new Object[]{"IBM", "TEST1", "TEST1", "TEST1", "Gold", "Test1", null, System.currentTimeMillis()});
-                    inputHandler.send(new Object[]{"IBM", "TEST1", "TEST1", "TEST1", "Gold", "Test1", null, System.currentTimeMillis()});
-                    inputHandler.send(new Object[]{"IBM", "TEST1", "TEST1", "TEST1", "Gold", "Test1", null, System.currentTimeMillis()});
+                    inputHandler.send(new Object[]{"IBM", "TEST1", "TEST1", "TEST1", "Gold", "Test1", null, System
+                            .currentTimeMillis()});
+                    inputHandler.send(new Object[]{"IBM", "TEST1", "TEST1", "TEST1", "Gold", "Test1", null, System
+                            .currentTimeMillis()});
+                    inputHandler.send(new Object[]{"IBM", "TEST1", "TEST1", "TEST1", "Gold", "Test1", null, System
+                            .currentTimeMillis()});
+                    inputHandler.send(new Object[]{"IBM", "TEST1", "TEST1", "TEST1", "Gold", "Test1", null, System
+                            .currentTimeMillis()});
                 } catch (InterruptedException e) {
                     e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
                 }

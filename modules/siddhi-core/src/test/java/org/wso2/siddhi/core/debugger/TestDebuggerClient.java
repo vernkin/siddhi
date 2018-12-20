@@ -17,11 +17,11 @@
  */
 package org.wso2.siddhi.core.debugger;
 
-import junit.framework.Assert;
 import org.apache.log4j.Logger;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.testng.AssertJUnit;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -35,12 +35,12 @@ public class TestDebuggerClient {
     private final InputStream originalIn = System.in;
     private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
 
-    @Before
+    @BeforeMethod
     public void setUpStreams() {
         System.setOut(new PrintStream(outContent));
     }
 
-    @After
+    @AfterMethod
     public void cleanUpStreams() {
         System.setOut(originalOut);
         System.setIn(originalIn);
@@ -50,21 +50,21 @@ public class TestDebuggerClient {
     public void testDebugger1() throws InterruptedException {
         log.info("Siddi Debugger Test 1: Test next traversal in a simple query");
 
-        String executionPlanPath = getClass().getClassLoader().getResource("debugger_executionplan.siddhiql").getPath();
+        String siddhiAppPath = getClass().getClassLoader().getResource("debugger_siddhiApp.siddhiql").getPath();
         String inputPath = getClass().getClassLoader().getResource("debugger_input.txt").getPath();
 
         ByteArrayInputStream in = new ByteArrayInputStream(("add breakpoint " +
                 "query1:in\nstart\nnext\nnext\nnext\nnext\nstop\n").getBytes());
         System.setIn(in);
 
-        SiddhiDebuggerClient.main(new String[]{executionPlanPath, inputPath});
+        SiddhiDebuggerClient.main(new String[]{siddhiAppPath, inputPath});
 
         Thread.sleep(100);
 
         String output = outContent.toString();
         log.info(output);
 
-        Assert.assertEquals("Incorrect number of debug points", 4, countMatches(output, "@Debug"));
+        AssertJUnit.assertEquals("Incorrect number of debug points", 4, countMatches(output, "@Debug"));
     }
 
     /**

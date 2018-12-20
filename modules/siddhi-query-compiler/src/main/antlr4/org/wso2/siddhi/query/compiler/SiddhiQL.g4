@@ -23,23 +23,21 @@ grammar SiddhiQL;
 }
 
 parse
-    : execution_plan EOF
+    : siddhi_app EOF
     ;
 
 error
-    : UNEXPECTED_CHAR 
+    : UNEXPECTED_CHAR
   //      {throw new SiddhiParserException("You have an error in your SiddhiQL at line " + $UNEXPECTED_CHAR.line + ", unexpected charecter '"+ $UNEXPECTED_CHAR.text +"'");}
     ;
 
-execution_plan
-    : (plan_annotation|error)*
-      ( (definition_stream|definition_table|definition_trigger|definition_function|definition_window|error) (';' (definition_stream|definition_table|definition_trigger|definition_function|definition_window|error))* ';'?
-      || (execution_element|error) (';' (execution_element|error))* ';'?
-      || (definition_stream|definition_table|definition_trigger|definition_function|definition_window|error) (';' (definition_stream|definition_table|definition_trigger|definition_function|definition_window|error))* (';' (execution_element|error))* ';'? )
+siddhi_app
+    : (app_annotation|error)*
+      (definition_stream|definition_table|definition_trigger|definition_function|definition_window|definition_aggregation|error) (';' (definition_stream|definition_table|definition_trigger|definition_function|definition_window|definition_aggregation|error))* (';' (execution_element|error))* ';'?
     ;
 
 execution_element
-    :query|partition|subscription
+    :query|partition
     ;
 
 definition_stream_final
@@ -55,11 +53,7 @@ definition_table_final
     ;
 
 definition_table
-    : annotation* DEFINE TABLE source '(' attribute_name attribute_type (',' attribute_name attribute_type )* ')' storage?
-    ;
-
-storage
-    : STORE type OPTIONS '(' option (',' option)* ')'
+    : annotation* DEFINE TABLE source '(' attribute_name attribute_type (',' attribute_name attribute_type )* ')'
     ;
 
 definition_window_final
@@ -68,6 +62,21 @@ definition_window_final
 
 definition_window
     : annotation* DEFINE WINDOW source '(' attribute_name attribute_type (',' attribute_name attribute_type )* ')' function_operation ( OUTPUT output_event_type )?
+    ;
+
+store_query_final
+    : store_query ';'? EOF
+    ;
+
+store_query
+    : FROM store_input query_section?
+    | query_section INSERT INTO target
+    | query_section UPDATE OR INSERT INTO target set_clause? ON expression
+    | query_section? store_query_output
+    ;
+
+store_input
+    : source_id (AS alias)? (ON expression)? (within_time_range per)?
     ;
 
 definition_function_final
@@ -102,12 +111,41 @@ trigger_name
     : id
     ;
 
-annotation
-    : '@' name ('(' annotation_element (',' annotation_element )* ')' )?
+definition_aggregation_final
+    : definition_aggregation ';'? EOF
     ;
 
-plan_annotation
-    : '@' PLAN ':' name ('(' annotation_element (',' annotation_element )* ')' )?
+definition_aggregation
+    : annotation* DEFINE AGGREGATION aggregation_name FROM standard_stream group_by_query_selection AGGREGATE (BY attribute_reference)? EVERY aggregation_time
+    ;
+
+aggregation_name
+    : id
+    ;
+
+aggregation_time
+    : aggregation_time_range
+    | aggregation_time_interval
+    ;
+
+aggregation_time_duration
+    : (SECONDS | MINUTES | HOURS | DAYS | WEEKS | MONTHS | YEARS)
+    ;
+
+aggregation_time_range
+    : aggregation_time_duration TRIPLE_DOT aggregation_time_duration
+    ;
+
+aggregation_time_interval
+    :  aggregation_time_duration (COMMA aggregation_time_duration)*
+    ;
+
+annotation
+    : '@' name ('(' (annotation_element|annotation) (',' (annotation_element|annotation) )* ')' )?
+    ;
+
+app_annotation
+    : '@' APP ':' name ('(' annotation_element (',' annotation_element )* ')' )?
     ;
 
 annotation_element
@@ -139,28 +177,12 @@ query_final
     : query ';'? EOF
     ;
 
-subscription_final
-    : subscription ';'? EOF
-    ;
-
 query
-    : annotation* FROM query_input query_section? output_rate? (query_output | query_publish)
+    : annotation* FROM query_input query_section? output_rate? query_output
     ;
 
 query_input
     : (standard_stream|join_stream|pattern_stream|sequence_stream|anonymous_stream)
-    ;
-
-subscription
-    :annotation* SUBSCRIBE transport MAP mapping subscription_output
-    ;
-
-transport
-    :type (OPTIONS '(' option (',' option)* ')')?
-    ;
-
-mapping
-    :type (OPTIONS '(' option (',' option)* ')')? (map_attribute (',' map_attribute)*)?
     ;
 
 standard_stream
@@ -168,17 +190,16 @@ standard_stream
     ;
 
 join_stream
-    :left_source=join_source join right_source=join_source right_unidirectional=UNIDIRECTIONAL (ON expression)? within_time?
-    |left_source=join_source join right_source=join_source (ON expression)? within_time?
-    |left_source=join_source left_unidirectional=UNIDIRECTIONAL join right_source=join_source (ON expression)? within_time?
+    :left_source=join_source (join right_source=join_source (right_unidirectional=UNIDIRECTIONAL)? | left_unidirectional=UNIDIRECTIONAL join right_source=join_source) (ON expression)? (within_time_range per)?
     ;
 
 join_source
-    :source basic_source_stream_handlers? window? (AS stream_alias)?
+    :source basic_source_stream_handlers? window? (AS alias)?
     ;
 
 pattern_stream
-    :every_pattern_source_chain
+    : every_pattern_source_chain
+    | absent_pattern_source_chain
     ;
 
 every_pattern_source_chain
@@ -190,19 +211,61 @@ every_pattern_source_chain
     ;
 
 pattern_source_chain
-    : '('pattern_source_chain')' within_time? 
+    : '('pattern_source_chain')' within_time?
     | pattern_source_chain  '->' pattern_source_chain
-    | pattern_source within_time? 
+    | pattern_source within_time?
+    ;
+
+absent_pattern_source_chain
+    : EVERY? '('absent_pattern_source_chain')' within_time?
+    | every_absent_pattern_source
+    | left_absent_pattern_source
+    | right_absent_pattern_source
+    ;
+
+left_absent_pattern_source
+    : EVERY? '('left_absent_pattern_source')' within_time?
+    | every_absent_pattern_source '->' every_pattern_source_chain
+    | left_absent_pattern_source '->' left_absent_pattern_source
+    | left_absent_pattern_source '->' every_absent_pattern_source
+    | every_pattern_source_chain '->' left_absent_pattern_source
+    ;
+
+right_absent_pattern_source
+    : EVERY? '('right_absent_pattern_source')' within_time?
+    | every_pattern_source_chain '->' every_absent_pattern_source
+    | right_absent_pattern_source '->' right_absent_pattern_source
+    | every_absent_pattern_source '->' right_absent_pattern_source
+    | right_absent_pattern_source '->' every_pattern_source_chain
     ;
 
 pattern_source
-    :logical_stateful_source|pattern_collection_stateful_source|standard_stateful_source
+    :logical_stateful_source|pattern_collection_stateful_source|standard_stateful_source|logical_absent_stateful_source
     ;
 
 logical_stateful_source
-    :NOT standard_stateful_source (AND standard_stateful_source) ?
-    |standard_stateful_source AND standard_stateful_source
+    :standard_stateful_source AND standard_stateful_source
     |standard_stateful_source OR standard_stateful_source
+    ;
+
+logical_absent_stateful_source
+    : '(' logical_absent_stateful_source ')'
+    | standard_stateful_source AND NOT basic_source
+    | NOT basic_source AND standard_stateful_source
+    | standard_stateful_source AND basic_absent_pattern_source
+    | basic_absent_pattern_source AND standard_stateful_source
+    | basic_absent_pattern_source AND basic_absent_pattern_source
+    | standard_stateful_source OR basic_absent_pattern_source
+    | basic_absent_pattern_source OR standard_stateful_source
+    | basic_absent_pattern_source OR basic_absent_pattern_source
+    ;
+
+every_absent_pattern_source
+    : EVERY? basic_absent_pattern_source
+    ;
+
+basic_absent_pattern_source
+    : NOT basic_source for_time
     ;
 
 pattern_collection_stateful_source
@@ -226,7 +289,40 @@ basic_source_stream_handler
     ;
 
 sequence_stream
-    :EVERY? sequence_source  within_time?  ',' sequence_source_chain
+    :every_sequence_source_chain
+    |every_absent_sequence_source_chain
+    ;
+
+every_sequence_source_chain
+    : EVERY? sequence_source  within_time?  ',' sequence_source_chain
+    ;
+
+every_absent_sequence_source_chain
+    : EVERY? absent_sequence_source_chain  within_time? ',' sequence_source_chain
+    | EVERY? sequence_source  within_time? ',' absent_sequence_source_chain
+    ;
+
+absent_sequence_source_chain
+    : '('absent_sequence_source_chain')' within_time?
+    | basic_absent_pattern_source
+    | left_absent_sequence_source
+    | right_absent_sequence_source
+    ;
+
+left_absent_sequence_source
+    : '('left_absent_sequence_source')' within_time?
+    | basic_absent_pattern_source ',' sequence_source_chain
+    | left_absent_sequence_source ',' left_absent_sequence_source
+    | left_absent_sequence_source ',' basic_absent_pattern_source
+    | sequence_source_chain ',' left_absent_sequence_source
+    ;
+
+right_absent_sequence_source
+    : '('right_absent_sequence_source')' within_time?
+    | sequence_source_chain ',' basic_absent_pattern_source
+    | right_absent_sequence_source ',' right_absent_sequence_source
+    | basic_absent_pattern_source ',' right_absent_sequence_source
+    | right_absent_sequence_source ',' sequence_source_chain
     ;
 
 sequence_source_chain
@@ -236,7 +332,7 @@ sequence_source_chain
     ;
 
 sequence_source
-    :logical_stateful_source|sequence_collection_stateful_source|standard_stateful_source
+    :logical_stateful_source|sequence_collection_stateful_source|standard_stateful_source|logical_absent_stateful_source
     ;
 
 sequence_collection_stateful_source
@@ -260,8 +356,12 @@ window
     :'#' WINDOW '.' function_operation
     ;
 
+group_by_query_selection
+    : (SELECT ('*'| (output_attribute (',' output_attribute)* ))) group_by?
+    ;
+
 query_section
-    :(SELECT ('*'| (output_attribute (',' output_attribute)* ))) group_by? having?
+    : (SELECT ('*'| (output_attribute (',' output_attribute)* ))) group_by? having? order_by? limit? offset?
     ;
 
 group_by
@@ -272,27 +372,49 @@ having
     : HAVING expression
     ;
 
+order_by
+    : ORDER BY order_by_reference (',' order_by_reference )*
+    ;
+
+order_by_reference
+    : attribute_reference order?
+    ;
+
+order
+    : ASC | DESC
+    ;
+
+limit
+    : LIMIT expression
+    ;
+
+offset
+    : OFFSET expression
+    ;
+
 query_output
     :INSERT output_event_type? INTO target
     |DELETE target (FOR output_event_type)? ON expression
-    |UPDATE target (FOR output_event_type)? ON expression
-    |INSERT OVERWRITE target (FOR output_event_type)? ON expression
+    |UPDATE OR INSERT INTO target (FOR output_event_type)? set_clause? ON expression
+    |UPDATE target (FOR output_event_type)? set_clause? ON expression
     |RETURN output_event_type?
     ;
 
-query_publish
-    :PUBLISH transport MAP mapping (FOR output_event_type)?
+store_query_output
+    :DELETE target ON expression
+    |UPDATE target set_clause? ON expression
     ;
 
-subscription_output
-    :INSERT output_event_type? INTO target
-    |DELETE target (FOR output_event_type)? ON expression
-    |UPDATE target (FOR output_event_type)? ON expression
-    |INSERT OVERWRITE target (FOR output_event_type)? ON expression
+set_clause
+    : SET set_assignment (',' set_assignment)*
+    ;
+
+set_assignment
+    : attribute_reference '=' expression
     ;
 
 output_event_type
-    : ALL EVENTS | ALL RAW EVENTS | EXPIRED EVENTS | EXPIRED RAW EVENTS | CURRENT? EVENTS   
+    : ALL EVENTS | EXPIRED EVENTS | CURRENT? EVENTS   
     ;
 
 output_rate
@@ -306,8 +428,19 @@ output_rate_type
     | FIRST
     ;
 
+for_time
+    : FOR time_value
+    ;
+
 within_time
     :WITHIN time_value
+    ;
+
+within_time_range
+    :WITHIN start_pattern=expression (',' end_pattern=expression)?
+    ;
+
+per :PER expression
     ;
 
 output_attribute
@@ -365,10 +498,6 @@ attribute_index
     : INT_LITERAL| LAST ('-' INT_LITERAL)?
     ;
 
-option
-    :property_name property_value
-    ;
-
 function_id
     :name
     ;
@@ -381,7 +510,11 @@ stream_id
     :name
     ;
 
-stream_alias
+source_id
+    :name
+    ;
+
+alias
     :name
     ;
 
@@ -397,16 +530,12 @@ type
     :name
     ;
 
-map_attribute
-    :string_value
-    ;
-
 property_value
     :string_value
     ;
 
 property_separator
-    : DOT | MINUS
+    : DOT | MINUS | COL
     ;
 
 source
@@ -464,7 +593,8 @@ constant_value
 id: ID_QUOTES|ID ;
 
 keyword
-    : STREAM
+    : APP
+    | STREAM
     | DEFINE
     | TABLE
     | FROM
@@ -473,9 +603,12 @@ keyword
     | SELECT
     | GROUP
     | BY
+    | ORDER
+    | ASC
+    | DESC
+    | LIMIT
     | HAVING
     | INSERT
-    | OVERWRITE
     | DELETE
     | UPDATE
     | RETURN
@@ -527,11 +660,6 @@ keyword
     | DOUBLE
     | BOOL
     | OBJECT
-    | SUBSCRIBE
-    | OPTIONS
-    | MAP
-    | PUBLISH
-    | STORE
     ;
 
 time_value
@@ -619,10 +747,11 @@ STRING_VAL
 COL : ':';
 SCOL : ';';
 DOT : '.';
+TRIPLE_DOT : '...';
 OPEN_PAR : '(';
 CLOSE_PAR : ')';
-OPEN_SQARE_BRACKETS : '[';
-CLOASE_SQARE_BRACKETS : ']';
+OPEN_SQUARE_BRACKETS : '[';
+CLOSE_SQUARE_BRACKETS : ']';
 COMMA : ',';
 ASSIGN : '=';
 STAR : '*';
@@ -646,18 +775,23 @@ DEFINE:   D E F I N E;
 FUNCTION: F U N C T I O N;
 TRIGGER:  T R I G G E R;
 TABLE:    T A B L E;
-PLAN:     P L A N;
+APP:      A P P;
 FROM:     F R O M;
 PARTITION:    P A R T I T I O N; 
 WINDOW:   W I N D O W;
 SELECT:   S E L E C T;
 GROUP:    G R O U P;
 BY:       B Y;
+ORDER:    O R D E R;
+LIMIT:    L I M I T;
+OFFSET:   O F F S E T;
+ASC:      A S C;
+DESC:     D E S C;
 HAVING:   H A V I N G;
 INSERT:   I N S E R T;
-OVERWRITE:    O V E R W R I T E;
 DELETE:   D E L E T E;
 UPDATE:   U P D A T E;
+SET:      S E T;
 RETURN:   R E T U R N;
 EVENTS:   E V E N T S;
 INTO:     I N T O;
@@ -709,11 +843,9 @@ FLOAT:    F L O A T;
 DOUBLE:   D O U B L E;
 BOOL:     B O O L;
 OBJECT:   O B J E C T;
-SUBSCRIBE: S U B S C R I B E;
-OPTIONS: O P T I O N S;
-MAP: M A P;
-PUBLISH: P U B L I S H;
-STORE: S T O R E;
+AGGREGATION: A G G R E G A T I O N;
+AGGREGATE: A G G R E G A T E;
+PER:      P E R;
 
 ID_QUOTES : '`'[a-zA-Z_] [a-zA-Z_0-9]*'`' {setText(getText().substring(1, getText().length()-1));};
 

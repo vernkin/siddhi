@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -21,18 +21,24 @@ package org.wso2.siddhi.core.executor;
 import org.wso2.siddhi.core.event.ComplexEvent;
 import org.wso2.siddhi.query.api.definition.Attribute;
 
-import static org.wso2.siddhi.core.util.SiddhiConstants.*;
+import static org.wso2.siddhi.core.util.SiddhiConstants.STREAM_EVENT_CHAIN_INDEX;
+import static org.wso2.siddhi.core.util.SiddhiConstants.STREAM_EVENT_INDEX_IN_CHAIN;
+import static org.wso2.siddhi.core.util.SiddhiConstants.UNKNOWN_STATE;
 
+/**
+ * Executor class for Siddhi event attributes. This executor is used to extract attribute value from
+ * {@link ComplexEvent}.
+ */
 public class VariableExpressionExecutor implements ExpressionExecutor {
     private Attribute attribute;
     private int[] position = new int[]{UNKNOWN_STATE, UNKNOWN_STATE, UNKNOWN_STATE, UNKNOWN_STATE};
     //Position[stream event chain index, stream event index, stream attribute type index, stream attribute index]
     //stream attribute type index -> outData = 2; onAfterWindowData = 1; beforeWindowData = 0;
 
-    public VariableExpressionExecutor(Attribute attribute, int streamEventChainIndex, int streamEventIndex) {
+    public VariableExpressionExecutor(Attribute attribute, int streamEventChainIndex, int streamEventIndexInChain) {
         this.attribute = attribute;
         position[STREAM_EVENT_CHAIN_INDEX] = streamEventChainIndex;
-        position[STREAM_EVENT_INDEX] = streamEventIndex;
+        position[STREAM_EVENT_INDEX_IN_CHAIN] = streamEventIndexInChain;
     }
 
     @Override

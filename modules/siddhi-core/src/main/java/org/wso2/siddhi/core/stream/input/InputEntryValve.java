@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,20 +18,23 @@
 
 package org.wso2.siddhi.core.stream.input;
 
-import org.wso2.siddhi.core.config.ExecutionPlanContext;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
 import org.wso2.siddhi.core.event.Event;
 import org.wso2.siddhi.core.util.ThreadBarrier;
 
 import java.util.List;
 
+/**
+ * Implementation of {@link InputProcessor} which inject the event to the next input processor through a valve.
+ */
 public class InputEntryValve implements InputProcessor {
 
     private ThreadBarrier barrier;
     private InputProcessor inputProcessor;
 
 
-    public InputEntryValve(ExecutionPlanContext executionPlanContext, InputProcessor inputProcessor) {
-        this.barrier = executionPlanContext.getThreadBarrier();
+    public InputEntryValve(SiddhiAppContext siddhiAppContext, InputProcessor inputProcessor) {
+        this.barrier = siddhiAppContext.getThreadBarrier();
         this.inputProcessor = inputProcessor;
     }
 
@@ -54,8 +57,8 @@ public class InputEntryValve implements InputProcessor {
     }
 
     @Override
-    public void send(long timeStamp, Object[] data, int streamIndex) {
+    public void send(long timestamp, Object[] data, int streamIndex) {
         barrier.pass();
-        inputProcessor.send(timeStamp, data, streamIndex);
+        inputProcessor.send(timestamp, data, streamIndex);
     }
 }

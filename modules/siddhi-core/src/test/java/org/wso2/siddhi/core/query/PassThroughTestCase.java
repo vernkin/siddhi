@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,17 +18,17 @@
 
 package org.wso2.siddhi.core.query;
 
-import junit.framework.Assert;
 import org.apache.log4j.Logger;
-import org.junit.Before;
-import org.junit.Test;
-import org.wso2.siddhi.core.ExecutionPlanRuntime;
+import org.testng.AssertJUnit;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+import org.wso2.siddhi.core.SiddhiAppRuntime;
 import org.wso2.siddhi.core.SiddhiManager;
 import org.wso2.siddhi.core.event.Event;
 import org.wso2.siddhi.core.query.output.callback.QueryCallback;
 import org.wso2.siddhi.core.stream.input.InputHandler;
 import org.wso2.siddhi.core.util.EventPrinter;
-import org.wso2.siddhi.query.api.ExecutionPlan;
+import org.wso2.siddhi.query.api.SiddhiApp;
 import org.wso2.siddhi.query.api.annotation.Annotation;
 import org.wso2.siddhi.query.api.definition.Attribute;
 import org.wso2.siddhi.query.api.definition.StreamDefinition;
@@ -38,11 +38,11 @@ import org.wso2.siddhi.query.api.execution.query.selection.Selector;
 import org.wso2.siddhi.query.api.expression.Expression;
 
 public class PassThroughTestCase {
-    static final Logger log = Logger.getLogger(PassThroughTestCase.class);
+    private static final Logger log = Logger.getLogger(PassThroughTestCase.class);
     private int count;
     private boolean eventArrived;
 
-    @Before
+    @BeforeMethod
     public void init() {
         count = 0;
         eventArrived = false;
@@ -50,11 +50,12 @@ public class PassThroughTestCase {
 
 
     @Test
-    public void PassThroughTest1() throws InterruptedException {
+    public void passThroughTest1() throws InterruptedException {
         log.info("pass through test1");
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        StreamDefinition cseEventStream = StreamDefinition.id("cseEventStream").attribute("symbol", Attribute.Type.STRING).attribute("price", Attribute.Type.INT);
+        StreamDefinition cseEventStream = StreamDefinition.id("cseEventStream").attribute("symbol", Attribute.Type
+                .STRING).attribute("price", Attribute.Type.INT);
 
         Query query = new Query();
         query.from(InputStream.stream("cseEventStream"));
@@ -67,39 +68,41 @@ public class PassThroughTestCase {
         query.insertInto("StockQuote");
 
 
-        ExecutionPlan executionPlan = new ExecutionPlan("ep1");
-        executionPlan.defineStream(cseEventStream);
-        executionPlan.addQuery(query);
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(executionPlan);
+        SiddhiApp siddhiApp = new SiddhiApp("ep1");
+        siddhiApp.defineStream(cseEventStream);
+        siddhiApp.addQuery(query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiApp);
 
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
                 EventPrinter.print(inEvents);
-                Assert.assertTrue("IBM".equals(inEvents[0].getData(0)) || "WSO2".equals(inEvents[0].getData(0)));
+                AssertJUnit.assertTrue("IBM".equals(inEvents[0].getData(0)) || "WSO2".equals(inEvents[0].getData(0)));
                 count += inEvents.length;
                 eventArrived = true;
             }
 
         });
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("cseEventStream");
-        executionPlanRuntime.start();
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("cseEventStream");
+        siddhiAppRuntime.start();
         inputHandler.send(new Object[]{"IBM", 100});
         inputHandler.send(new Object[]{"WSO2", 100});
         Thread.sleep(100);
-        Assert.assertEquals(2, count);
-        Assert.assertTrue(eventArrived);
-        executionPlanRuntime.shutdown();
+        AssertJUnit.assertEquals(2, count);
+        AssertJUnit.assertTrue(eventArrived);
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
-    public void PassThroughTest2() throws InterruptedException {
+    public void passThroughTest2() throws InterruptedException {
         log.info("pass through test2");
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        StreamDefinition cseEventStream = StreamDefinition.id("cseEventStream").attribute("symbol", Attribute.Type.STRING).attribute("price", Attribute.Type.INT);
-        StreamDefinition cseEventStream1 = StreamDefinition.id("cseEventStream1").attribute("symbol", Attribute.Type.STRING).attribute("price", Attribute.Type.INT);
+        StreamDefinition cseEventStream = StreamDefinition.id("cseEventStream").attribute("symbol", Attribute.Type
+                .STRING).attribute("price", Attribute.Type.INT);
+        StreamDefinition cseEventStream1 = StreamDefinition.id("cseEventStream1").attribute("symbol", Attribute.Type
+                .STRING).attribute("price", Attribute.Type.INT);
 
         Query query = new Query();
         query.from(InputStream.stream("cseEventStream"));
@@ -112,39 +115,41 @@ public class PassThroughTestCase {
         query.insertInto("StockQuote");
 
 
-        ExecutionPlan executionPlan = new ExecutionPlan("ep1");
-        executionPlan.defineStream(cseEventStream);
-        executionPlan.defineStream(cseEventStream1);
-        executionPlan.addQuery(query);
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(executionPlan);
+        SiddhiApp siddhiApp = new SiddhiApp("ep1");
+        siddhiApp.defineStream(cseEventStream);
+        siddhiApp.defineStream(cseEventStream1);
+        siddhiApp.addQuery(query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiApp);
 
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
                 EventPrinter.print(inEvents);
                 count += inEvents.length;
                 eventArrived = true;
             }
 
         });
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("cseEventStream1");
-        executionPlanRuntime.start();
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("cseEventStream1");
+        siddhiAppRuntime.start();
         inputHandler.send(new Object[]{"IBM", 100});
         inputHandler.send(new Object[]{"WSO2", 100});
         Thread.sleep(100);
-        Assert.assertEquals(0, count);
-        Assert.assertFalse(eventArrived);
-        executionPlanRuntime.shutdown();
+        AssertJUnit.assertEquals(0, count);
+        AssertJUnit.assertFalse(eventArrived);
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
-    public void PassThroughTest3() throws InterruptedException {
+    public void passThroughTest3() throws InterruptedException {
         log.info("pass through test3");
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        StreamDefinition cseEventStream = StreamDefinition.id("cseEventStream").attribute("symbol", Attribute.Type.STRING).attribute("price", Attribute.Type.INT);
-        StreamDefinition cseEventStream1 = StreamDefinition.id("cseEventStream1").attribute("symbol", Attribute.Type.STRING).attribute("price", Attribute.Type.INT);
+        StreamDefinition cseEventStream = StreamDefinition.id("cseEventStream").attribute("symbol", Attribute.Type
+                .STRING).attribute("price", Attribute.Type.INT);
+        StreamDefinition cseEventStream1 = StreamDefinition.id("cseEventStream1").attribute("symbol", Attribute.Type
+                .STRING).attribute("price", Attribute.Type.INT);
 
         Query query = new Query();
         query.from(InputStream.stream("cseEventStream"));
@@ -152,21 +157,21 @@ public class PassThroughTestCase {
         query.select(
                 Selector.selector().
                         select("symbol", Expression.variable("symbol")).
-                        select("price",Expression.variable("symbol"))
+                        select("price", Expression.variable("symbol"))
         );
         query.insertInto("StockQuote");
 
 
-        ExecutionPlan executionPlan = new ExecutionPlan("ep1");
-        executionPlan.defineStream(cseEventStream);
-        executionPlan.defineStream(cseEventStream1);
-        executionPlan.addQuery(query);
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(executionPlan);
+        SiddhiApp siddhiApp = new SiddhiApp("ep1");
+        siddhiApp.defineStream(cseEventStream);
+        siddhiApp.defineStream(cseEventStream1);
+        siddhiApp.addQuery(query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiApp);
 
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
                 EventPrinter.print(inEvents);
                 count += inEvents.length;
                 eventArrived = true;
@@ -174,9 +179,9 @@ public class PassThroughTestCase {
 
         });
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("cseEventStream");
-        InputHandler inputHandler1 = executionPlanRuntime.getInputHandler("cseEventStream1");
-        executionPlanRuntime.start();
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("cseEventStream");
+        InputHandler inputHandler1 = siddhiAppRuntime.getInputHandler("cseEventStream1");
+        siddhiAppRuntime.start();
         inputHandler.send(new Object[]{"IBM", 100});
         inputHandler.send(new Object[]{"WSO2", 100});
 
@@ -184,18 +189,18 @@ public class PassThroughTestCase {
         inputHandler1.send(new Object[]{"ABC", 100});
 
         Thread.sleep(100);
-        Assert.assertEquals(2, count);
-        Assert.assertTrue(eventArrived);
-        executionPlanRuntime.shutdown();
+        AssertJUnit.assertEquals(2, count);
+        AssertJUnit.assertTrue(eventArrived);
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
-    public void PassThroughTest4() throws InterruptedException {
+    public void passThroughTest4() throws InterruptedException {
         log.info("pass through test4");
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        String executionPlan = "" +
-                "@Plan:name('passThroughTest4') " +
+        String siddhiApp = "" +
+                "@app:name('passThroughTest4') " +
                 "" +
                 "define stream cseEventStream (symbol string, price float, volume long);" +
                 "" +
@@ -209,35 +214,35 @@ public class PassThroughTestCase {
                 "insert into outputStream2 ;";
 
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(executionPlan);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiApp);
 
-        log.info("Running : " + executionPlanRuntime.getName());
+        log.info("Running : " + siddhiAppRuntime.getName());
 
         QueryCallback queryCallback = new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
-                Assert.assertTrue("WSO2".equals(inEvents[0].getData(0)));
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
+                AssertJUnit.assertTrue("WSO2".equals(inEvents[0].getData(0)));
                 count = count + inEvents.length;
                 eventArrived = true;
             }
 
         };
-        executionPlanRuntime.addCallback("query2", queryCallback);
+        siddhiAppRuntime.addCallback("query2", queryCallback);
         queryCallback.startProcessing();
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("cseEventStream");
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("cseEventStream");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
-        inputHandler.send(new Object[]{"WSO2", 700f, 100l});
-        inputHandler.send(new Object[]{"WSO2", 60.5f, 200l});
+        inputHandler.send(new Object[]{"WSO2", 700f, 100L});
+        inputHandler.send(new Object[]{"WSO2", 60.5f, 200L});
         Thread.sleep(100);
-        Assert.assertEquals(2, count);
-        Assert.assertTrue(eventArrived);
+        AssertJUnit.assertEquals(2, count);
+        AssertJUnit.assertTrue(eventArrived);
         queryCallback.stopProcessing();
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
 }

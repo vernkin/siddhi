@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,21 +18,24 @@
 
 package org.wso2.siddhi.core.query.input.stream.single;
 
-import org.wso2.siddhi.core.config.ExecutionPlanContext;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
 import org.wso2.siddhi.core.event.ComplexEventChunk;
 import org.wso2.siddhi.core.query.processor.Processor;
 import org.wso2.siddhi.core.util.Schedulable;
 import org.wso2.siddhi.core.util.ThreadBarrier;
 
+/**
+ * Entry Valve Siddhi processor chain.
+ */
 public class EntryValveProcessor implements Processor, Schedulable {
 
     private Processor next;
     private ThreadBarrier threadBarrier;
-    private ExecutionPlanContext executionPlanContext;
+    private SiddhiAppContext siddhiAppContext;
 
-    public EntryValveProcessor(ExecutionPlanContext executionPlanContext) {
-        this.executionPlanContext = executionPlanContext;
-        threadBarrier = executionPlanContext.getThreadBarrier();
+    public EntryValveProcessor(SiddhiAppContext siddhiAppContext) {
+        this.siddhiAppContext = siddhiAppContext;
+        threadBarrier = siddhiAppContext.getThreadBarrier();
     }
 
 
@@ -90,7 +93,7 @@ public class EntryValveProcessor implements Processor, Schedulable {
      */
     @Override
     public Processor cloneProcessor(String key) {
-        return new EntryValveProcessor(executionPlanContext);
+        return new EntryValveProcessor(siddhiAppContext);
     }
 
 }

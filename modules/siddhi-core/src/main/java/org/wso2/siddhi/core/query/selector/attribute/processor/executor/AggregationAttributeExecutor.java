@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,16 +17,22 @@
  */
 package org.wso2.siddhi.core.query.selector.attribute.processor.executor;
 
-import org.wso2.siddhi.core.config.ExecutionPlanContext;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
 import org.wso2.siddhi.core.event.ComplexEvent;
 import org.wso2.siddhi.core.executor.ExpressionExecutor;
 import org.wso2.siddhi.core.query.selector.attribute.aggregator.AttributeAggregator;
 
+import java.util.Map;
+
+/**
+ * Executor for attribute aggregations.
+ */
 public class AggregationAttributeExecutor extends AbstractAggregationAttributeExecutor {
 
     public AggregationAttributeExecutor(AttributeAggregator attributeAggregator,
-                                        ExpressionExecutor[] attributeExpressionExecutors, ExecutionPlanContext executionPlanContext, String queryName) {
-        super(attributeAggregator, attributeExpressionExecutors, executionPlanContext, queryName);
+                                        ExpressionExecutor[] attributeExpressionExecutors, SiddhiAppContext
+                                                siddhiAppContext, String queryName) {
+        super(attributeAggregator, attributeExpressionExecutors, siddhiAppContext, queryName);
     }
 
     @Override
@@ -35,16 +41,17 @@ public class AggregationAttributeExecutor extends AbstractAggregationAttributeEx
     }
 
     public ExpressionExecutor cloneExecutor(String key) {
-        return new AggregationAttributeExecutor(attributeAggregator.cloneAggregator(key), attributeExpressionExecutors, executionPlanContext, queryName);
+        return new AggregationAttributeExecutor(attributeAggregator.cloneAggregator(key),
+                                                attributeExpressionExecutors, siddhiAppContext, queryName);
     }
 
     @Override
-    public Object[] currentState() {
-        return new Object[]{attributeAggregator.currentState()};
+    public Map<String, Object> currentState() {
+        return attributeAggregator.currentState();
     }
 
     @Override
-    public void restoreState(Object[] state) {
-        attributeAggregator.restoreState((Object[]) state[0]);
+    public void restoreState(Map<String, Object> state) {
+        attributeAggregator.restoreState(state);
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,42 +17,59 @@
  */
 package org.wso2.siddhi.core.util.parser;
 
-import org.wso2.siddhi.core.config.ExecutionPlanContext;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
 import org.wso2.siddhi.core.event.MetaComplexEvent;
 import org.wso2.siddhi.core.event.state.MetaStateEvent;
 import org.wso2.siddhi.core.event.stream.MetaStreamEvent;
+import org.wso2.siddhi.core.exception.SiddhiAppCreationException;
 import org.wso2.siddhi.core.executor.VariableExpressionExecutor;
 import org.wso2.siddhi.core.partition.PartitionRuntime;
 import org.wso2.siddhi.core.query.QueryRuntime;
-import org.wso2.siddhi.core.util.ExecutionPlanRuntimeBuilder;
+import org.wso2.siddhi.core.util.SiddhiAppRuntimeBuilder;
 import org.wso2.siddhi.core.util.parser.helper.QueryParserHelper;
 import org.wso2.siddhi.query.api.definition.AbstractDefinition;
 import org.wso2.siddhi.query.api.definition.Attribute;
 import org.wso2.siddhi.query.api.execution.partition.Partition;
+import org.wso2.siddhi.query.api.execution.partition.PartitionType;
 import org.wso2.siddhi.query.api.execution.query.Query;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+/**
+ * Class to parse {@link PartitionRuntime}
+ */
 public class PartitionParser {
 
-    public static PartitionRuntime parse(ExecutionPlanRuntimeBuilder executionPlanRuntimeBuilder, Partition partition,
-                                         ExecutionPlanContext executionPlanContext,
-                                         ConcurrentMap<String, AbstractDefinition> streamDefinitionMap) {
-        PartitionRuntime partitionRuntime = new PartitionRuntime(executionPlanRuntimeBuilder.getStreamDefinitionMap(), executionPlanRuntimeBuilder.getStreamJunctions(), partition, executionPlanContext);
+    public static PartitionRuntime parse(SiddhiAppRuntimeBuilder siddhiAppRuntimeBuilder, Partition partition,
+                                         SiddhiAppContext siddhiAppContext, int queryIndex) {
+        ConcurrentMap<String, AbstractDefinition> streamDefinitionMap =
+                siddhiAppRuntimeBuilder.getStreamDefinitionMap();
+        ConcurrentMap<String, AbstractDefinition> windowDefinitionMap =
+                siddhiAppRuntimeBuilder.getWindowDefinitionMap();
+        PartitionRuntime partitionRuntime = new PartitionRuntime(streamDefinitionMap, windowDefinitionMap,
+                siddhiAppRuntimeBuilder.getStreamJunctions(), partition, siddhiAppContext);
+        validateStreamPartitions(partition.getPartitionTypeMap(), streamDefinitionMap, windowDefinitionMap);
         for (Query query : partition.getQueryList()) {
             List<VariableExpressionExecutor> executors = new ArrayList<VariableExpressionExecutor>();
-            ConcurrentMap<String, AbstractDefinition> combinedStreamMap = new ConcurrentHashMap<String, AbstractDefinition>();
+            ConcurrentMap<String, AbstractDefinition> combinedStreamMap =
+                    new ConcurrentHashMap<String, AbstractDefinition>();
             combinedStreamMap.putAll(streamDefinitionMap);
+            combinedStreamMap.putAll(windowDefinitionMap);
             combinedStreamMap.putAll(partitionRuntime.getLocalStreamDefinitionMap());
-            QueryRuntime queryRuntime = QueryParser.parse(query, executionPlanContext, combinedStreamMap,
-                    executionPlanRuntimeBuilder.getTableDefinitionMap(),
-                    executionPlanRuntimeBuilder.getWindowDefinitionMap(),
-                    executionPlanRuntimeBuilder.getEventTableMap(),
-                    executionPlanRuntimeBuilder.getEventWindowMap(),
-                    executionPlanRuntimeBuilder.getLockSynchronizer());
+            QueryRuntime queryRuntime = QueryParser.parse(query, siddhiAppContext, combinedStreamMap,
+                    siddhiAppRuntimeBuilder.getTableDefinitionMap(),
+                    siddhiAppRuntimeBuilder.getWindowDefinitionMap(),
+                    siddhiAppRuntimeBuilder.getAggregationDefinitionMap(),
+                    siddhiAppRuntimeBuilder.getTableMap(),
+                    siddhiAppRuntimeBuilder.getAggregationMap(),
+                    siddhiAppRuntimeBuilder.getWindowMap(),
+                    siddhiAppRuntimeBuilder.getLockSynchronizer(),
+                    String.valueOf(queryIndex));
+            queryIndex++;
             MetaStateEvent metaStateEvent = createMetaEventForPartitioner(queryRuntime.getMetaComplexEvent());
             partitionRuntime.addQuery(queryRuntime);
             partitionRuntime.addPartitionReceiver(queryRuntime, executors, metaStateEvent);
@@ -63,10 +80,23 @@ public class PartitionParser {
                 QueryParserHelper.updateVariablePosition(metaStateEvent.getMetaStreamEvent(0), executors);
             }
             partitionRuntime.init();
-
         }
         return partitionRuntime;
 
+    }
+
+    private static void validateStreamPartitions(Map<String, PartitionType> partitionTypeMap,
+                                                 ConcurrentMap<String, AbstractDefinition> streamDefinitionMap,
+                                                 ConcurrentMap<String, AbstractDefinition> windowDefinitionMap) {
+        for (Map.Entry<String, PartitionType> entry : partitionTypeMap.entrySet()) {
+            if ((!streamDefinitionMap.containsKey(entry.getKey())) &&
+                    (!windowDefinitionMap.containsKey(entry.getKey()))) {
+                throw new SiddhiAppCreationException("Stream/window with name '" + entry.getKey() +
+                        "' does not defined!",
+                        entry.getValue().getQueryContextStartIndex(),
+                        entry.getValue().getQueryContextEndIndex());
+            }
+        }
     }
 
     /**
@@ -86,7 +116,7 @@ public class PartitionParser {
                     newMetaStreamEvent.addOutputData(attribute);
                 }
                 newMetaStreamEvent.addInputDefinition(definition);
-                newMetaStreamEvent.setTableEvent(metaStreamEvent.isTableEvent());
+                newMetaStreamEvent.setEventType(metaStreamEvent.getEventType());
                 metaStateEvent.addEvent(newMetaStreamEvent);
             }
         } else {
@@ -97,7 +127,7 @@ public class PartitionParser {
                 newMetaStreamEvent.addOutputData(attribute);
             }
             newMetaStreamEvent.addInputDefinition(definition);
-            newMetaStreamEvent.setTableEvent(((MetaStreamEvent) stateEvent).isTableEvent());
+            newMetaStreamEvent.setEventType(((MetaStreamEvent) stateEvent).getEventType());
             metaStateEvent.addEvent(newMetaStreamEvent);
         }
 

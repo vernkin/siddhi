@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,11 +18,12 @@
 package org.wso2.siddhi.query.api.definition;
 
 import org.wso2.siddhi.query.api.annotation.Annotation;
-import org.wso2.siddhi.query.api.definition.io.Store;
 
+/**
+ * Siddhi Table Definition.
+ */
 public class TableDefinition extends AbstractDefinition {
-
-    private Store store;
+    private static final long serialVersionUID = 1L;
 
     protected TableDefinition(String id) {
         super(id);
@@ -30,15 +31,6 @@ public class TableDefinition extends AbstractDefinition {
 
     public static TableDefinition id(String id) {
         return new TableDefinition(id);
-    }
-
-    public TableDefinition store(Store store){
-        this.store = store;
-        return this;
-    }
-
-    public Store getStore(){
-        return store;
     }
 
     public TableDefinition attribute(String attributeName, Attribute.Type type) {
@@ -54,12 +46,7 @@ public class TableDefinition extends AbstractDefinition {
 
     @Override
     public String toString() {
-        return "TableDefinition{" +
-                "id='" + id + '\'' +
-                ", attributeList=" + attributeList +
-                ", annotations=" + annotations +
-                ", store=" + store +
-                '}';
+        return super.toString("table");
     }
 
 }

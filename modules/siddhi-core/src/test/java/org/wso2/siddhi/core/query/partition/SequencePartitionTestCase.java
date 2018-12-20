@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,10 +18,10 @@
 package org.wso2.siddhi.core.query.partition;
 
 import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.wso2.siddhi.core.ExecutionPlanRuntime;
+import org.testng.AssertJUnit;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+import org.wso2.siddhi.core.SiddhiAppRuntime;
 import org.wso2.siddhi.core.SiddhiManager;
 import org.wso2.siddhi.core.event.Event;
 import org.wso2.siddhi.core.stream.input.InputHandler;
@@ -35,7 +35,7 @@ public class SequencePartitionTestCase {
     private int removeEventCount;
     private boolean eventArrived;
 
-    @Before
+    @BeforeMethod
     public void init() {
         inEventCount = 0;
         removeEventCount = 0;
@@ -59,9 +59,10 @@ public class SequencePartitionTestCase {
                 "insert into OutputStream ;";
         String partitionEnd = "end";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + partitionStart + query + partitionEnd);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + partitionStart
+                + query + partitionEnd);
 
-        executionPlanRuntime.addCallback("OutputStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("OutputStream", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 EventPrinter.print(events);
@@ -72,13 +73,13 @@ public class SequencePartitionTestCase {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{"BIRT", "GOOG"}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"BIRT", "GOOG"}, event.getData());
                                 break;
                             case 2:
-                                Assert.assertArrayEquals(new Object[]{"WSO2", "IBM"}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"WSO2", "IBM"}, event.getData());
                                 break;
                             default:
-                                Assert.assertSame(2, inEventCount);
+                                AssertJUnit.assertSame(2, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -86,10 +87,10 @@ public class SequencePartitionTestCase {
             }
         });
 
-        InputHandler stream1 = executionPlanRuntime.getInputHandler("Stream1");
-        InputHandler stream2 = executionPlanRuntime.getInputHandler("Stream2");
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stream1.send(new Object[]{"WSO2", 55.6f, 100});
         Thread.sleep(100);
@@ -100,11 +101,11 @@ public class SequencePartitionTestCase {
         stream2.send(new Object[]{"IBM", 55.7f, 100});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 2, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 2, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -124,9 +125,10 @@ public class SequencePartitionTestCase {
                 "insert into OutputStream ;";
         String partitionEnd = "end";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + partitionStart + query + partitionEnd);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + partitionStart
+                + query + partitionEnd);
 
-        executionPlanRuntime.addCallback("OutputStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("OutputStream", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 EventPrinter.print(events);
@@ -135,7 +137,7 @@ public class SequencePartitionTestCase {
                         removeEventCount++;
                     } else {
                         inEventCount++;
-                        Assert.assertArrayEquals(new Object[]{"GOOG", "IBM"}, event.getData());
+                        AssertJUnit.assertArrayEquals(new Object[]{"GOOG", "IBM"}, event.getData());
                         eventArrived = true;
                     }
                     eventArrived = true;
@@ -143,10 +145,10 @@ public class SequencePartitionTestCase {
             }
         });
 
-        InputHandler stream1 = executionPlanRuntime.getInputHandler("Stream1");
-        InputHandler stream2 = executionPlanRuntime.getInputHandler("Stream2");
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stream1.send(new Object[]{"WSO2", 55.6f, 100});
         Thread.sleep(100);
@@ -161,11 +163,11 @@ public class SequencePartitionTestCase {
         stream2.send(new Object[]{"IBM", 65.7f, 300});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 1, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 1, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
 
@@ -186,9 +188,10 @@ public class SequencePartitionTestCase {
                 "insert into OutputStream ;";
         String partitionEnd = "end";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + partitionStart + query + partitionEnd);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + partitionStart
+                + query + partitionEnd);
 
-        executionPlanRuntime.addCallback("OutputStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("OutputStream", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 EventPrinter.print(events);
@@ -199,19 +202,19 @@ public class SequencePartitionTestCase {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{"WSO2", null, null}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"WSO2", null, null}, event.getData());
                                 break;
                             case 2:
-                                Assert.assertArrayEquals(new Object[]{"IBM", null, null}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"IBM", null, null}, event.getData());
                                 break;
                             case 3:
-                                Assert.assertArrayEquals(new Object[]{"BIRT", null, null}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"BIRT", null, null}, event.getData());
                                 break;
                             case 4:
-                                Assert.assertArrayEquals(new Object[]{"GOOG", null, null}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"GOOG", null, null}, event.getData());
                                 break;
                             default:
-                                Assert.assertSame(4, inEventCount);
+                                AssertJUnit.assertSame(4, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -219,10 +222,10 @@ public class SequencePartitionTestCase {
             }
         });
 
-        InputHandler stream1 = executionPlanRuntime.getInputHandler("Stream1");
-        InputHandler stream2 = executionPlanRuntime.getInputHandler("Stream2");
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stream1.send(new Object[]{"WSO2", 55.6f, 100});
         Thread.sleep(100);
@@ -233,11 +236,11 @@ public class SequencePartitionTestCase {
         stream1.send(new Object[]{"GOOG", 55.7f, 200});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 4, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 4, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -257,9 +260,10 @@ public class SequencePartitionTestCase {
                 "insert into OutputStream ;";
         String partitionEnd = "end";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + partitionStart + query + partitionEnd);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + partitionStart
+                + query + partitionEnd);
 
-        executionPlanRuntime.addCallback("OutputStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("OutputStream", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 EventPrinter.print(events);
@@ -270,12 +274,13 @@ public class SequencePartitionTestCase {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{55.6f, 55.7f, 57.6f}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{55.6f, 55.7f, 57.6f}, event.getData());
                                 break;
                             case 2:
-                                Assert.assertArrayEquals(new Object[]{65.6f, 75.7f, 87.6f}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{65.6f, 75.7f, 87.6f}, event.getData());
+                                break;
                             default:
-                                Assert.assertSame(2, inEventCount);
+                                AssertJUnit.assertSame(2, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -284,10 +289,10 @@ public class SequencePartitionTestCase {
         });
 
 
-        InputHandler stream1 = executionPlanRuntime.getInputHandler("Stream1");
-        InputHandler stream2 = executionPlanRuntime.getInputHandler("Stream2");
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stream1.send(new Object[]{"WSO2", 59.6f, 100});
         Thread.sleep(100);
@@ -306,11 +311,11 @@ public class SequencePartitionTestCase {
         stream1.send(new Object[]{"BIRT", 87.6f, 200});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 2, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 2, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -330,9 +335,10 @@ public class SequencePartitionTestCase {
                 "insert into OutputStream ;";
         String partitionEnd = "end";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + partitionStart + query + partitionEnd);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + partitionStart
+                + query + partitionEnd);
 
-        executionPlanRuntime.addCallback("OutputStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("OutputStream", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 EventPrinter.print(events);
@@ -343,13 +349,13 @@ public class SequencePartitionTestCase {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{55.6f, 55.0f, 57.6f}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{55.6f, 55.0f, 57.6f}, event.getData());
                                 break;
                             case 2:
-                                Assert.assertArrayEquals(new Object[]{85.6f, 85.0f, 87.6f}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{85.6f, 85.0f, 87.6f}, event.getData());
                                 break;
                             default:
-                                Assert.assertSame(2, inEventCount);
+                                AssertJUnit.assertSame(2, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -357,10 +363,10 @@ public class SequencePartitionTestCase {
             }
         });
 
-        InputHandler stream1 = executionPlanRuntime.getInputHandler("Stream1");
-        InputHandler stream2 = executionPlanRuntime.getInputHandler("Stream2");
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stream1.send(new Object[]{"WSO2", 59.6f, 100});
         Thread.sleep(100);
@@ -377,11 +383,11 @@ public class SequencePartitionTestCase {
         stream1.send(new Object[]{"WSO2", 87.6f, 1000});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 2, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 2, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -400,9 +406,10 @@ public class SequencePartitionTestCase {
                 "select e1[0].price as price1, e2.price as price3 " +
                 "insert into OutputStream ;";
         String partitionEnd = "end";
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + partitionStart + query + partitionEnd);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + partitionStart
+                + query + partitionEnd);
 
-        executionPlanRuntime.addCallback("OutputStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("OutputStream", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 EventPrinter.print(events);
@@ -418,10 +425,10 @@ public class SequencePartitionTestCase {
             }
         });
 
-        InputHandler stream1 = executionPlanRuntime.getInputHandler("Stream1");
-        InputHandler stream2 = executionPlanRuntime.getInputHandler("Stream2");
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stream1.send(new Object[]{"WSO2", 59.6f, 100});
         Thread.sleep(100);
@@ -432,11 +439,11 @@ public class SequencePartitionTestCase {
         stream1.send(new Object[]{"WSO2", 57.6f, 200});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 0, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", false, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 0, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", false, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -456,9 +463,10 @@ public class SequencePartitionTestCase {
                 "insert into OutputStream ;";
         String partitionEnd = "end";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + partitionStart + query + partitionEnd);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + partitionStart
+                + query + partitionEnd);
 
-        executionPlanRuntime.addCallback("OutputStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("OutputStream", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 EventPrinter.print(events);
@@ -469,19 +477,19 @@ public class SequencePartitionTestCase {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{55.6f, 55.7f, null}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{55.6f, 55.7f, null}, event.getData());
                                 break;
                             case 2:
-                                Assert.assertArrayEquals(new Object[]{55.7f, 57.6f, null}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{55.7f, 57.6f, null}, event.getData());
                                 break;
                             case 3:
-                                Assert.assertArrayEquals(new Object[]{55.6f, 155.7f, null}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{55.6f, 155.7f, null}, event.getData());
                                 break;
                             case 4:
-                                Assert.assertArrayEquals(new Object[]{155.7f, 457.6f, null}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{155.7f, 457.6f, null}, event.getData());
                                 break;
                             default:
-                                Assert.assertSame(4, inEventCount);
+                                AssertJUnit.assertSame(4, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -489,10 +497,10 @@ public class SequencePartitionTestCase {
             }
         });
 
-        InputHandler stream1 = executionPlanRuntime.getInputHandler("Stream1");
-        InputHandler stream2 = executionPlanRuntime.getInputHandler("Stream2");
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stream2.send(new Object[]{"WSO2", 59.6f, 100});
         Thread.sleep(100);
@@ -511,11 +519,11 @@ public class SequencePartitionTestCase {
         stream2.send(new Object[]{"WSO2", 457.6f, 4100});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 4, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 4, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -535,9 +543,10 @@ public class SequencePartitionTestCase {
                 "insert into OutputStream ;";
         String partitionEnd = "end";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + partitionStart + query + partitionEnd);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + partitionStart
+                + query + partitionEnd);
 
-        executionPlanRuntime.addCallback("OutputStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("OutputStream", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 EventPrinter.print(events);
@@ -548,19 +557,19 @@ public class SequencePartitionTestCase {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{55.6f, null, 55.0f}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{55.6f, null, 55.0f}, event.getData());
                                 break;
                             case 2:
-                                Assert.assertArrayEquals(new Object[]{155.6f, null, 95.0f}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{155.6f, null, 95.0f}, event.getData());
                                 break;
                             case 3:
-                                Assert.assertArrayEquals(new Object[]{55.0f, 57.6f, null}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{55.0f, 57.6f, null}, event.getData());
                                 break;
                             case 4:
-                                Assert.assertArrayEquals(new Object[]{95.0f, 207.6f, null}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{95.0f, 207.6f, null}, event.getData());
                                 break;
                             default:
-                                Assert.assertSame(4, inEventCount);
+                                AssertJUnit.assertSame(4, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -568,10 +577,10 @@ public class SequencePartitionTestCase {
             }
         });
 
-        InputHandler stream1 = executionPlanRuntime.getInputHandler("Stream1");
-        InputHandler stream2 = executionPlanRuntime.getInputHandler("Stream2");
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stream2.send(new Object[]{"WSO2", 59.6f, 100});
         Thread.sleep(100);
@@ -590,11 +599,11 @@ public class SequencePartitionTestCase {
         stream2.send(new Object[]{"WSO2", 207.6f, 200});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 4, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 4, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -614,9 +623,10 @@ public class SequencePartitionTestCase {
                 "insert into OutputStream ;";
         String partitionEnd = "end";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + partitionStart + query + partitionEnd);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + partitionStart
+                + query + partitionEnd);
 
-        executionPlanRuntime.addCallback("OutputStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("OutputStream", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 EventPrinter.print(events);
@@ -627,16 +637,16 @@ public class SequencePartitionTestCase {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{55.6f, 57.6f, null}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{55.6f, 57.6f, null}, event.getData());
                                 break;
                             case 2:
-                                Assert.assertArrayEquals(new Object[]{57.6f, null, 55.7f}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{57.6f, null, 55.7f}, event.getData());
                                 break;
                             case 3:
-                                Assert.assertArrayEquals(new Object[]{155.6f, 207.6f, null}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{155.6f, 207.6f, null}, event.getData());
                                 break;
                             default:
-                                Assert.assertSame(3, inEventCount);
+                                AssertJUnit.assertSame(3, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -644,10 +654,10 @@ public class SequencePartitionTestCase {
             }
         });
 
-        InputHandler stream1 = executionPlanRuntime.getInputHandler("Stream1");
-        InputHandler stream2 = executionPlanRuntime.getInputHandler("Stream2");
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stream2.send(new Object[]{"WSO2", 59.6f, 100});
         Thread.sleep(100);
@@ -662,11 +672,11 @@ public class SequencePartitionTestCase {
         stream2.send(new Object[]{"WSO2", 207.6f, 200});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 3, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 3, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -686,9 +696,10 @@ public class SequencePartitionTestCase {
                 "insert into OutputStream ;";
         String partitionEnd = "end";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + partitionStart + query + partitionEnd);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + partitionStart
+                + query + partitionEnd);
 
-        executionPlanRuntime.addCallback("OutputStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("OutputStream", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 EventPrinter.print(events);
@@ -699,10 +710,10 @@ public class SequencePartitionTestCase {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{55.6f, null, 57.6f}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{55.6f, null, 57.6f}, event.getData());
                                 break;
                             default:
-                                Assert.assertSame(1, inEventCount);
+                                AssertJUnit.assertSame(1, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -710,10 +721,10 @@ public class SequencePartitionTestCase {
             }
         });
 
-        InputHandler stream1 = executionPlanRuntime.getInputHandler("Stream1");
-        InputHandler stream2 = executionPlanRuntime.getInputHandler("Stream2");
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stream1.send(new Object[]{"WSO2", 59.6f, 100});
         Thread.sleep(100);
@@ -726,11 +737,11 @@ public class SequencePartitionTestCase {
         stream1.send(new Object[]{"WSO2", 57.6f, 150});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 1, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 1, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -746,15 +757,17 @@ public class SequencePartitionTestCase {
         String query = "" +
                 "@info(name = 'query1') " +
                 "from every e1=Stream1[price>20], " +
-                "   e2=Stream1[((e2[last].price is null) and price>=e1.price) or ((not (e2[last].price is null)) and price>=e2[last].price)]+, " +
+                "   e2=Stream1[((e2[last].price is null) and price>=e1.price) or ((not (e2[last].price is null)) and " +
+                "price>=e2[last].price)]+, " +
                 "   e3=Stream1[price<e2[last].price] " +
                 "select e1.price as price1, e2[0].price as price2, e2[1].price as price3, e3.price as price4 " +
                 "insert into OutputStream ;";
         String partitionEnd = "end";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + partitionStart + query + partitionEnd);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + partitionStart
+                + query + partitionEnd);
 
-        executionPlanRuntime.addCallback("OutputStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("OutputStream", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 EventPrinter.print(events);
@@ -765,13 +778,15 @@ public class SequencePartitionTestCase {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{29.6f, 35.6f, 57.6f, 47.6f}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{29.6f, 35.6f, 57.6f, 47.6f},
+                                        event.getData());
                                 break;
                             case 2:
-                                Assert.assertArrayEquals(new Object[]{129.6f, 135.6f, 157.6f, 147.6f}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{129.6f, 135.6f, 157.6f, 147.6f},
+                                        event.getData());
                                 break;
                             default:
-                                Assert.assertSame(2, inEventCount);
+                                AssertJUnit.assertSame(2, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -779,10 +794,10 @@ public class SequencePartitionTestCase {
             }
         });
 
-        InputHandler stream1 = executionPlanRuntime.getInputHandler("Stream1");
-        InputHandler stream2 = executionPlanRuntime.getInputHandler("Stream2");
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stream1.send(new Object[]{"WSO2", 29.6f, 100});
         Thread.sleep(100);
@@ -801,11 +816,11 @@ public class SequencePartitionTestCase {
         stream1.send(new Object[]{"IBM", 147.6f, 10});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 2, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 2, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -825,9 +840,10 @@ public class SequencePartitionTestCase {
                 "insert into OutputStream ;";
         String partitionEnd = "end";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + partitionStart + query + partitionEnd);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + partitionStart
+                + query + partitionEnd);
 
-        executionPlanRuntime.addCallback("OutputStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("OutputStream", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 EventPrinter.print(events);
@@ -838,10 +854,10 @@ public class SequencePartitionTestCase {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{76.6f, "IBM", 20}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{76.6f, "IBM", 20}, event.getData());
                                 break;
                             default:
-                                Assert.assertSame(1, inEventCount);
+                                AssertJUnit.assertSame(1, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -849,10 +865,10 @@ public class SequencePartitionTestCase {
             }
         });
 
-        InputHandler stockStream = executionPlanRuntime.getInputHandler("StockStream");
-        InputHandler twitterStream = executionPlanRuntime.getInputHandler("TwitterStream");
+        InputHandler stockStream = siddhiAppRuntime.getInputHandler("StockStream");
+        InputHandler twitterStream = siddhiAppRuntime.getInputHandler("TwitterStream");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stockStream.send(new Object[]{"IBM", 75.6f, 105, "user"});
         stockStream.send(new Object[]{"GOOG", 51f, 101, "user"});
@@ -865,11 +881,11 @@ public class SequencePartitionTestCase {
         twitterStream.send(new Object[]{"GOOG", 20, "user"});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 1, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 1, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
 
@@ -885,14 +901,16 @@ public class SequencePartitionTestCase {
         String partitionStart = "partition with (name of StockStream , user of TwitterStream) begin ";
         String query = "" +
                 "@info(name = 'query1') " +
-                "from every e1=StockStream[ price >= 50 and volume > 100 ], e2=StockStream[price <= 40]*, e3=StockStream[volume <= 70] " +
+                "from every e1=StockStream[ price >= 50 and volume > 100 ], e2=StockStream[price <= 40]*, " +
+                "e3=StockStream[volume <= 70] " +
                 "select e1.symbol as symbol1, e2[0].symbol as symbol2, e3.symbol as symbol3 " +
                 "insert into OutputStream ;";
         String partitionEnd = "end";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + partitionStart + query + partitionEnd);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + partitionStart
+                + query + partitionEnd);
 
-        executionPlanRuntime.addCallback("OutputStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("OutputStream", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 EventPrinter.print(events);
@@ -903,13 +921,13 @@ public class SequencePartitionTestCase {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{"IBM", "GOOG", "WSO2"}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"IBM", "GOOG", "WSO2"}, event.getData());
                                 break;
                             case 2:
-                                Assert.assertArrayEquals(new Object[]{"GOOG", "BIRT", "DDD"}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"GOOG", "BIRT", "DDD"}, event.getData());
                                 break;
                             default:
-                                Assert.assertSame(2, inEventCount);
+                                AssertJUnit.assertSame(2, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -918,10 +936,10 @@ public class SequencePartitionTestCase {
         });
 
 
-        InputHandler stockStream = executionPlanRuntime.getInputHandler("StockStream");
-        InputHandler twitterStream = executionPlanRuntime.getInputHandler("TwitterStream");
+        InputHandler stockStream = siddhiAppRuntime.getInputHandler("StockStream");
+        InputHandler twitterStream = siddhiAppRuntime.getInputHandler("TwitterStream");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stockStream.send(new Object[]{"IBM", 75.6f, 105, "user"});
         Thread.sleep(100);
@@ -934,11 +952,11 @@ public class SequencePartitionTestCase {
         stockStream.send(new Object[]{"DDD", 176.6f, 65, "user2"});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 2, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 2, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -953,14 +971,16 @@ public class SequencePartitionTestCase {
         String partitionStart = "partition with (quantity of StockStream1 , quantity of StockStream2) begin ";
         String query = "" +
                 "@info(name = 'query1') " +
-                "from every e1=StockStream1[ price >= 50 and volume > 100 ], e2=StockStream2[price <= 40]*, e3=StockStream2[volume <= 70] " +
+                "from every e1=StockStream1[ price >= 50 and volume > 100 ], e2=StockStream2[price <= 40]*, " +
+                "e3=StockStream2[volume <= 70] " +
                 "select e3.symbol as symbol1, e2[0].symbol as symbol2, e3.volume as volume " +
                 "insert into OutputStream ;";
         String partitionEnd = "end";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + partitionStart + query + partitionEnd);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + partitionStart
+                + query + partitionEnd);
 
-        executionPlanRuntime.addCallback("OutputStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("OutputStream", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 EventPrinter.print(events);
@@ -971,25 +991,25 @@ public class SequencePartitionTestCase {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{"WSO2", "GOOG", 65}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"WSO2", "GOOG", 65}, event.getData());
                                 break;
                             case 2:
-                                Assert.assertArrayEquals(new Object[]{"WSO2", "DDD", 60}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"WSO2", "DDD", 60}, event.getData());
                                 break;
                             case 3:
-                                Assert.assertArrayEquals(new Object[]{"DOX", null, 25}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"DOX", null, 25}, event.getData());
                                 break;
                             case 4:
-                                Assert.assertArrayEquals(new Object[]{"WSO2", "GOOG", 65}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"WSO2", "GOOG", 65}, event.getData());
                                 break;
                             case 5:
-                                Assert.assertArrayEquals(new Object[]{"WSO2", "DDD", 60}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"WSO2", "DDD", 60}, event.getData());
                                 break;
                             case 6:
-                                Assert.assertArrayEquals(new Object[]{"DOX", null, 25}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"DOX", null, 25}, event.getData());
                                 break;
                             default:
-                                Assert.assertSame(6, inEventCount);
+                                AssertJUnit.assertSame(6, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -997,10 +1017,10 @@ public class SequencePartitionTestCase {
             }
         });
 
-        InputHandler stockStream1 = executionPlanRuntime.getInputHandler("StockStream1");
-        InputHandler stockStream2 = executionPlanRuntime.getInputHandler("StockStream2");
+        InputHandler stockStream1 = siddhiAppRuntime.getInputHandler("StockStream1");
+        InputHandler stockStream2 = siddhiAppRuntime.getInputHandler("StockStream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stockStream1.send(new Object[]{"IBM", 75.6f, 105, 2});
         Thread.sleep(100);
@@ -1030,11 +1050,11 @@ public class SequencePartitionTestCase {
         stockStream2.send(new Object[]{"DOX", 16.2f, 25, 22});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 6, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 6, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -1049,14 +1069,16 @@ public class SequencePartitionTestCase {
         String partitionStart = "partition with (quantity of StockStream1 , quantity of StockStream2) begin ";
         String query = "" +
                 "@info(name = 'query1') " +
-                "from every e1=StockStream1[ price >= 50 and volume > 100 ], e2=StockStream2[e1.symbol != 'AMBA']*, e3=StockStream2[volume <= 70] " +
+                "from every e1=StockStream1[ price >= 50 and volume > 100 ], e2=StockStream2[e1.symbol != 'AMBA']*, " +
+                "e3=StockStream2[volume <= 70] " +
                 "select e3.symbol as symbol1, e2[0].symbol as symbol2, e3.volume as volume " +
                 "insert into OutputStream ;";
         String partitionEnd = "end";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + partitionStart + query + partitionEnd);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + partitionStart
+                + query + partitionEnd);
 
-        executionPlanRuntime.addCallback("OutputStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("OutputStream", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 EventPrinter.print(events);
@@ -1067,19 +1089,19 @@ public class SequencePartitionTestCase {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{"WSO2", "GOOG", 65}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"WSO2", "GOOG", 65}, event.getData());
                                 break;
                             case 2:
-                                Assert.assertArrayEquals(new Object[]{"DOX", null, 25}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"DOX", null, 25}, event.getData());
                                 break;
                             case 3:
-                                Assert.assertArrayEquals(new Object[]{"WSO2", "GOOG", 65}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"WSO2", "GOOG", 65}, event.getData());
                                 break;
                             case 4:
-                                Assert.assertArrayEquals(new Object[]{"DOX", null, 25}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"DOX", null, 25}, event.getData());
                                 break;
                             default:
-                                Assert.assertSame(4, inEventCount);
+                                AssertJUnit.assertSame(4, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -1087,10 +1109,10 @@ public class SequencePartitionTestCase {
             }
         });
 
-        InputHandler stockStream1 = executionPlanRuntime.getInputHandler("StockStream1");
-        InputHandler stockStream2 = executionPlanRuntime.getInputHandler("StockStream2");
+        InputHandler stockStream1 = siddhiAppRuntime.getInputHandler("StockStream1");
+        InputHandler stockStream2 = siddhiAppRuntime.getInputHandler("StockStream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stockStream1.send(new Object[]{"IBM", 75.6f, 105, 10});
         Thread.sleep(100);
@@ -1120,11 +1142,11 @@ public class SequencePartitionTestCase {
         stockStream2.send(new Object[]{"DOX", 16.2f, 25, 100});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 4, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 4, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -1144,9 +1166,10 @@ public class SequencePartitionTestCase {
                 "insert into OutputStream ;";
         String partitionEnd = "end";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + partitionStart + query + partitionEnd);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + partitionStart
+                + query + partitionEnd);
 
-        executionPlanRuntime.addCallback("OutputStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("OutputStream", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 EventPrinter.print(events);
@@ -1157,25 +1180,25 @@ public class SequencePartitionTestCase {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{"WSO2", "GOOG", 65, 5}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"WSO2", "GOOG", 65, 5}, event.getData());
                                 break;
                             case 2:
-                                Assert.assertArrayEquals(new Object[]{"WSO2", "GOOG", 65, 155}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"WSO2", "GOOG", 65, 155}, event.getData());
                                 break;
                             case 3:
-                                Assert.assertArrayEquals(new Object[]{"DOX", null, 25, 5}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"DOX", null, 25, 5}, event.getData());
                                 break;
                             case 4:
-                                Assert.assertArrayEquals(new Object[]{"WSO2", "GOOG", 65, 55}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"WSO2", "GOOG", 65, 55}, event.getData());
                                 break;
                             case 5:
-                                Assert.assertArrayEquals(new Object[]{"DOX", null, 25, 55}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"DOX", null, 25, 55}, event.getData());
                                 break;
                             case 6:
-                                Assert.assertArrayEquals(new Object[]{"DOX", null, 25, 155}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"DOX", null, 25, 155}, event.getData());
                                 break;
                             default:
-                                Assert.assertSame(6, inEventCount);
+                                AssertJUnit.assertSame(6, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -1184,10 +1207,10 @@ public class SequencePartitionTestCase {
         });
 
 
-        InputHandler stockStream1 = executionPlanRuntime.getInputHandler("StockStream1");
-        InputHandler stockStream2 = executionPlanRuntime.getInputHandler("StockStream2");
+        InputHandler stockStream1 = siddhiAppRuntime.getInputHandler("StockStream1");
+        InputHandler stockStream2 = siddhiAppRuntime.getInputHandler("StockStream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stockStream1.send(new Object[]{"IBM", 75.6f, 105, 5});
         Thread.sleep(100);
@@ -1234,11 +1257,11 @@ public class SequencePartitionTestCase {
         stockStream2.send(new Object[]{"DOX", 16.2f, 25, 155});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 6, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 6, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 }
 

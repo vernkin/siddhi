@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,11 +18,11 @@
 
 package org.wso2.siddhi.core.query.function;
 
-import junit.framework.Assert;
 import org.apache.log4j.Logger;
-import org.junit.Before;
-import org.junit.Test;
-import org.wso2.siddhi.core.ExecutionPlanRuntime;
+import org.testng.AssertJUnit;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+import org.wso2.siddhi.core.SiddhiAppRuntime;
 import org.wso2.siddhi.core.SiddhiManager;
 import org.wso2.siddhi.core.event.Event;
 import org.wso2.siddhi.core.query.output.callback.QueryCallback;
@@ -31,11 +31,11 @@ import org.wso2.siddhi.core.util.EventPrinter;
 
 public class UUIDFunctionTestCase {
 
-    static final Logger log = Logger.getLogger(UUIDFunctionTestCase.class);
+    private static final Logger log = Logger.getLogger(UUIDFunctionTestCase.class);
     private int count;
     private boolean eventArrived;
 
-    @Before
+    @BeforeMethod
     public void init() {
         count = 0;
         eventArrived = false;
@@ -48,31 +48,33 @@ public class UUIDFunctionTestCase {
 
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        String planName = "@plan:name('UUIDFunction') ";
-        String cseEventStream = "define stream cseEventStream (symbol string, price double, volume long , quantity int);";
+        String planName = "@app:name('UUIDFunction') ";
+        String cseEventStream = "define stream cseEventStream (symbol string, price double, volume long , quantity " +
+                "int);";
         String query = "@info(name = 'query1') " +
                 "from cseEventStream " +
                 "select symbol, price as price, quantity, UUID() as uniqueValue " +
                 "insert into outputStream;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(planName + cseEventStream + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(planName +
+                cseEventStream + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
-                Assert.assertEquals(1.56, inEvents[0].getData()[1]);
-                Assert.assertNotNull("UUID is expected", inEvents[0].getData()[3]);
-                Assert.assertTrue("String UUID is expected", inEvents[0].getData()[3] instanceof String);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
+                AssertJUnit.assertEquals(1.56, inEvents[0].getData()[1]);
+                AssertJUnit.assertNotNull("UUID is expected", inEvents[0].getData()[3]);
+                AssertJUnit.assertTrue("String UUID is expected", inEvents[0].getData()[3] instanceof String);
                 count = count + inEvents.length;
             }
         });
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("cseEventStream");
-        executionPlanRuntime.start();
-        inputHandler.send(new Object[]{"WSO2", 1.56d, 60l, 6});
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("cseEventStream");
+        siddhiAppRuntime.start();
+        inputHandler.send(new Object[]{"WSO2", 1.56d, 60L, 6});
         Thread.sleep(200);
-        junit.framework.Assert.assertEquals(1, count);
-        executionPlanRuntime.shutdown();
+        org.testng.AssertJUnit.assertEquals(1, count);
+        siddhiAppRuntime.shutdown();
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -23,16 +23,20 @@ import org.wso2.siddhi.core.exception.OperationNotSupportedException;
 import org.wso2.siddhi.core.executor.ExpressionExecutor;
 import org.wso2.siddhi.query.api.definition.Attribute;
 
+/**
+ * Executor class for Not condition. Condition evaluation logic is implemented within executor.
+ */
 public class NotConditionExpressionExecutor extends ConditionExpressionExecutor {
 
-    protected ExpressionExecutor conditionExecutor;
+    private ExpressionExecutor conditionExecutor;
 
     public NotConditionExpressionExecutor(ExpressionExecutor conditionExecutor) {
         if (conditionExecutor.getReturnType().equals(Attribute.Type.BOOL)) {
             this.conditionExecutor = conditionExecutor;
         } else {
-            throw new OperationNotSupportedException("Return type of condition executor " + conditionExecutor.toString() + " should be of type BOOL. " +
-                    "Actual Type: " + conditionExecutor.getReturnType().toString());
+            throw new OperationNotSupportedException("Return type of condition executor " + conditionExecutor
+                    .toString() + " should be of type BOOL. Actual Type: " + conditionExecutor.getReturnType()
+                    .toString());
         }
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -19,17 +19,25 @@
 package org.wso2.siddhi.core.util.snapshot;
 
 import org.apache.log4j.Logger;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
+import org.wso2.siddhi.core.util.ExceptionUtil;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 
-
+/**
+ * Serializer used by {@link SnapshotService} to do Object to Byte[] conversion and vise-versa
+ */
 public class ByteSerializer {
     private static final Logger log = Logger.getLogger(ByteSerializer.class);
 
     private ByteSerializer() {
     }
 
-    public static byte[] OToB(Object obj) {
+    public static byte[] objectToByte(Object obj, SiddhiAppContext siddhiAppContext) {
         long start = System.currentTimeMillis();
         byte[] out = null;
         if (obj != null) {
@@ -39,18 +47,19 @@ public class ByteSerializer {
                 oos.writeObject(obj);
                 out = baos.toByteArray();
             } catch (IOException e) {
-                log.error("Error when writing byte array. " + e.getMessage(), e);
+                log.error(ExceptionUtil.getMessageWithContext(e, siddhiAppContext) +
+                        " Error when writing byte array.", e);
                 return null;
             }
         }
         long end = System.currentTimeMillis();
         if (log.isDebugEnabled()) {
-            log.debug("Encoded in :" + (end - start) + " msec");
+            log.debug("For SiddhiApp '" + siddhiAppContext.getName() + "'. Encoded in :" + (end - start) + " msec");
         }
         return out;
     }
 
-    public static Object BToO(byte[] bytes) {
+    public static Object byteToObject(byte[] bytes, SiddhiAppContext siddhiAppContext) {
         long start = System.currentTimeMillis();
         Object out = null;
         if (bytes != null) {
@@ -59,10 +68,12 @@ public class ByteSerializer {
                 ObjectInputStream ois = new ObjectInputStream(bios);
                 out = ois.readObject();
             } catch (IOException e) {
-                log.error("Error when writing to object. " + e.getMessage(), e);
+                log.error(ExceptionUtil.getMessageWithContext(e, siddhiAppContext) +
+                        " Error when writing to object.", e);
                 return null;
             } catch (ClassNotFoundException e) {
-                log.error("Error when writing to object. " + e.getMessage(), e);
+                log.error(ExceptionUtil.getMessageWithContext(e, siddhiAppContext) +
+                        " Error when writing to object.", e);
                 return null;
             }
         }

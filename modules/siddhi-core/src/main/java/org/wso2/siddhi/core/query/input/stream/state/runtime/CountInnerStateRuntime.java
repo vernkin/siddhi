@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -38,11 +38,14 @@ public class CountInnerStateRuntime extends StreamInnerStateRuntime {
 
     @Override
     public InnerStateRuntime clone(String key) {
-        StreamInnerStateRuntime cloned_streamInnerStateRuntime = (StreamInnerStateRuntime) streamInnerStateRuntime.clone(key);
-        CountPreStateProcessor countPreStateProcessor = (CountPreStateProcessor) cloned_streamInnerStateRuntime.getFirstProcessor();
-        CountPostStateProcessor countPostStateProcessor = (CountPostStateProcessor) cloned_streamInnerStateRuntime.getLastProcessor();
+        StreamInnerStateRuntime clonedStreamInnerStateRuntime = (StreamInnerStateRuntime) streamInnerStateRuntime
+                .clone(key);
+        CountPreStateProcessor countPreStateProcessor = (CountPreStateProcessor) clonedStreamInnerStateRuntime
+                .getFirstProcessor();
+        CountPostStateProcessor countPostStateProcessor = (CountPostStateProcessor) clonedStreamInnerStateRuntime
+                .getLastProcessor();
         countPreStateProcessor.setCountPostStateProcessor(countPostStateProcessor);
-        return new CountInnerStateRuntime(cloned_streamInnerStateRuntime);
+        return new CountInnerStateRuntime(clonedStreamInnerStateRuntime);
 
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,7 +18,11 @@
 
 package org.wso2.siddhi.core.query.processor.stream.window;
 
-import org.wso2.siddhi.core.config.ExecutionPlanContext;
+import org.wso2.siddhi.annotation.Example;
+import org.wso2.siddhi.annotation.Extension;
+import org.wso2.siddhi.annotation.Parameter;
+import org.wso2.siddhi.annotation.util.DataType;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
 import org.wso2.siddhi.core.event.ComplexEventChunk;
 import org.wso2.siddhi.core.event.state.StateEvent;
 import org.wso2.siddhi.core.event.stream.StreamEvent;
@@ -27,56 +31,81 @@ import org.wso2.siddhi.core.executor.ConstantExpressionExecutor;
 import org.wso2.siddhi.core.executor.ExpressionExecutor;
 import org.wso2.siddhi.core.executor.VariableExpressionExecutor;
 import org.wso2.siddhi.core.query.processor.Processor;
-import org.wso2.siddhi.core.table.EventTable;
-import org.wso2.siddhi.core.util.collection.operator.Finder;
-import org.wso2.siddhi.core.util.collection.operator.MatchingMetaStateHolder;
+import org.wso2.siddhi.core.table.Table;
+import org.wso2.siddhi.core.util.collection.operator.CompiledCondition;
+import org.wso2.siddhi.core.util.collection.operator.MatchingMetaInfoHolder;
+import org.wso2.siddhi.core.util.collection.operator.Operator;
+import org.wso2.siddhi.core.util.config.ConfigReader;
 import org.wso2.siddhi.core.util.parser.OperatorParser;
 import org.wso2.siddhi.query.api.definition.Attribute;
 import org.wso2.siddhi.query.api.expression.Expression;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-/*
-* Sample Query:
-* from inputStream#window.sort(5, attribute1, "asc", attribute2, "desc")
-* select attribute1, attribute2
-* insert into outputStream;
-*
-* Description:
-* In the example query given, 5 is the size of the window.
-* The arguments following the size of the window are optional.
-* If neither "asc" nor "desc" is given for a certain attribute, order defaults to "asc"
-* */
+/**
+ * Sample Query:
+ * from inputStream#window.sort(5, attribute1, "asc", attribute2, "desc")
+ * select attribute1, attribute2
+ * insert into outputStream;
+ * <p>
+ * Description:
+ * In the example query given, 5 is the size of the window.
+ * The arguments following the size of the window are optional.
+ * If neither "asc" nor "desc" is given for a certain attribute, order defaults to "asc"
+ */
+@Extension(
+        name = "sort",
+        namespace = "",
+        description = "This window holds a batch of events that equal the number specified as the windowLength " +
+                "and sorts them in the given order.",
+        parameters = {
+                @Parameter(name = "window.length",
+                        description = "The size of the window length.",
+                        type = {DataType.INT}),
+                @Parameter(name = "attribute",
+                        description = "The attribute that should be checked for the order.",
+                        type = {DataType.STRING},
+                        optional = true,
+                        defaultValue = "The concatenation of all the attributes of the event is considered."),
+                @Parameter(name = "order",
+                        description = "The order define as \"asc\" or \"desc\".",
+                        type = {DataType.STRING},
+                        optional = true,
+                        defaultValue = "asc")
+        },
+        examples = @Example(
+                syntax =  "define stream cseEventStream (symbol string, price float, volume long);\n" +
+                        "define window cseEventWindow (symbol string, price float, volume long) sort(2,volume, 'asc')" +
+                        ";\n@info(name = 'query0')\n" +
+                        "from cseEventStream\n" +
+                        "insert into cseEventWindow;\n" +
+                        "@info(name = 'query1')\n" +
+                        "from cseEventWindow\n" +
+                        "select volume\n" +
+                        "insert all events into outputStream ;",
+                description = "sort(5, price, 'asc') keeps the events sorted by price in the ascending order. " +
+                        "Therefore, at any given time, the window contains the 5 lowest prices."
+        )
+)
 public class SortWindowProcessor extends WindowProcessor implements FindableProcessor {
-    private int lengthToKeep;
-    private ArrayList<StreamEvent> sortedWindow = new ArrayList<StreamEvent>();
-    private ArrayList<Object[]> parameterInfo;
-    private EventComparator eventComparator;
-
     private static final String ASC = "asc";
     private static final String DESC = "desc";
-
-    private class EventComparator implements Comparator<StreamEvent> {
-        @Override
-        public int compare(StreamEvent e1, StreamEvent e2) {
-            int comparisonResult;
-            for (Object[] listItem : parameterInfo) {
-                int[] variablePosition = ((VariableExpressionExecutor) listItem[0]).getPosition();
-                Comparable comparableVariable1 = (Comparable) e1.getAttribute(variablePosition);
-                Comparable comparableVariable2 = (Comparable) e2.getAttribute(variablePosition);
-                comparisonResult = comparableVariable1.compareTo(comparableVariable2);
-                if (comparisonResult != 0) {
-                    return ((Integer) listItem[1]) * comparisonResult;
-                }
-            }
-            return 0;
-        }
-    }
+    private int lengthToKeep;
+    private List<StreamEvent> sortedWindow = new ArrayList<StreamEvent>();
+    private List<Object[]> parameterInfo;
+    private EventComparator eventComparator;
 
     @Override
-    protected void init(ExpressionExecutor[] attributeExpressionExecutors, ExecutionPlanContext executionPlanContext) {
+    protected void init(ExpressionExecutor[] attributeExpressionExecutors, ConfigReader configReader, boolean
+            outputExpectsExpiredEvents, SiddhiAppContext siddhiAppContext) {
         if (attributeExpressionExecutors[0].getReturnType() == Attribute.Type.INT) {
-            lengthToKeep = Integer.parseInt(String.valueOf(((ConstantExpressionExecutor) attributeExpressionExecutors[0]).getValue()));
+            lengthToKeep = Integer.parseInt(String.valueOf(((ConstantExpressionExecutor)
+                    attributeExpressionExecutors[0]).getValue()));
         } else {
             throw new UnsupportedOperationException("The first parameter should be an integer");
         }
@@ -89,8 +118,10 @@ public class SortWindowProcessor extends WindowProcessor implements FindableProc
                 ExpressionExecutor variableExpressionExecutor = attributeExpressionExecutors[i];
                 int order;
                 String nextParameter;
-                if (i + 1 < parametersLength && attributeExpressionExecutors[i + 1].getReturnType() == Attribute.Type.STRING) {
-                    nextParameter = (String) ((ConstantExpressionExecutor) attributeExpressionExecutors[i + 1]).getValue();
+                if (i + 1 < parametersLength && attributeExpressionExecutors[i + 1].getReturnType() == Attribute.Type
+                        .STRING) {
+                    nextParameter = (String) ((ConstantExpressionExecutor) attributeExpressionExecutors[i + 1])
+                            .getValue();
                     if (nextParameter.equalsIgnoreCase(DESC)) {
                         order = -1;
                         i++;
@@ -98,7 +129,8 @@ public class SortWindowProcessor extends WindowProcessor implements FindableProc
                         order = 1;
                         i++;
                     } else {
-                        throw new UnsupportedOperationException("Parameter string literals should only be \"asc\" or \"desc\"");
+                        throw new UnsupportedOperationException("Parameter string literals should only be \"asc\" or " +
+                                "\"desc\"");
                     }
                 } else {
                     order = 1; //assigning the default order: "asc"
@@ -110,10 +142,11 @@ public class SortWindowProcessor extends WindowProcessor implements FindableProc
     }
 
     @Override
-    protected void process(ComplexEventChunk<StreamEvent> streamEventChunk, Processor nextProcessor, StreamEventCloner streamEventCloner) {
+    protected void process(ComplexEventChunk<StreamEvent> streamEventChunk, Processor nextProcessor,
+                           StreamEventCloner streamEventCloner) {
 
         synchronized (this) {
-            long currentTime = executionPlanContext.getTimestampGenerator().currentTime();
+            long currentTime = siddhiAppContext.getTimestampGenerator().currentTime();
 
             StreamEvent streamEvent = streamEventChunk.getFirst();
             streamEventChunk.clear();
@@ -150,24 +183,48 @@ public class SortWindowProcessor extends WindowProcessor implements FindableProc
     }
 
     @Override
-    public Object[] currentState() {
-        return new Object[]{new AbstractMap.SimpleEntry<String, Object>("SortedWindow", sortedWindow)};
+    public Map<String, Object> currentState() {
+        Map<String, Object> state = new HashMap<>();
+        synchronized (this) {
+            state.put("SortedWindow", sortedWindow);
+        }
+        return state;
+    }
+
+
+    @Override
+    public synchronized void restoreState(Map<String, Object> state) {
+        sortedWindow = (List<StreamEvent>) state.get("SortedWindow");
     }
 
     @Override
-    public void restoreState(Object[] state) {
-        Map.Entry<String, Object> stateEntry = (Map.Entry<String, Object>) state[0];
-        sortedWindow = (ArrayList<StreamEvent>) stateEntry.getValue();
+    public synchronized StreamEvent find(StateEvent matchingEvent, CompiledCondition compiledCondition) {
+        return ((Operator) compiledCondition).find(matchingEvent, sortedWindow, streamEventCloner);
     }
 
     @Override
-    public synchronized StreamEvent find(StateEvent matchingEvent, Finder finder) {
-        return finder.find(matchingEvent, sortedWindow, streamEventCloner);
+    public CompiledCondition compileCondition(Expression condition, MatchingMetaInfoHolder matchingMetaInfoHolder,
+                                               SiddhiAppContext siddhiAppContext,
+                                               List<VariableExpressionExecutor> variableExpressionExecutors,
+                                               Map<String, Table> tableMap, String queryName) {
+        return OperatorParser.constructOperator(sortedWindow, condition, matchingMetaInfoHolder,
+                siddhiAppContext, variableExpressionExecutors, tableMap, this.queryName);
     }
 
-    @Override
-    public Finder constructFinder(Expression expression, MatchingMetaStateHolder matchingMetaStateHolder, ExecutionPlanContext executionPlanContext,
-                                  List<VariableExpressionExecutor> variableExpressionExecutors, Map<String, EventTable> eventTableMap) {
-        return OperatorParser.constructOperator(sortedWindow, expression, matchingMetaStateHolder, executionPlanContext, variableExpressionExecutors, eventTableMap, queryName);
+    private class EventComparator implements Comparator<StreamEvent> {
+        @Override
+        public int compare(StreamEvent e1, StreamEvent e2) {
+            int comparisonResult;
+            for (Object[] listItem : parameterInfo) {
+                int[] variablePosition = ((VariableExpressionExecutor) listItem[0]).getPosition();
+                Comparable comparableVariable1 = (Comparable) e1.getAttribute(variablePosition);
+                Comparable comparableVariable2 = (Comparable) e2.getAttribute(variablePosition);
+                comparisonResult = comparableVariable1.compareTo(comparableVariable2);
+                if (comparisonResult != 0) {
+                    return ((Integer) listItem[1]) * comparisonResult;
+                }
+            }
+            return 0;
+        }
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -19,7 +19,7 @@
 package org.wso2.siddhi.core.query.output.ratelimit.snapshot;
 
 import org.apache.log4j.Logger;
-import org.wso2.siddhi.core.config.ExecutionPlanContext;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
 import org.wso2.siddhi.core.event.ComplexEvent;
 import org.wso2.siddhi.core.event.ComplexEventChunk;
 import org.wso2.siddhi.core.event.state.StateEvent;
@@ -29,23 +29,31 @@ import org.wso2.siddhi.core.event.stream.StreamEventCloner;
 import org.wso2.siddhi.core.util.Schedulable;
 import org.wso2.siddhi.core.util.lock.LockWrapper;
 
+import java.util.Map;
+
+/**
+ * Parent implementation to run the {@link org.wso2.siddhi.core.util.Scheduler} to handle periodic snapshot rate
+ * limiting.
+ */
 public abstract class SnapshotOutputRateLimiter implements Schedulable {
-    static final Logger log = Logger.getLogger(SnapshotOutputRateLimiter.class);
-    private WrappedSnapshotOutputRateLimiter wrappedSnapshotOutputRateLimiter;
-    protected ExecutionPlanContext executionPlanContext;
+    private static final Logger log = Logger.getLogger(SnapshotOutputRateLimiter.class);
+    protected SiddhiAppContext siddhiAppContext;
     protected StreamEventCloner streamEventCloner;
     protected StateEventCloner stateEventCloner;
-    private boolean receiveStreamEvent;
     protected LockWrapper lockWrapper;
+    private WrappedSnapshotOutputRateLimiter wrappedSnapshotOutputRateLimiter;
+    private boolean receiveStreamEvent;
 
-    protected SnapshotOutputRateLimiter(WrappedSnapshotOutputRateLimiter wrappedSnapshotOutputRateLimiter, ExecutionPlanContext executionPlanContext) {
+    protected SnapshotOutputRateLimiter(WrappedSnapshotOutputRateLimiter wrappedSnapshotOutputRateLimiter,
+                                        SiddhiAppContext siddhiAppContext) {
         this.wrappedSnapshotOutputRateLimiter = wrappedSnapshotOutputRateLimiter;
-        this.executionPlanContext = executionPlanContext;
+        this.siddhiAppContext = siddhiAppContext;
     }
 
     public abstract void process(ComplexEventChunk complexEventChunk);
 
-    public abstract SnapshotOutputRateLimiter clone(String key, WrappedSnapshotOutputRateLimiter wrappedSnapshotOutputRateLimiter);
+    public abstract SnapshotOutputRateLimiter clone(String key, WrappedSnapshotOutputRateLimiter
+            wrappedSnapshotOutputRateLimiter);
 
     public void setStreamEventCloner(StreamEventCloner streamEventCloner) {
         this.streamEventCloner = streamEventCloner;
@@ -79,9 +87,9 @@ public abstract class SnapshotOutputRateLimiter implements Schedulable {
 
     public abstract void stop();
 
-    public abstract Object[] currentState();
+    public abstract Map<String, Object> currentState();
 
-    public abstract void restoreState(Object[] state);
+    public abstract void restoreState(Map<String, Object> state);
 
     public void setQueryLock(LockWrapper lockWrapper) {
         this.lockWrapper = lockWrapper;

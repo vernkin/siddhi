@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,7 +17,7 @@
  */
 package org.wso2.siddhi.core.query.processor.stream.window;
 
-import org.wso2.siddhi.core.config.ExecutionPlanContext;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
 import org.wso2.siddhi.core.event.ComplexEventChunk;
 import org.wso2.siddhi.core.event.stream.StreamEvent;
 import org.wso2.siddhi.core.event.stream.StreamEventCloner;
@@ -25,21 +25,25 @@ import org.wso2.siddhi.core.event.stream.populater.ComplexEventPopulater;
 import org.wso2.siddhi.core.executor.ExpressionExecutor;
 import org.wso2.siddhi.core.query.processor.Processor;
 import org.wso2.siddhi.core.query.processor.stream.AbstractStreamProcessor;
+import org.wso2.siddhi.core.util.config.ConfigReader;
 import org.wso2.siddhi.query.api.definition.AbstractDefinition;
 import org.wso2.siddhi.query.api.definition.Attribute;
 
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Abstract parent implementation of {@link Processor} to represent Windows. Common window behaviors will be handled
+ * here through this class and different implementations should extend this
+ */
 public abstract class WindowProcessor extends AbstractStreamProcessor {
 
-    //Introduced to maintain backward compatible
-    protected boolean outputExpectsExpiredEvents;
-
     @Override
-    protected List<Attribute> init(AbstractDefinition inputDefinition, ExpressionExecutor[] attributeExpressionExecutors, ExecutionPlanContext executionPlanContext, boolean outputExpectsExpiredEvents) {
-        this.outputExpectsExpiredEvents = outputExpectsExpiredEvents;
-        init(attributeExpressionExecutors, executionPlanContext);
+    protected List<Attribute> init(AbstractDefinition inputDefinition, ExpressionExecutor[]
+            attributeExpressionExecutors, ConfigReader configReader, SiddhiAppContext siddhiAppContext,
+                                   boolean
+                                           outputExpectsExpiredEvents) {
+        init(attributeExpressionExecutors, configReader, outputExpectsExpiredEvents, siddhiAppContext);
         return new ArrayList<Attribute>(0);
     }
 
@@ -47,12 +51,17 @@ public abstract class WindowProcessor extends AbstractStreamProcessor {
      * The init method of the WindowProcessor, this method will be called before other methods
      *
      * @param attributeExpressionExecutors the executors of each function parameters
-     * @param executionPlanContext         the context of the execution plan
+     * @param configReader                 the config reader of window
+     * @param outputExpectsExpiredEvents   is expired event out put or not
+     * @param siddhiAppContext         the context of the siddhi app
      */
-    protected abstract void init(ExpressionExecutor[] attributeExpressionExecutors, ExecutionPlanContext executionPlanContext);
+    protected abstract void init(ExpressionExecutor[] attributeExpressionExecutors, ConfigReader configReader,
+                                 boolean outputExpectsExpiredEvents, SiddhiAppContext
+                                         siddhiAppContext);
 
     @Override
-    protected void processEventChunk(ComplexEventChunk<StreamEvent> streamEventChunk, Processor nextProcessor, StreamEventCloner streamEventCloner, ComplexEventPopulater complexEventPopulater) {
+    protected void processEventChunk(ComplexEventChunk<StreamEvent> streamEventChunk, Processor nextProcessor,
+                                     StreamEventCloner streamEventCloner, ComplexEventPopulater complexEventPopulater) {
         streamEventChunk.reset();
         process(streamEventChunk, nextProcessor, streamEventCloner);
     }

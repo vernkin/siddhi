@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,32 +17,36 @@
  */
 package org.wso2.siddhi.core.query.selector.attribute.processor.executor;
 
-import org.wso2.siddhi.core.config.ExecutionPlanContext;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
 import org.wso2.siddhi.core.executor.ExpressionExecutor;
 import org.wso2.siddhi.core.query.selector.attribute.aggregator.AttributeAggregator;
 import org.wso2.siddhi.core.util.snapshot.Snapshotable;
 import org.wso2.siddhi.query.api.definition.Attribute;
 
+/**
+ * Abstract class to represent attribute aggregations.
+ */
 public abstract class AbstractAggregationAttributeExecutor implements ExpressionExecutor, Snapshotable {
-    private String elementId;
     protected AttributeAggregator attributeAggregator;
     protected ExpressionExecutor[] attributeExpressionExecutors;
-    protected ExecutionPlanContext executionPlanContext;
+    protected SiddhiAppContext siddhiAppContext;
     protected int size;
     protected String queryName;
+    private String elementId = null;
 
     public AbstractAggregationAttributeExecutor(AttributeAggregator attributeAggregator,
                                                 ExpressionExecutor[] attributeExpressionExecutors,
-                                                ExecutionPlanContext executionPlanContext, String queryName) {
-        this.executionPlanContext = executionPlanContext;
+                                                SiddhiAppContext siddhiAppContext, String queryName) {
+        this.siddhiAppContext = siddhiAppContext;
         this.attributeExpressionExecutors = attributeExpressionExecutors;
         this.attributeAggregator = attributeAggregator;
         this.size = attributeExpressionExecutors.length;
         this.queryName = queryName;
         if (elementId == null) {
-            elementId = "AbstractAggregationAttributeExecutor" + executionPlanContext.getElementIdGenerator().createNewId();
+            elementId = "AbstractAggregationAttributeExecutor-" + siddhiAppContext.getElementIdGenerator()
+                    .createNewId();
         }
-        executionPlanContext.getSnapshotService().addSnapshotable(queryName, this);
+        siddhiAppContext.getSnapshotService().addSnapshotable(queryName, this);
     }
 
     @Override

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -19,13 +19,18 @@ package org.wso2.siddhi.query.api.execution.query.input.state;
 
 import org.wso2.siddhi.query.api.expression.constant.TimeConstant;
 
-
+/**
+ * Logical state element used in pattern to handle logical operations
+ */
 public class LogicalStateElement implements StateElement {
 
+    private static final long serialVersionUID = 1L;
     protected StreamStateElement streamStateElement1;
     protected Type type;
     protected StreamStateElement streamStateElement2;
     protected TimeConstant within;
+    private int[] queryContextStartIndex;
+    private int[] queryContextEndIndex;
 
     public LogicalStateElement(StreamStateElement streamStateElement1, Type type,
                                StreamStateElement streamStateElement2) {
@@ -34,7 +39,8 @@ public class LogicalStateElement implements StateElement {
         this.streamStateElement2 = streamStateElement2;
     }
 
-    public LogicalStateElement(StreamStateElement streamStateElement1, Type type, StreamStateElement streamStateElement2, TimeConstant within) {
+    public LogicalStateElement(StreamStateElement streamStateElement1, Type type, StreamStateElement
+            streamStateElement2, TimeConstant within) {
         this.streamStateElement1 = streamStateElement1;
         this.type = type;
         this.streamStateElement2 = streamStateElement2;
@@ -63,10 +69,6 @@ public class LogicalStateElement implements StateElement {
         this.within = within;
     }
 
-    public enum Type {
-        AND, OR, NOT
-    }
-
     @Override
     public String toString() {
         return "LogicalStateElement{" +
@@ -79,17 +81,29 @@ public class LogicalStateElement implements StateElement {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof LogicalStateElement)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof LogicalStateElement)) {
+            return false;
+        }
 
         LogicalStateElement that = (LogicalStateElement) o;
 
-        if (streamStateElement1 != null ? !streamStateElement1.equals(that.streamStateElement1) : that.streamStateElement1 != null)
+        if (streamStateElement1 != null ? !streamStateElement1.equals(that.streamStateElement1) : that
+                .streamStateElement1 != null) {
             return false;
-        if (streamStateElement2 != null ? !streamStateElement2.equals(that.streamStateElement2) : that.streamStateElement2 != null)
+        }
+        if (streamStateElement2 != null ? !streamStateElement2.equals(that.streamStateElement2) : that
+                .streamStateElement2 != null) {
             return false;
-        if (type != that.type) return false;
-        if (within != null ? !within.equals(that.within) : that.within != null) return false;
+        }
+        if (type != that.type) {
+            return false;
+        }
+        if (within != null ? !within.equals(that.within) : that.within != null) {
+            return false;
+        }
 
         return true;
     }
@@ -101,5 +115,33 @@ public class LogicalStateElement implements StateElement {
         result = 31 * result + (streamStateElement2 != null ? streamStateElement2.hashCode() : 0);
         result = 31 * result + (within != null ? within.hashCode() : 0);
         return result;
+    }
+
+    /**
+     * Different type of logical condition
+     */
+    public enum Type {
+        AND,
+        OR
+    }
+
+    @Override
+    public int[] getQueryContextStartIndex() {
+        return queryContextStartIndex;
+    }
+
+    @Override
+    public void setQueryContextStartIndex(int[] lineAndColumn) {
+        queryContextStartIndex = lineAndColumn;
+    }
+
+    @Override
+    public int[] getQueryContextEndIndex() {
+        return queryContextEndIndex;
+    }
+
+    @Override
+    public void setQueryContextEndIndex(int[] lineAndColumn) {
+        queryContextEndIndex = lineAndColumn;
     }
 }

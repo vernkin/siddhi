@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -38,7 +38,8 @@ public class CountPreStateProcessor extends StreamPreStateProcessor {
     private CountPostStateProcessor countPostStateProcessor;
     private volatile boolean startStateReset = false;
 
-    public CountPreStateProcessor(int minCount, int maxCount, StateInputStream.Type stateType, List<Map.Entry<Long, Set<Integer>>> withinStates) {
+    public CountPreStateProcessor(int minCount, int maxCount, StateInputStream.Type stateType, List<Map.Entry<Long,
+            Set<Integer>>> withinStates) {
         super(stateType, withinStates);
         this.minCount = minCount;
         this.maxCount = maxCount;
@@ -46,9 +47,10 @@ public class CountPreStateProcessor extends StreamPreStateProcessor {
 
 
     public PreStateProcessor cloneProcessor(String key) {
-        CountPreStateProcessor countPreStateProcessor = new CountPreStateProcessor(minCount, maxCount, stateType, withinStates);
+        CountPreStateProcessor countPreStateProcessor = new CountPreStateProcessor(minCount, maxCount, stateType,
+                withinStates);
         cloneProperties(countPreStateProcessor, key);
-        countPreStateProcessor.init(executionPlanContext, queryName);
+        countPreStateProcessor.init(siddhiAppContext, queryName);
         return countPreStateProcessor;
     }
 
@@ -57,35 +59,40 @@ public class CountPreStateProcessor extends StreamPreStateProcessor {
         ComplexEventChunk<StateEvent> returnEventChunk = new ComplexEventChunk<StateEvent>(false);
         complexEventChunk.reset();
         StreamEvent streamEvent = (StreamEvent) complexEventChunk.next(); //Sure only one will be sent
-        for (Iterator<StateEvent> iterator = pendingStateEventList.iterator(); iterator.hasNext(); ) {
-            StateEvent stateEvent = iterator.next();
-            if (removeIfNextStateProcessed(stateEvent, iterator, stateId + 1)) {
-                continue;
-            }
-            if (removeIfNextStateProcessed(stateEvent, iterator, stateId + 2)) {
-                continue;
-            }
-            stateEvent.addEvent(stateId, streamEventCloner.copyStreamEvent(streamEvent));
-            successCondition = false;
-            process(stateEvent);
-            if (this.thisLastProcessor.isEventReturned()) {
-                this.thisLastProcessor.clearProcessedEvent();
-                returnEventChunk.add(stateEvent);
-            }
-            if (stateChanged) {
-                iterator.remove();
-            }
-            if (!successCondition) {
-                switch (stateType) {
-                    case PATTERN:
-                        stateEvent.removeLastEvent(stateId);
-                        break;
-                    case SEQUENCE:
-                        stateEvent.removeLastEvent(stateId);
-                        iterator.remove();
-                        break;
+        lock.lock();
+        try {
+            for (Iterator<StateEvent> iterator = pendingStateEventList.iterator(); iterator.hasNext(); ) {
+                StateEvent stateEvent = iterator.next();
+                if (removeIfNextStateProcessed(stateEvent, iterator, stateId + 1)) {
+                    continue;
+                }
+                if (removeIfNextStateProcessed(stateEvent, iterator, stateId + 2)) {
+                    continue;
+                }
+                stateEvent.addEvent(stateId, streamEventCloner.copyStreamEvent(streamEvent));
+                successCondition = false;
+                process(stateEvent);
+                if (this.thisLastProcessor.isEventReturned()) {
+                    this.thisLastProcessor.clearProcessedEvent();
+                    returnEventChunk.add(stateEvent);
+                }
+                if (stateChanged) {
+                    iterator.remove();
+                }
+                if (!successCondition) {
+                    switch (stateType) {
+                        case PATTERN:
+                            stateEvent.removeLastEvent(stateId);
+                            break;
+                        case SEQUENCE:
+                            stateEvent.removeLastEvent(stateId);
+                            iterator.remove();
+                            break;
+                    }
                 }
             }
+        } finally {
+            lock.unlock();
         }
         return returnEventChunk;
     }
@@ -109,12 +116,17 @@ public class CountPreStateProcessor extends StreamPreStateProcessor {
         //            newAndEveryStateEventList.clear();
         //            pendingStateEventList.clear();
         //        }
-        if (stateType == StateInputStream.Type.SEQUENCE) {
-            if (newAndEveryStateEventList.isEmpty()) {
+        lock.lock();
+        try {
+            if (stateType == StateInputStream.Type.SEQUENCE) {
+                if (newAndEveryStateEventList.isEmpty()) {
+                    newAndEveryStateEventList.add(stateEvent);
+                }
+            } else {
                 newAndEveryStateEventList.add(stateEvent);
             }
-        } else {
-            newAndEveryStateEventList.add(stateEvent);
+        } finally {
+            lock.unlock();
         }
         if (minCount == 0 && stateEvent.getStreamEvent(stateId) == null) {
             currentStateEventChunk.clear();
@@ -124,12 +136,12 @@ public class CountPreStateProcessor extends StreamPreStateProcessor {
         }
     }
 
-    public void setCountPostStateProcessor(CountPostStateProcessor countPostStateProcessor) {
-        this.countPostStateProcessor = countPostStateProcessor;
-    }
-
     public CountPostStateProcessor getCountPostStateProcessor() {
         return countPostStateProcessor;
+    }
+
+    public void setCountPostStateProcessor(CountPostStateProcessor countPostStateProcessor) {
+        this.countPostStateProcessor = countPostStateProcessor;
     }
 
     public void startStateReset() {

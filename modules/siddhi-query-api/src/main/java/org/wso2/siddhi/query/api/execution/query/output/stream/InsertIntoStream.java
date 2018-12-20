@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -19,8 +19,12 @@ package org.wso2.siddhi.query.api.execution.query.output.stream;
 
 import org.wso2.siddhi.query.api.util.SiddhiConstants;
 
+/**
+ * Query output stream inserting events in to another stream, table, or window
+ */
 public class InsertIntoStream extends OutputStream {
 
+    private static final long serialVersionUID = 1L;
     private boolean isInnerStream;
 
     public InsertIntoStream(String streamId) {
@@ -58,12 +62,18 @@ public class InsertIntoStream extends OutputStream {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof InsertIntoStream)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof InsertIntoStream)) {
+            return false;
+        }
 
         InsertIntoStream that = (InsertIntoStream) o;
 
-        if (isInnerStream != that.isInnerStream) return false;
+        if (isInnerStream != that.isInnerStream) {
+            return false;
+        }
 
         return true;
     }

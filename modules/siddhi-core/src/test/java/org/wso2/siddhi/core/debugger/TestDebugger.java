@@ -18,10 +18,10 @@
 package org.wso2.siddhi.core.debugger;
 
 import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.wso2.siddhi.core.ExecutionPlanRuntime;
+import org.testng.AssertJUnit;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+import org.wso2.siddhi.core.SiddhiAppRuntime;
 import org.wso2.siddhi.core.SiddhiManager;
 import org.wso2.siddhi.core.event.ComplexEvent;
 import org.wso2.siddhi.core.event.Event;
@@ -29,7 +29,6 @@ import org.wso2.siddhi.core.event.stream.StreamEvent;
 import org.wso2.siddhi.core.stream.input.InputHandler;
 import org.wso2.siddhi.core.stream.output.StreamCallback;
 
-import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -37,11 +36,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class TestDebugger {
     private static final Logger log = Logger.getLogger(TestDebugger.class);
+    private static volatile int count;
     private AtomicInteger inEventCount = new AtomicInteger(0);
     private AtomicInteger debugEventCount = new AtomicInteger(0);
-    private static volatile int count;
 
-    @Before
+    @BeforeMethod
     public void init() {
         inEventCount.set(0);
         debugEventCount.set(0);
@@ -70,43 +69,43 @@ public class TestDebugger {
                 "select symbol, price, volume " +
                 "insert into OutputStream; ";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(cseEventStream + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(cseEventStream + query);
 
-        executionPlanRuntime.addCallback("OutputStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("OutputStream", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 inEventCount.addAndGet(events.length);
             }
         });
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("cseEventStream");
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("cseEventStream");
 
-        SiddhiDebugger siddhiDebugger = executionPlanRuntime.debug();
+        SiddhiDebugger siddhiDebugger = siddhiAppRuntime.debug();
         siddhiDebugger.acquireBreakPoint("query 1", SiddhiDebugger.QueryTerminal.IN);
 
         siddhiDebugger.setDebuggerCallback(new SiddhiDebuggerCallback() {
             @Override
             public void debugEvent(ComplexEvent event, String queryName, SiddhiDebugger.QueryTerminal queryTerminal,
                                    SiddhiDebugger debugger) {
-                System.out.println("Query: " + queryName + ":" + queryTerminal);
-                System.out.println(event);
+                log.info("Query: " + queryName + ":" + queryTerminal);
+                log.info(event);
 
                 int count = debugEventCount.addAndGet(getCount(event));
                 if (count == 1) {
-                    Assert.assertEquals("Incorrect break point", "query 1IN", queryName + queryTerminal);
-                    Assert.assertArrayEquals("Incorrect debug event received at IN", new Object[]{"WSO2", 50f, 60},
+                    AssertJUnit.assertEquals("Incorrect break point", "query 1IN", queryName + queryTerminal);
+                    AssertJUnit.assertArrayEquals("Incorrect debug event received at IN", new Object[]{"WSO2", 50f, 60},
                             event.getOutputData());
                 } else if (count == 2) {
-                    Assert.assertEquals("Incorrect break point", "query 1OUT", queryName + queryTerminal);
-                    Assert.assertArrayEquals("Incorrect debug event received at OUT", new Object[]{"WSO2", 50f, 60},
-                            event.getOutputData());
+                    AssertJUnit.assertEquals("Incorrect break point", "query 1OUT", queryName + queryTerminal);
+                    AssertJUnit.assertArrayEquals("Incorrect debug event received at OUT", new Object[]{"WSO2", 50f,
+                            60}, event.getOutputData());
                 } else if (count == 3) {
-                    Assert.assertEquals("Incorrect break point", "query 1IN", queryName + queryTerminal);
-                    Assert.assertArrayEquals("Incorrect debug event received at IN", new Object[]{"WSO2", 70f, 40},
+                    AssertJUnit.assertEquals("Incorrect break point", "query 1IN", queryName + queryTerminal);
+                    AssertJUnit.assertArrayEquals("Incorrect debug event received at IN", new Object[]{"WSO2", 70f, 40},
                             event.getOutputData());
                 } else if (count == 4) {
-                    Assert.assertEquals("Incorrect break point", "query 1OUT", queryName + queryTerminal);
-                    Assert.assertArrayEquals("Incorrect debug event received at OUT", new Object[]{"WSO2", 70f, 40},
-                            event.getOutputData());
+                    AssertJUnit.assertEquals("Incorrect break point", "query 1OUT", queryName + queryTerminal);
+                    AssertJUnit.assertArrayEquals("Incorrect debug event received at OUT", new Object[]{"WSO2",
+                            70f, 40}, event.getOutputData());
                 }
                 debugger.next();
             }
@@ -117,10 +116,10 @@ public class TestDebugger {
 
         Thread.sleep(100);
 
-        Assert.assertEquals("Invalid number of output events", 2, inEventCount.get());
-        Assert.assertEquals("Invalid number of debug events", 4, debugEventCount.get());
+        AssertJUnit.assertEquals("Invalid number of output events", 2, inEventCount.get());
+        AssertJUnit.assertEquals("Invalid number of debug events", 4, debugEventCount.get());
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -136,42 +135,42 @@ public class TestDebugger {
                 "select symbol, price, volume " +
                 "insert into OutputStream; ";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(cseEventStream + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(cseEventStream + query);
 
-        executionPlanRuntime.addCallback("OutputStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("OutputStream", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 inEventCount.addAndGet(events.length);
             }
         });
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("cseEventStream");
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("cseEventStream");
 
-        SiddhiDebugger siddhiDebugger = executionPlanRuntime.debug();
+        SiddhiDebugger siddhiDebugger = siddhiAppRuntime.debug();
         siddhiDebugger.acquireBreakPoint("query1", SiddhiDebugger.QueryTerminal.IN);
 
         siddhiDebugger.setDebuggerCallback(new SiddhiDebuggerCallback() {
             @Override
             public void debugEvent(ComplexEvent event, String queryName, SiddhiDebugger.QueryTerminal queryTerminal,
                                    SiddhiDebugger debugger) {
-                System.out.println("Query: " + queryName + ":" + queryTerminal);
-                System.out.println(event);
+                log.info("Query: " + queryName + ":" + queryTerminal);
+                log.info(event);
 
                 int count = debugEventCount.addAndGet(getCount(event));
                 if (count == 1) {
-                    Assert.assertEquals("Incorrect break point", "query1IN", queryName + queryTerminal);
-                    Assert.assertArrayEquals("Incorrect debug event received at IN", new Object[]{"WSO2", 50f, 60},
+                    AssertJUnit.assertEquals("Incorrect break point", "query1IN", queryName + queryTerminal);
+                    AssertJUnit.assertArrayEquals("Incorrect debug event received at IN", new Object[]{"WSO2", 50f, 60},
                             event.getOutputData());
                 } else if (count == 2) {
-                    Assert.assertEquals("Incorrect break point", "query1IN", queryName + queryTerminal);
-                    Assert.assertArrayEquals("Incorrect debug event received at IN", new Object[]{"WSO2", 70f, 40},
+                    AssertJUnit.assertEquals("Incorrect break point", "query1IN", queryName + queryTerminal);
+                    AssertJUnit.assertArrayEquals("Incorrect debug event received at IN", new Object[]{"WSO2", 70f, 40},
                             event.getOutputData());
                 } else if (count == 3) {
-                    Assert.assertEquals("Incorrect break point", "query1IN", queryName + queryTerminal);
-                    Assert.assertArrayEquals("Incorrect debug event received at IN", new Object[]{"WSO2", 60f, 50},
+                    AssertJUnit.assertEquals("Incorrect break point", "query1IN", queryName + queryTerminal);
+                    AssertJUnit.assertArrayEquals("Incorrect debug event received at IN", new Object[]{"WSO2", 60f, 50},
                             event.getOutputData());
                 } else if (count == 4) {
-                    Assert.assertEquals("Incorrect break point", "query1OUT", queryName + queryTerminal);
-                    Assert.assertEquals("Incorrect number of events received", 3, getCount(event));
+                    AssertJUnit.assertEquals("Incorrect break point", "query1OUT", queryName + queryTerminal);
+                    AssertJUnit.assertEquals("Incorrect number of events received", 3, getCount(event));
                 }
                 debugger.next();
             }
@@ -185,10 +184,10 @@ public class TestDebugger {
 
         Thread.sleep(100);
 
-        Assert.assertEquals("Invalid number of output events", 3, inEventCount.get());
-        Assert.assertEquals("Invalid number of debug events", 6, debugEventCount.get());
+        AssertJUnit.assertEquals("Invalid number of output events", 3, inEventCount.get());
+        AssertJUnit.assertEquals("Invalid number of debug events", 6, debugEventCount.get());
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -203,38 +202,38 @@ public class TestDebugger {
                 "select symbol, price, volume " +
                 "insert into OutputStream; ";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(cseEventStream + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(cseEventStream + query);
 
-        executionPlanRuntime.addCallback("OutputStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("OutputStream", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 inEventCount.addAndGet(events.length);
             }
         });
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("cseEventStream");
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("cseEventStream");
 
-        SiddhiDebugger siddhiDebugger = executionPlanRuntime.debug();
+        SiddhiDebugger siddhiDebugger = siddhiAppRuntime.debug();
         siddhiDebugger.acquireBreakPoint("query1", SiddhiDebugger.QueryTerminal.IN);
 
         siddhiDebugger.setDebuggerCallback(new SiddhiDebuggerCallback() {
             @Override
             public void debugEvent(ComplexEvent event, String queryName, SiddhiDebugger.QueryTerminal queryTerminal,
                                    SiddhiDebugger debugger) {
-                System.out.println("Query: " + queryName + "\t" + System.currentTimeMillis());
-                System.out.println(event);
+                log.info("Query: " + queryName + "\t" + System.currentTimeMillis());
+                log.info(event);
 
                 int count = debugEventCount.addAndGet(getCount(event));
                 if (count == 1) {
-                    Assert.assertEquals("Incorrect break point", "query1IN", queryName + queryTerminal);
-                    Assert.assertArrayEquals("Incorrect debug event received at IN", new Object[]{"WSO2", 50f, 60},
+                    AssertJUnit.assertEquals("Incorrect break point", "query1IN", queryName + queryTerminal);
+                    AssertJUnit.assertArrayEquals("Incorrect debug event received at IN", new Object[]{"WSO2", 50f, 60},
                             event.getOutputData());
                 } else if (count == 2) {
-                    Assert.assertEquals("Incorrect break point", "query1IN", queryName + queryTerminal);
-                    Assert.assertArrayEquals("Incorrect debug event received at IN", new Object[]{"WSO2", 70f, 40},
+                    AssertJUnit.assertEquals("Incorrect break point", "query1IN", queryName + queryTerminal);
+                    AssertJUnit.assertArrayEquals("Incorrect debug event received at IN", new Object[]{"WSO2", 70f, 40},
                             event.getOutputData());
                 } else if (count == 3) {
-                    Assert.assertEquals("Incorrect break point", "query1IN", queryName + queryTerminal);
-                    Assert.assertArrayEquals("Incorrect debug event received at IN", new Object[]{"WSO2", 60f, 50},
+                    AssertJUnit.assertEquals("Incorrect break point", "query1IN", queryName + queryTerminal);
+                    AssertJUnit.assertArrayEquals("Incorrect debug event received at IN", new Object[]{"WSO2", 60f, 50},
                             event.getOutputData());
                 }
 
@@ -251,10 +250,10 @@ public class TestDebugger {
 
         Thread.sleep(3500);
 
-        Assert.assertEquals("Invalid number of output events", 3, inEventCount.get());
-        Assert.assertEquals("Invalid number of debug events", 3, debugEventCount.get());
+        AssertJUnit.assertEquals("Invalid number of output events", 3, inEventCount.get());
+        AssertJUnit.assertEquals("Invalid number of debug events", 3, debugEventCount.get());
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -270,25 +269,25 @@ public class TestDebugger {
                 "select symbol, price, volume " +
                 "insert into OutputStream; ";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(cseEventStream + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(cseEventStream + query);
 
-        executionPlanRuntime.addCallback("OutputStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("OutputStream", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 inEventCount.addAndGet(events.length);
-                Assert.assertEquals("Cannot emit all three in one time", 1, events.length);
+                AssertJUnit.assertEquals("Cannot emit all three in one time", 1, events.length);
             }
         });
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("cseEventStream");
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("cseEventStream");
 
-        SiddhiDebugger siddhiDebugger = executionPlanRuntime.debug();
+        SiddhiDebugger siddhiDebugger = siddhiAppRuntime.debug();
         siddhiDebugger.acquireBreakPoint("query1", SiddhiDebugger.QueryTerminal.IN);
 
         siddhiDebugger.setDebuggerCallback(new SiddhiDebuggerCallback() {
             @Override
             public void debugEvent(ComplexEvent event, String queryName, SiddhiDebugger.QueryTerminal queryTerminal,
                                    SiddhiDebugger debugger) {
-                System.out.println(event);
+                log.info(event);
 
                 int count = debugEventCount.addAndGet(getCount(event));
 
@@ -311,10 +310,10 @@ public class TestDebugger {
 
         Thread.sleep(1500);
 
-        Assert.assertEquals("Invalid number of output events", 3, inEventCount.get());
-        Assert.assertEquals("Invalid number of debug events", 3, debugEventCount.get());
+        AssertJUnit.assertEquals("Invalid number of output events", 3, inEventCount.get());
+        AssertJUnit.assertEquals("Invalid number of debug events", 3, debugEventCount.get());
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -330,35 +329,35 @@ public class TestDebugger {
                 "select symbol, price, volume " +
                 "insert into OutputStream; ";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(cseEventStream + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(cseEventStream + query);
 
-        executionPlanRuntime.addCallback("OutputStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("OutputStream", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 inEventCount.addAndGet(events.length);
             }
         });
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("cseEventStream");
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("cseEventStream");
 
-        SiddhiDebugger siddhiDebugger = executionPlanRuntime.debug();
+        SiddhiDebugger siddhiDebugger = siddhiAppRuntime.debug();
         siddhiDebugger.acquireBreakPoint("query1", SiddhiDebugger.QueryTerminal.IN);
 
         siddhiDebugger.setDebuggerCallback(new SiddhiDebuggerCallback() {
             @Override
             public void debugEvent(ComplexEvent event, String queryName, SiddhiDebugger.QueryTerminal queryTerminal,
                                    SiddhiDebugger debugger) {
-                System.out.println("Query: " + queryName + ":" + queryTerminal);
-                System.out.println(event);
+                log.info("Query: " + queryName + ":" + queryTerminal);
+                log.info(event);
 
                 int count = debugEventCount.addAndGet(getCount(event));
                 if (count == 1) {
-                    Assert.assertEquals("Incorrect break point", "query1IN", queryName + queryTerminal);
-                    Assert.assertArrayEquals("Incorrect debug event received at IN", new Object[]{"WSO2", 50f, 60},
+                    AssertJUnit.assertEquals("Incorrect break point", "query1IN", queryName + queryTerminal);
+                    AssertJUnit.assertArrayEquals("Incorrect debug event received at IN", new Object[]{"WSO2", 50f, 60},
                             event.getOutputData());
                 } else if (count == 2) {
-                    Assert.assertEquals("Incorrect break point", "query1IN", queryName + queryTerminal);
-                    Assert.assertArrayEquals("Incorrect debug event received at OUT", new Object[]{"WSO2", 70f, 40},
-                            event.getOutputData());
+                    AssertJUnit.assertEquals("Incorrect break point", "query1IN", queryName + queryTerminal);
+                    AssertJUnit.assertArrayEquals("Incorrect debug event received at OUT", new Object[]{"WSO2",
+                            70f, 40}, event.getOutputData());
                 }
 
                 debugger.play();
@@ -372,10 +371,10 @@ public class TestDebugger {
 
         Thread.sleep(100);
 
-        Assert.assertEquals("Invalid number of output events", 2, inEventCount.get());
-        Assert.assertEquals("Invalid number of debug events", 2, debugEventCount.get());
+        AssertJUnit.assertEquals("Invalid number of output events", 2, inEventCount.get());
+        AssertJUnit.assertEquals("Invalid number of debug events", 2, debugEventCount.get());
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
 
@@ -392,38 +391,38 @@ public class TestDebugger {
                 "select symbol, price, volume " +
                 "insert into OutputStream; ";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(cseEventStream + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(cseEventStream + query);
 
-        executionPlanRuntime.addCallback("OutputStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("OutputStream", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 inEventCount.addAndGet(events.length);
             }
         });
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("cseEventStream");
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("cseEventStream");
 
-        SiddhiDebugger siddhiDebugger = executionPlanRuntime.debug();
+        SiddhiDebugger siddhiDebugger = siddhiAppRuntime.debug();
         siddhiDebugger.acquireBreakPoint("query1", SiddhiDebugger.QueryTerminal.IN);
 
         siddhiDebugger.setDebuggerCallback(new SiddhiDebuggerCallback() {
             @Override
             public void debugEvent(ComplexEvent event, String queryName, SiddhiDebugger.QueryTerminal queryTerminal,
                                    SiddhiDebugger debugger) {
-                System.out.println("Query: " + queryName + ":" + queryTerminal);
-                System.out.println(event);
+                log.info("Query: " + queryName + ":" + queryTerminal);
+                log.info(event);
 
                 int count = debugEventCount.addAndGet(getCount(event));
                 if (count == 1) {
-                    Assert.assertEquals("Incorrect break point", "query1IN", queryName + queryTerminal);
-                    Assert.assertArrayEquals("Incorrect debug event received at IN", new Object[]{"WSO2", 50f, 60},
+                    AssertJUnit.assertEquals("Incorrect break point", "query1IN", queryName + queryTerminal);
+                    AssertJUnit.assertArrayEquals("Incorrect debug event received at IN", new Object[]{"WSO2", 50f, 60},
                             event.getOutputData());
                 } else if (count == 2) {
-                    Assert.assertEquals("Incorrect break point", "query1IN", queryName + queryTerminal);
-                    Assert.assertArrayEquals("Incorrect debug event received at IN", new Object[]{"WSO2", 70f, 40},
+                    AssertJUnit.assertEquals("Incorrect break point", "query1IN", queryName + queryTerminal);
+                    AssertJUnit.assertArrayEquals("Incorrect debug event received at IN", new Object[]{"WSO2", 70f, 40},
                             event.getOutputData());
                 } else if (count == 3) {
-                    Assert.assertEquals("Incorrect break point", "query1IN", queryName + queryTerminal);
-                    Assert.assertArrayEquals("Incorrect debug event received at IN", new Object[]{"WSO2", 60f, 50},
+                    AssertJUnit.assertEquals("Incorrect break point", "query1IN", queryName + queryTerminal);
+                    AssertJUnit.assertArrayEquals("Incorrect debug event received at IN", new Object[]{"WSO2", 60f, 50},
                             event.getOutputData());
                 }
                 debugger.play();
@@ -438,10 +437,10 @@ public class TestDebugger {
 
         Thread.sleep(100);
 
-        Assert.assertEquals("Invalid number of output events", 3, inEventCount.get());
-        Assert.assertEquals("Invalid number of debug events", 3, debugEventCount.get());
+        AssertJUnit.assertEquals("Invalid number of output events", 3, inEventCount.get());
+        AssertJUnit.assertEquals("Invalid number of debug events", 3, debugEventCount.get());
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -456,38 +455,38 @@ public class TestDebugger {
                 "select symbol, price, volume " +
                 "insert into OutputStream; ";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(cseEventStream + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(cseEventStream + query);
 
-        executionPlanRuntime.addCallback("OutputStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("OutputStream", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 inEventCount.addAndGet(events.length);
             }
         });
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("cseEventStream");
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("cseEventStream");
 
-        SiddhiDebugger siddhiDebugger = executionPlanRuntime.debug();
+        SiddhiDebugger siddhiDebugger = siddhiAppRuntime.debug();
         siddhiDebugger.acquireBreakPoint("query1", SiddhiDebugger.QueryTerminal.IN);
 
         siddhiDebugger.setDebuggerCallback(new SiddhiDebuggerCallback() {
             @Override
             public void debugEvent(ComplexEvent event, String queryName, SiddhiDebugger.QueryTerminal queryTerminal,
                                    SiddhiDebugger debugger) {
-                System.out.println("Query: " + queryName + "\t" + System.currentTimeMillis());
-                System.out.println(event);
+                log.info("Query: " + queryName + "\t" + System.currentTimeMillis());
+                log.info(event);
 
                 int count = debugEventCount.addAndGet(getCount(event));
                 if (count == 1) {
-                    Assert.assertEquals("Incorrect break point", "query1IN", queryName + queryTerminal);
-                    Assert.assertArrayEquals("Incorrect debug event received at IN", new Object[]{"WSO2", 50f, 60},
+                    AssertJUnit.assertEquals("Incorrect break point", "query1IN", queryName + queryTerminal);
+                    AssertJUnit.assertArrayEquals("Incorrect debug event received at IN", new Object[]{"WSO2", 50f, 60},
                             event.getOutputData());
                 } else if (count == 2) {
-                    Assert.assertEquals("Incorrect break point", "query1IN", queryName + queryTerminal);
-                    Assert.assertArrayEquals("Incorrect debug event received at IN", new Object[]{"WSO2", 70f, 40},
+                    AssertJUnit.assertEquals("Incorrect break point", "query1IN", queryName + queryTerminal);
+                    AssertJUnit.assertArrayEquals("Incorrect debug event received at IN", new Object[]{"WSO2", 70f, 40},
                             event.getOutputData());
                 } else if (count == 3) {
-                    Assert.assertEquals("Incorrect break point", "query1IN", queryName + queryTerminal);
-                    Assert.assertArrayEquals("Incorrect debug event received at IN", new Object[]{"WSO2", 60f, 50},
+                    AssertJUnit.assertEquals("Incorrect break point", "query1IN", queryName + queryTerminal);
+                    AssertJUnit.assertArrayEquals("Incorrect debug event received at IN", new Object[]{"WSO2", 60f, 50},
                             event.getOutputData());
                 }
 
@@ -503,10 +502,10 @@ public class TestDebugger {
 
         Thread.sleep(3500);
 
-        Assert.assertEquals("Invalid number of output events", 3, inEventCount.get());
-        Assert.assertEquals("Invalid number of debug events", 3, debugEventCount.get());
+        AssertJUnit.assertEquals("Invalid number of output events", 3, inEventCount.get());
+        AssertJUnit.assertEquals("Invalid number of debug events", 3, debugEventCount.get());
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -522,27 +521,27 @@ public class TestDebugger {
                 "select symbol, price, volume " +
                 "insert into OutputStream; ";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(cseEventStream + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(cseEventStream + query);
 
-        executionPlanRuntime.addCallback("OutputStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("OutputStream", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 inEventCount.addAndGet(events.length);
             }
         });
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("cseEventStream");
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("cseEventStream");
 
-        SiddhiDebugger siddhiDebugger = executionPlanRuntime.debug();
+        SiddhiDebugger siddhiDebugger = siddhiAppRuntime.debug();
         siddhiDebugger.acquireBreakPoint("query1", SiddhiDebugger.QueryTerminal.IN);
 
         siddhiDebugger.setDebuggerCallback(new SiddhiDebuggerCallback() {
             @Override
             public void debugEvent(ComplexEvent event, String queryName, SiddhiDebugger.QueryTerminal queryTerminal,
                                    SiddhiDebugger debugger) {
-                System.out.println(event);
+                log.info(event);
 
                 int count = debugEventCount.addAndGet(getCount(event));
-                Assert.assertEquals("Only one event can be emitted from the window", 1, getCount(event));
+                AssertJUnit.assertEquals("Only one event can be emitted from the window", 1, getCount(event));
 
                 if (count != 1 && "query1IN".equals(queryName)) {
                     try {
@@ -562,10 +561,10 @@ public class TestDebugger {
 
         Thread.sleep(1500);
 
-        Assert.assertEquals("Invalid number of output events", 3, inEventCount.get());
-        Assert.assertEquals("Invalid number of debug events", 3, debugEventCount.get());
+        AssertJUnit.assertEquals("Invalid number of output events", 3, inEventCount.get());
+        AssertJUnit.assertEquals("Invalid number of debug events", 3, debugEventCount.get());
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -581,33 +580,42 @@ public class TestDebugger {
                 "select symbol, price, sum(volume) as volume " +
                 "insert into OutputStream; ";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(cseEventStream + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(cseEventStream + query);
 
-        executionPlanRuntime.addCallback("OutputStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("OutputStream", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 inEventCount.addAndGet(events.length);
             }
         });
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("cseEventStream");
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("cseEventStream");
 
-        SiddhiDebugger siddhiDebugger = executionPlanRuntime.debug();
+        SiddhiDebugger siddhiDebugger = siddhiAppRuntime.debug();
         siddhiDebugger.acquireBreakPoint("query1", SiddhiDebugger.QueryTerminal.IN);
 
         siddhiDebugger.setDebuggerCallback(new SiddhiDebuggerCallback() {
             @Override
             public void debugEvent(ComplexEvent event, String queryName, SiddhiDebugger.QueryTerminal queryTerminal,
                                    SiddhiDebugger debugger) {
-                System.out.println("Query: " + queryName + ":" + queryTerminal);
-                System.out.println(event);
+                log.info("Query: " + queryName + ":" + queryTerminal);
+                log.info(event);
 
                 int count = debugEventCount.addAndGet(getCount(event));
                 if (count == 2) {
-                    QueryState queryState = debugger.getQueryState(queryName);
-                    System.out.println(queryState);
-                    StreamEvent streamEvent = (StreamEvent) ((Map<String, Object>) queryState.getKnownFields().values
-                            ().toArray()[0]).get("ExpiredEventChunk");
-                    Assert.assertArrayEquals(streamEvent.getOutputData(), new Object[]{"WSO2", 50.0f, null});
+                    Map<String, Object> queryState = debugger.getQueryState(queryName);
+                    log.info(queryState);
+                    log.info(queryState.values().toArray()[0]);
+                    StreamEvent streamEvent = null;
+
+                    // Order of the query state items is unpredictable
+                    for (Map.Entry<String, Object> entry : queryState.entrySet()) {
+                        if (entry.getKey().startsWith("AbstractStreamProcessor")) {
+                            streamEvent = (StreamEvent) ((Map<String, Object>) entry.getValue()).get
+                                    ("ExpiredEventChunk");
+                            break;
+                        }
+                    }
+                    AssertJUnit.assertArrayEquals(streamEvent.getOutputData(), new Object[]{"WSO2", 50.0f, null});
                 }
                 debugger.next();
             }
@@ -616,13 +624,12 @@ public class TestDebugger {
         inputHandler.send(new Object[]{"WSO2", 50f, 60});
         inputHandler.send(new Object[]{"WSO2", 70f, 40});
 
-//        System.out.println(siddhiDebugger.getQueryState("query1"));
         Thread.sleep(100);
 
-        Assert.assertEquals("Invalid number of output events", 2, inEventCount.get());
-        Assert.assertEquals("Invalid number of debug events", 4, debugEventCount.get());
+        AssertJUnit.assertEquals("Invalid number of output events", 2, inEventCount.get());
+        AssertJUnit.assertEquals("Invalid number of debug events", 4, debugEventCount.get());
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -643,44 +650,44 @@ public class TestDebugger {
                 "select * " +
                 "insert into OutputStream;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(cseEventStream + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(cseEventStream + query);
 
-        executionPlanRuntime.addCallback("OutputStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("OutputStream", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 inEventCount.addAndGet(events.length);
             }
         });
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("cseEventStream");
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("cseEventStream");
 
-        SiddhiDebugger siddhiDebugger = executionPlanRuntime.debug();
+        SiddhiDebugger siddhiDebugger = siddhiAppRuntime.debug();
         siddhiDebugger.acquireBreakPoint("query1", SiddhiDebugger.QueryTerminal.IN);
 
         siddhiDebugger.setDebuggerCallback(new SiddhiDebuggerCallback() {
             @Override
             public void debugEvent(ComplexEvent event, String queryName, SiddhiDebugger.QueryTerminal queryTerminal,
                                    SiddhiDebugger debugger) {
-                System.out.println("Query: " + queryName + ":" + queryTerminal);
-                System.out.println(event);
+                log.info("Query: " + queryName + ":" + queryTerminal);
+                log.info(event);
 
                 int count = debugEventCount.addAndGet(getCount(event));
                 if ((count - 1) / 4 == 0) {
                     // First four events
-                    Assert.assertArrayEquals("Incorrect debug event received", new Object[]{"WSO2", 50f, 60}, event
+                    AssertJUnit.assertArrayEquals("Incorrect debug event received", new Object[]{"WSO2", 50f, 60}, event
                             .getOutputData());
                 } else {
                     // Next four events
-                    Assert.assertArrayEquals("Incorrect debug event received", new Object[]{"WSO2", 70f, 40}, event
+                    AssertJUnit.assertArrayEquals("Incorrect debug event received", new Object[]{"WSO2", 70f, 40}, event
                             .getOutputData());
                 }
                 if (count == 1 || count == 5) {
-                    Assert.assertEquals("Incorrect break point", "query1IN", queryName + queryTerminal);
+                    AssertJUnit.assertEquals("Incorrect break point", "query1IN", queryName + queryTerminal);
                 } else if (count == 2 || count == 6) {
-                    Assert.assertEquals("Incorrect break point", "query1OUT", queryName + queryTerminal);
+                    AssertJUnit.assertEquals("Incorrect break point", "query1OUT", queryName + queryTerminal);
                 } else if (count == 3 || count == 7) {
-                    Assert.assertEquals("Incorrect break point", "query2IN", queryName + queryTerminal);
+                    AssertJUnit.assertEquals("Incorrect break point", "query2IN", queryName + queryTerminal);
                 } else {
-                    Assert.assertEquals("Incorrect break point", "query2OUT", queryName + queryTerminal);
+                    AssertJUnit.assertEquals("Incorrect break point", "query2OUT", queryName + queryTerminal);
                 }
 
                 debugger.next();
@@ -692,10 +699,10 @@ public class TestDebugger {
 
         Thread.sleep(100);
 
-        Assert.assertEquals("Invalid number of output events", 2, inEventCount.get());
-        Assert.assertEquals("Invalid number of debug events", 8, debugEventCount.get());
+        AssertJUnit.assertEquals("Invalid number of output events", 2, inEventCount.get());
+        AssertJUnit.assertEquals("Invalid number of debug events", 8, debugEventCount.get());
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -716,35 +723,35 @@ public class TestDebugger {
                 "select * " +
                 "insert into OutputStream;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(cseEventStream + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(cseEventStream + query);
 
-        executionPlanRuntime.addCallback("OutputStream", new StreamCallback() {
+        siddhiAppRuntime.addCallback("OutputStream", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 inEventCount.addAndGet(events.length);
             }
         });
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("cseEventStream");
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("cseEventStream");
 
-        SiddhiDebugger siddhiDebugger = executionPlanRuntime.debug();
+        SiddhiDebugger siddhiDebugger = siddhiAppRuntime.debug();
         siddhiDebugger.acquireBreakPoint("query1", SiddhiDebugger.QueryTerminal.IN);
 
         siddhiDebugger.setDebuggerCallback(new SiddhiDebuggerCallback() {
             @Override
             public void debugEvent(ComplexEvent event, String queryName, SiddhiDebugger.QueryTerminal queryTerminal,
                                    SiddhiDebugger debugger) {
-                System.out.println("Query: " + queryName + ":" + queryTerminal);
-                System.out.println(event);
+                log.info("Query: " + queryName + ":" + queryTerminal);
+                log.info(event);
 
                 int count = debugEventCount.addAndGet(getCount(event));
 
                 if ((count - 1) / 2 == 0) {
                     // WSO2 in stream 1
-                    Assert.assertArrayEquals("Incorrect debug event received", new Object[]{"WSO2", 50f, 60}, event
+                    AssertJUnit.assertArrayEquals("Incorrect debug event received", new Object[]{"WSO2", 50f, 60}, event
                             .getOutputData());
                 } else {
                     // IBM in stream 2
-                    Assert.assertArrayEquals("Incorrect debug event received", new Object[]{"IBM", 50f, 60}, event
+                    AssertJUnit.assertArrayEquals("Incorrect debug event received", new Object[]{"IBM", 50f, 60}, event
                             .getOutputData());
                 }
 
@@ -761,10 +768,10 @@ public class TestDebugger {
 
         Thread.sleep(100);
 
-        Assert.assertEquals("Invalid number of output events", 1, inEventCount.get());
-        Assert.assertEquals("Invalid number of debug events", 4, debugEventCount.get());
+        AssertJUnit.assertEquals("Invalid number of output events", 1, inEventCount.get());
+        AssertJUnit.assertEquals("Invalid number of debug events", 4, debugEventCount.get());
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -785,24 +792,24 @@ public class TestDebugger {
                 "select * " +
                 "insert into OutputStream2;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(cseEventStream + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(cseEventStream + query);
 
-        executionPlanRuntime.addCallback("OutputStream1", new StreamCallback() {
+        siddhiAppRuntime.addCallback("OutputStream1", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 inEventCount.addAndGet(events.length);
             }
         });
-        executionPlanRuntime.addCallback("OutputStream2", new StreamCallback() {
+        siddhiAppRuntime.addCallback("OutputStream2", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 inEventCount.addAndGet(events.length);
             }
         });
-        final InputHandler cseEventStreamInputHandler = executionPlanRuntime.getInputHandler("cseEventStream");
-        final InputHandler stockEventStreamInputHandler = executionPlanRuntime.getInputHandler("stockEventStream");
+        final InputHandler cseEventStreamInputHandler = siddhiAppRuntime.getInputHandler("cseEventStream");
+        final InputHandler stockEventStreamInputHandler = siddhiAppRuntime.getInputHandler("stockEventStream");
 
-        SiddhiDebugger siddhiDebugger = executionPlanRuntime.debug();
+        SiddhiDebugger siddhiDebugger = siddhiAppRuntime.debug();
         siddhiDebugger.acquireBreakPoint("query1", SiddhiDebugger.QueryTerminal.IN);
         siddhiDebugger.acquireBreakPoint("query2", SiddhiDebugger.QueryTerminal.IN);
 
@@ -812,8 +819,8 @@ public class TestDebugger {
             @Override
             public void debugEvent(ComplexEvent event, String queryName, SiddhiDebugger.QueryTerminal queryTerminal,
                                    SiddhiDebugger debugger) {
-                System.out.println("Query: " + queryName + ":" + queryTerminal);
-                System.out.println(event);
+                log.info("Query: " + queryName + ":" + queryTerminal);
+                log.info(event);
                 debugEventCount.addAndGet(getCount(event));
                 if ("query1IN".equals(queryName)) {
                     try {
@@ -821,13 +828,13 @@ public class TestDebugger {
                         this.queryOneResumed.set(true);
                     } catch (InterruptedException e) {
                     }
-                    Assert.assertArrayEquals("Incorrect debug event received", new Object[]{"WSO2", 50f, 60}, event
+                    AssertJUnit.assertArrayEquals("Incorrect debug event received", new Object[]{"WSO2", 50f, 60}, event
                             .getOutputData());
                 } else if ("query2IN".equals(queryName)) {
                     // If query2IN is reached, query1IN must left that break point
-                    Assert.assertTrue("Query 2 thread enterted the checkpoint before query 1 is debugged",
+                    AssertJUnit.assertTrue("Query 2 thread enterted the checkpoint before query 1 is debugged",
                             queryOneResumed.get());
-                    Assert.assertArrayEquals("Incorrect debug event received", new Object[]{"IBM", 45f, 80}, event
+                    AssertJUnit.assertArrayEquals("Incorrect debug event received", new Object[]{"IBM", 45f, 80}, event
                             .getOutputData());
                 }
                 debugger.next();
@@ -859,9 +866,30 @@ public class TestDebugger {
 
         Thread.sleep(2000);
 
-        Assert.assertEquals("Invalid number of output events", 2, inEventCount.get());
-        Assert.assertEquals("Invalid number of debug events", 4, debugEventCount.get());
+        AssertJUnit.assertEquals("Invalid number of output events", 2, inEventCount.get());
+        AssertJUnit.assertEquals("Invalid number of debug events", 4, debugEventCount.get());
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
+    }
+
+    @Test
+    public void testDebugger13() throws InterruptedException {
+        log.info("Siddi Debugger Test 13: Test debugging a query with insert into table.");
+        SiddhiManager siddhiManager = new SiddhiManager();
+        String streams = "" +
+                "define stream StockStream (symbol string, price float, volume long); " +
+                "define table StockTable (symbol string, price float, volume long); ";
+        String query = "" +
+                "@info(name = 'query1') " +
+                "from StockStream " +
+                "insert into StockTable ;";
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
+        InputHandler stockStream = siddhiAppRuntime.getInputHandler("StockStream");
+        siddhiAppRuntime.debug();
+        stockStream.send(new Object[]{"WSO2", 55.6f, 100L});
+        stockStream.send(new Event(123L, new Object[]{"IBM", 75.6f, 100L}));
+        stockStream.send(new Event[]{new Event(123L, new Object[]{"WSO2", 57.6f, 100L})});
+        Thread.sleep(500);
+        siddhiAppRuntime.shutdown();
     }
 }

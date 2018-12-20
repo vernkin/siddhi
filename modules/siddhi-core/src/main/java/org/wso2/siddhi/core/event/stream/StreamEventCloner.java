@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,6 +18,9 @@
 
 package org.wso2.siddhi.core.event.stream;
 
+/**
+ * Cloner class for {@link StreamEvent} to be used when creating {@link org.wso2.siddhi.core.partition.PartitionRuntime}
+ */
 public class StreamEventCloner {
 
     private final int beforeWindowDataSize;
@@ -43,10 +46,12 @@ public class StreamEventCloner {
     public StreamEvent copyStreamEvent(StreamEvent streamEvent) {
         StreamEvent borrowedEvent = streamEventPool.borrowEvent();
         if (beforeWindowDataSize > 0) {
-            System.arraycopy(streamEvent.getBeforeWindowData(), 0, borrowedEvent.getBeforeWindowData(), 0, beforeWindowDataSize);
+            System.arraycopy(streamEvent.getBeforeWindowData(), 0, borrowedEvent.getBeforeWindowData(), 0,
+                             beforeWindowDataSize);
         }
         if (onAfterWindowDataSize > 0) {
-            System.arraycopy(streamEvent.getOnAfterWindowData(), 0, borrowedEvent.getOnAfterWindowData(), 0, onAfterWindowDataSize);
+            System.arraycopy(streamEvent.getOnAfterWindowData(), 0, borrowedEvent.getOnAfterWindowData(), 0,
+                             onAfterWindowDataSize);
         }
         if (outputDataSize > 0) {
             System.arraycopy(streamEvent.getOutputData(), 0, borrowedEvent.getOutputData(), 0, outputDataSize);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,11 +18,14 @@
 
 package org.wso2.siddhi.core;
 
-import org.wso2.siddhi.core.config.ExecutionPlanContext;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
 import org.wso2.siddhi.core.executor.ExpressionExecutor;
 import org.wso2.siddhi.core.executor.function.FunctionExecutor;
+import org.wso2.siddhi.core.util.config.ConfigReader;
 import org.wso2.siddhi.query.api.definition.Attribute;
-import org.wso2.siddhi.query.api.exception.ExecutionPlanValidationException;
+import org.wso2.siddhi.query.api.exception.SiddhiAppValidationException;
+
+import java.util.Map;
 
 /*
 * concat(string1, string2, ..., stringN)
@@ -30,15 +33,16 @@ import org.wso2.siddhi.query.api.exception.ExecutionPlanValidationException;
 * Accept Type(s): STRING. There should be at least two arguments.
 * Return Type(s): STRING
 * */
-public class ConcatFunctionExtension extends FunctionExecutor{
+public class ConcatFunctionExtension extends FunctionExecutor {
 
     private Attribute.Type returnType = Attribute.Type.STRING;
 
     @Override
-    protected void init(ExpressionExecutor[] attributeExpressionExecutors, ExecutionPlanContext executionPlanContext) {
+    protected void init(ExpressionExecutor[] attributeExpressionExecutors, ConfigReader configReader,
+                        SiddhiAppContext siddhiAppContext) {
         if (attributeExpressionExecutors.length < 2) {
-            throw new ExecutionPlanValidationException("str:concat() function requires at least two arguments, " +
-                                                       "but found only " + attributeExpressionExecutors.length);
+            throw new SiddhiAppValidationException("str:concat() function requires at least two arguments, " +
+                    "but found only " + attributeExpressionExecutors.length);
         }
     }
 
@@ -46,7 +50,7 @@ public class ConcatFunctionExtension extends FunctionExecutor{
     protected Object execute(Object[] data) {
         StringBuilder sb = new StringBuilder();
         for (Object aData : data) {
-            if(aData != null){
+            if (aData != null) {
                 sb.append(aData);
             }
         }
@@ -59,27 +63,17 @@ public class ConcatFunctionExtension extends FunctionExecutor{
     }
 
     @Override
-    public void start() {
-        //Nothing to start
-    }
-
-    @Override
-    public void stop() {
-        //nothing to stop
-    }
-
-    @Override
     public Attribute.Type getReturnType() {
         return returnType;
     }
 
     @Override
-    public Object[] currentState() {
+    public Map<String, Object> currentState() {
         return null;    //No states
     }
 
     @Override
-    public void restoreState(Object[] state) {
+    public void restoreState(Map<String, Object> state) {
         //Nothing to be done
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,13 +17,47 @@
  */
 package org.wso2.siddhi.core.query.selector.attribute.aggregator;
 
-import org.wso2.siddhi.core.config.ExecutionPlanContext;
+import org.wso2.siddhi.annotation.Example;
+import org.wso2.siddhi.annotation.Extension;
+import org.wso2.siddhi.annotation.Parameter;
+import org.wso2.siddhi.annotation.ReturnAttribute;
+import org.wso2.siddhi.annotation.util.DataType;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
 import org.wso2.siddhi.core.exception.OperationNotSupportedException;
 import org.wso2.siddhi.core.executor.ExpressionExecutor;
+import org.wso2.siddhi.core.util.config.ConfigReader;
 import org.wso2.siddhi.query.api.definition.Attribute;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Map;
 
+/**
+ * {@link AttributeAggregator} to calculate max value based on an event attribute.
+ */
+@Extension(
+        name = "max",
+        namespace = "",
+        description = "Returns the maximum value for all the events.",
+        parameters = {
+                @Parameter(name = "arg",
+                        description = "The value that needs to be compared to find the maximum value.",
+                        type = {DataType.INT, DataType.LONG, DataType.DOUBLE, DataType.FLOAT})
+        },
+        returnAttributes = @ReturnAttribute(
+                description = "Returns the maximum value in the same data type as the input.",
+                type = {DataType.INT, DataType.LONG, DataType.DOUBLE, DataType.FLOAT}),
+        examples = @Example(
+                syntax = "from fooStream#window.timeBatch(10 sec)\n" +
+                        "select max(temp) as maxTemp\n" +
+                        "insert into barStream;",
+                description = "max(temp) returns the maximum temp value recorded for all the events based on their " +
+                        "arrival and expiry."
+        )
+)
 public class MaxAttributeAggregator extends AttributeAggregator {
 
     private MaxAttributeAggregator maxOutputAttributeAggregator;
@@ -32,10 +66,12 @@ public class MaxAttributeAggregator extends AttributeAggregator {
      * The initialization method for FunctionExecutor
      *
      * @param attributeExpressionExecutors are the executors of each attributes in the function
-     * @param executionPlanContext         Execution plan runtime context
+     * @param configReader                 this hold the {@link MaxAttributeAggregator} configuration reader.
+     * @param siddhiAppContext             Siddhi app runtime context
      */
     @Override
-    protected void init(ExpressionExecutor[] attributeExpressionExecutors, ExecutionPlanContext executionPlanContext) {
+    protected void init(ExpressionExecutor[] attributeExpressionExecutors, ConfigReader configReader,
+                        SiddhiAppContext siddhiAppContext) {
         if (attributeExpressionExecutors.length != 1) {
             throw new OperationNotSupportedException("Max aggregator has to have exactly 1 parameter, currently " +
                     attributeExpressionExecutors.length + " parameters provided");
@@ -65,7 +101,14 @@ public class MaxAttributeAggregator extends AttributeAggregator {
 
     @Override
     public Object processAdd(Object data) {
+        if (data == null) {
+            return maxOutputAttributeAggregator.currentValue();
+        }
         return maxOutputAttributeAggregator.processAdd(data);
+    }
+
+    protected Object currentValue() {
+        return null;
     }
 
     @Override
@@ -76,6 +119,9 @@ public class MaxAttributeAggregator extends AttributeAggregator {
 
     @Override
     public Object processRemove(Object data) {
+        if (data == null) {
+            return maxOutputAttributeAggregator.currentValue();
+        }
         return maxOutputAttributeAggregator.processRemove(data);
     }
 
@@ -86,27 +132,22 @@ public class MaxAttributeAggregator extends AttributeAggregator {
     }
 
     @Override
+    public boolean canDestroy() {
+        return maxOutputAttributeAggregator.canDestroy();
+    }
+
+    @Override
     public Object reset() {
         return maxOutputAttributeAggregator.reset();
     }
 
     @Override
-    public void start() {
-        //Nothing to start
-    }
-
-    @Override
-    public void stop() {
-        //nothing to stop
-    }
-
-    @Override
-    public Object[] currentState() {
+    public Map<String, Object> currentState() {
         return maxOutputAttributeAggregator.currentState();
     }
 
     @Override
-    public void restoreState(Object[] state) {
+    public void restoreState(Map<String, Object> state) {
         maxOutputAttributeAggregator.restoreState(state);
     }
 
@@ -145,25 +186,36 @@ public class MaxAttributeAggregator extends AttributeAggregator {
         }
 
         @Override
-        public Object reset() {
+        public synchronized Object reset() {
             maxDeque.clear();
             maxValue = null;
             return null;
         }
 
         @Override
-        public Object[] currentState() {
-            return new Object[]{new AbstractMap.SimpleEntry<String, Object>("MaxDeque", maxDeque), new AbstractMap.SimpleEntry<String, Object>("MaxValue", maxValue)};
+        public boolean canDestroy() {
+            return maxDeque.size() == 0 && maxValue == null;
         }
 
         @Override
-        public void restoreState(Object[] state) {
-            Map.Entry<String, Object> stateEntry = (Map.Entry<String, Object>) state[0];
-            maxDeque = (Deque<Double>) stateEntry.getValue();
-            Map.Entry<String, Object> stateEntry2 = (Map.Entry<String, Object>) state[1];
-            maxValue = (Double) stateEntry2.getValue();
+        public Map<String, Object> currentState() {
+            Map<String, Object> state = new HashMap<>();
+            synchronized (this) {
+                state.put("MaxValue", maxValue);
+                state.put("MaxDeque", maxDeque);
+            }
+            return state;
         }
 
+        @Override
+        public synchronized void restoreState(Map<String, Object> state) {
+            maxValue = (Double) state.get("MaxValue");
+            maxDeque = (Deque<Double>) state.get("MaxDeque");
+        }
+
+        protected Object currentValue() {
+            return maxValue;
+        }
     }
 
     class MaxAttributeAggregatorFloat extends MaxAttributeAggregator {
@@ -201,23 +253,35 @@ public class MaxAttributeAggregator extends AttributeAggregator {
         }
 
         @Override
-        public Object reset() {
+        public synchronized Object reset() {
             maxDeque.clear();
             maxValue = null;
             return null;
         }
 
         @Override
-        public Object[] currentState() {
-            return new Object[]{new AbstractMap.SimpleEntry<String, Object>("MaxDeque", maxDeque), new AbstractMap.SimpleEntry<String, Object>("MaxValue", maxValue)};
+        public boolean canDestroy() {
+            return maxDeque.size() == 0 && maxValue == null;
         }
 
         @Override
-        public void restoreState(Object[] state) {
-            Map.Entry<String, Object> stateEntry = (Map.Entry<String, Object>) state[0];
-            maxDeque = (Deque<Float>) stateEntry.getValue();
-            Map.Entry<String, Object> stateEntry2 = (Map.Entry<String, Object>) state[1];
-            maxValue = (Float) stateEntry2.getValue();
+        public Map<String, Object> currentState() {
+            Map<String, Object> state = new HashMap<>();
+            synchronized (this) {
+                state.put("MaxValue", maxValue);
+                state.put("MaxDeque", maxDeque);
+            }
+            return state;
+        }
+
+        @Override
+        public synchronized void restoreState(Map<String, Object> state) {
+            maxValue = (Float) state.get("MaxValue");
+            maxDeque = (Deque<Float>) state.get("MaxDeque");
+        }
+
+        protected Object currentValue() {
+            return maxValue;
         }
 
     }
@@ -257,23 +321,35 @@ public class MaxAttributeAggregator extends AttributeAggregator {
         }
 
         @Override
-        public Object reset() {
+        public synchronized Object reset() {
             maxDeque.clear();
             maxValue = null;
             return null;
         }
 
         @Override
-        public Object[] currentState() {
-            return new Object[]{new AbstractMap.SimpleEntry<String, Object>("MaxDeque", maxDeque), new AbstractMap.SimpleEntry<String, Object>("MaxValue", maxValue)};
+        public boolean canDestroy() {
+            return maxDeque.size() == 0 && maxValue == null;
         }
 
         @Override
-        public void restoreState(Object[] state) {
-            Map.Entry<String, Object> stateEntry = (Map.Entry<String, Object>) state[0];
-            maxDeque = (Deque<Integer>) stateEntry.getValue();
-            Map.Entry<String, Object> stateEntry2 = (Map.Entry<String, Object>) state[1];
-            maxValue = (Integer) stateEntry2.getValue();
+        public Map<String, Object> currentState() {
+            Map<String, Object> state = new HashMap<>();
+            synchronized (this) {
+                state.put("MaxValue", maxValue);
+                state.put("MaxDeque", maxDeque);
+            }
+            return state;
+        }
+
+        @Override
+        public synchronized void restoreState(Map<String, Object> state) {
+            maxValue = (Integer) state.get("MaxValue");
+            maxDeque = (Deque<Integer>) state.get("MaxDeque");
+        }
+
+        protected Object currentValue() {
+            return maxValue;
         }
 
     }
@@ -313,23 +389,35 @@ public class MaxAttributeAggregator extends AttributeAggregator {
         }
 
         @Override
-        public Object reset() {
+        public synchronized Object reset() {
             maxDeque.clear();
             maxValue = null;
             return null;
         }
 
         @Override
-        public Object[] currentState() {
-            return new Object[]{new AbstractMap.SimpleEntry<String, Object>("MaxDeque", maxDeque), new AbstractMap.SimpleEntry<String, Object>("MaxValue", maxValue)};
+        public boolean canDestroy() {
+            return maxDeque.size() == 0 && maxValue == null;
         }
 
         @Override
-        public void restoreState(Object[] state) {
-            Map.Entry<String, Object> stateEntry = (Map.Entry<String, Object>) state[0];
-            maxDeque = (Deque<Long>) stateEntry.getValue();
-            Map.Entry<String, Object> stateEntry2 = (Map.Entry<String, Object>) state[1];
-            maxValue = (Long) stateEntry2.getValue();
+        public Map<String, Object> currentState() {
+            Map<String, Object> state = new HashMap<>();
+            synchronized (this) {
+                state.put("MaxValue", maxValue);
+                state.put("MaxDeque", maxDeque);
+            }
+            return state;
+        }
+
+        @Override
+        public synchronized void restoreState(Map<String, Object> state) {
+            maxValue = (Long) state.get("MaxValue");
+            maxDeque = (Deque<Long>) state.get("MaxDeque");
+        }
+
+        protected Object currentValue() {
+            return maxValue;
         }
 
     }

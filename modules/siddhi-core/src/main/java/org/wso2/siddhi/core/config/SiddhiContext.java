@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -20,46 +20,63 @@ package org.wso2.siddhi.core.config;
 
 import com.lmax.disruptor.ExceptionHandler;
 import org.apache.log4j.Logger;
-import org.wso2.siddhi.core.util.SiddhiConstants;
+import org.wso2.siddhi.core.exception.PersistenceStoreException;
+import org.wso2.siddhi.core.stream.input.source.SourceHandlerManager;
+import org.wso2.siddhi.core.stream.output.sink.SinkHandlerManager;
+import org.wso2.siddhi.core.table.record.RecordTableHandlerManager;
 import org.wso2.siddhi.core.util.SiddhiExtensionLoader;
+import org.wso2.siddhi.core.util.config.ConfigManager;
+import org.wso2.siddhi.core.util.config.InMemoryConfigManager;
 import org.wso2.siddhi.core.util.extension.holder.AbstractExtensionHolder;
+import org.wso2.siddhi.core.util.persistence.IncrementalPersistenceStore;
 import org.wso2.siddhi.core.util.persistence.PersistenceStore;
 import org.wso2.siddhi.core.util.statistics.metrics.SiddhiMetricsFactory;
 
-import javax.sql.DataSource;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import javax.sql.DataSource;
 
+/**
+ * Context information holder associated with {@link org.wso2.siddhi.core.SiddhiManager}
+ */
 public class SiddhiContext {
 
     private static final Logger log = Logger.getLogger(SiddhiContext.class);
 
     private ExceptionHandler<Object> defaultDisrupterExceptionHandler;
-    private Map<String, Class> siddhiExtensions;
+    private Map<String, Class> siddhiExtensions = new HashMap<>();
     private PersistenceStore persistenceStore = null;
+    private IncrementalPersistenceStore incrementalPersistenceStore = null;
     private ConcurrentHashMap<String, DataSource> siddhiDataSources;
     private StatisticsConfiguration statisticsConfiguration;
     private ConcurrentHashMap<Class, AbstractExtensionHolder> extensionHolderMap;
+    private ConfigManager configManager = null;
+    private SinkHandlerManager sinkHandlerManager = null;
+    private SourceHandlerManager sourceHandlerManager = null;
+    private RecordTableHandlerManager recordTableHandlerManager = null;
 
     public SiddhiContext() {
-        setSiddhiExtensions(SiddhiExtensionLoader.loadSiddhiExtensions());
+        SiddhiExtensionLoader.loadSiddhiExtensions(siddhiExtensions);
         siddhiDataSources = new ConcurrentHashMap<String, DataSource>();
         statisticsConfiguration = new StatisticsConfiguration(new SiddhiMetricsFactory());
         extensionHolderMap = new ConcurrentHashMap<Class, AbstractExtensionHolder>();
+        configManager = new InMemoryConfigManager();
         defaultDisrupterExceptionHandler = new ExceptionHandler<Object>() {
             @Override
             public void handleEventException(Throwable throwable, long l, Object event) {
-                log.error("Disruptor encountered an error processing" +" [sequence: " + l + ", event: "+event.toString()+"]", throwable);
+                log.error("Disruptor encountered an error processing" + " [sequence: " + l + ", event: " + event
+                        .toString() + "]", throwable);
             }
 
             @Override
             public void handleOnStartException(Throwable throwable) {
-                log.error("Disruptor encountered an error on start" , throwable);
+                log.error("Disruptor encountered an error on start", throwable);
             }
 
             @Override
             public void handleOnShutdownException(Throwable throwable) {
-                log.error("Disruptor encountered an error on shutdown" , throwable);
+                log.error("Disruptor encountered an error on shutdown", throwable);
             }
         };
     }
@@ -68,16 +85,37 @@ public class SiddhiContext {
         return siddhiExtensions;
     }
 
-    public void setSiddhiExtensions(Map<String, Class> siddhiExtensions) {
-        this.siddhiExtensions = siddhiExtensions;
-    }
-
-    public PersistenceStore getPersistenceStore() {
+    public synchronized PersistenceStore getPersistenceStore() {
         return persistenceStore;
     }
 
-    public void setPersistenceStore(PersistenceStore persistenceStore) {
+    public synchronized void setPersistenceStore(PersistenceStore persistenceStore) {
+        if (incrementalPersistenceStore != null) {
+            throw new PersistenceStoreException("Only one type of persistence store can exist. " +
+                    "Incremental persistence store '" + incrementalPersistenceStore.getClass().getName() +
+                    "' already registered!");
+        }
         this.persistenceStore = persistenceStore;
+    }
+
+    public synchronized IncrementalPersistenceStore getIncrementalPersistenceStore() {
+        return incrementalPersistenceStore;
+    }
+
+    public synchronized void setIncrementalPersistenceStore(IncrementalPersistenceStore incrementalPersistenceStore) {
+        if (persistenceStore != null) {
+            throw new PersistenceStoreException("Only one type of persistence store can exist." +
+                    " Persistence store '" + persistenceStore.getClass().getName() + "' already registered!");
+        }
+        this.incrementalPersistenceStore = incrementalPersistenceStore;
+    }
+
+    public void setConfigManager(ConfigManager configManager) {
+        this.configManager = configManager;
+    }
+
+    public ConfigManager getConfigManager() {
+        return configManager;
     }
 
     public DataSource getSiddhiDataSource(String dataSourceName) {
@@ -105,6 +143,30 @@ public class SiddhiContext {
 
     public ExceptionHandler<Object> getDefaultDisrupterExceptionHandler() {
         return defaultDisrupterExceptionHandler;
+    }
+
+    public SinkHandlerManager getSinkHandlerManager() {
+        return sinkHandlerManager;
+    }
+
+    public void setSinkHandlerManager(SinkHandlerManager sinkHandlerManager) {
+        this.sinkHandlerManager = sinkHandlerManager;
+    }
+
+    public SourceHandlerManager getSourceHandlerManager() {
+        return sourceHandlerManager;
+    }
+
+    public void setSourceHandlerManager(SourceHandlerManager sourceHandlerManager) {
+        this.sourceHandlerManager = sourceHandlerManager;
+    }
+
+    public RecordTableHandlerManager getRecordTableHandlerManager() {
+        return recordTableHandlerManager;
+    }
+
+    public void setRecordTableHandlerManager(RecordTableHandlerManager recordTableHandlerManager) {
+        this.recordTableHandlerManager = recordTableHandlerManager;
     }
 
 }

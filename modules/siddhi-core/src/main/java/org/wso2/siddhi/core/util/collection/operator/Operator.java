@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -21,17 +21,26 @@ package org.wso2.siddhi.core.util.collection.operator;
 import org.wso2.siddhi.core.event.ComplexEventChunk;
 import org.wso2.siddhi.core.event.state.StateEvent;
 import org.wso2.siddhi.core.event.stream.StreamEvent;
-import org.wso2.siddhi.core.util.collection.OverwritingStreamEventExtractor;
-import org.wso2.siddhi.core.util.collection.UpdateAttributeMapper;
+import org.wso2.siddhi.core.event.stream.StreamEventCloner;
+import org.wso2.siddhi.core.table.InMemoryCompiledUpdateSet;
+import org.wso2.siddhi.core.util.collection.AddingStreamEventExtractor;
 
 /**
- * Created on 3/22/15.
+ * Interface for Operators related to collection of events. These will be used by in-memory table implementation.
  */
-public interface Operator extends Finder {
+public interface Operator extends CompiledCondition {
 
-    void delete(ComplexEventChunk<StateEvent> deletingEventChunk, Object candidateEvents);
+    StreamEvent find(StateEvent matchingEvent, Object storeEvents, StreamEventCloner storeEventCloner);
 
-    void update(ComplexEventChunk<StateEvent> updatingEventChunk, Object candidateEvents, UpdateAttributeMapper[] updateAttributeMappers);
+    boolean contains(StateEvent matchingEvent, Object storeEvents);
 
-    ComplexEventChunk<StreamEvent> overwriteOrAdd(ComplexEventChunk<StateEvent> overwritingOrAddingEventChunk, Object candidateEvents, UpdateAttributeMapper[] updateAttributeMappers, OverwritingStreamEventExtractor overwritingStreamEventExtractor);
+    void delete(ComplexEventChunk<StateEvent> deletingEventChunk, Object storeEvents);
+
+    void update(ComplexEventChunk<StateEvent> updatingEventChunk, Object storeEvents,
+                InMemoryCompiledUpdateSet compiledUpdateSet);
+
+    ComplexEventChunk<StreamEvent> tryUpdate(ComplexEventChunk<StateEvent> updatingOrAddingEventChunk,
+                                             Object storeEvents,
+                                            InMemoryCompiledUpdateSet compiledUpdateSet,
+                                             AddingStreamEventExtractor addingStreamEventExtractor);
 }

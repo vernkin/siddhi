@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,11 +17,11 @@
  */
 package org.wso2.siddhi.core.query.extension;
 
-import junit.framework.Assert;
 import org.apache.log4j.Logger;
-import org.junit.Before;
-import org.junit.Test;
-import org.wso2.siddhi.core.ExecutionPlanRuntime;
+import org.testng.AssertJUnit;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+import org.wso2.siddhi.core.SiddhiAppRuntime;
 import org.wso2.siddhi.core.SiddhiManager;
 import org.wso2.siddhi.core.event.Event;
 import org.wso2.siddhi.core.query.extension.util.CustomFunctionExtension;
@@ -29,13 +29,17 @@ import org.wso2.siddhi.core.query.extension.util.StringConcatAggregatorString;
 import org.wso2.siddhi.core.query.output.callback.QueryCallback;
 import org.wso2.siddhi.core.stream.input.InputHandler;
 import org.wso2.siddhi.core.util.EventPrinter;
+import org.wso2.siddhi.core.util.config.InMemoryConfigManager;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class ExtensionTestCase {
-    static final Logger log = Logger.getLogger(ExtensionTestCase.class);
+    private static final Logger log = Logger.getLogger(ExtensionTestCase.class);
     private volatile int count;
     private volatile boolean eventArrived;
 
-    @Before
+    @BeforeMethod
     public void init() {
         count = 0;
         eventArrived = false;
@@ -45,36 +49,35 @@ public class ExtensionTestCase {
     public void extensionTest1() throws InterruptedException {
         log.info("extension test1");
         SiddhiManager siddhiManager = new SiddhiManager();
-
         String cseEventStream = "define stream cseEventStream (symbol string, price float, volume long);";
         String query = ("@info(name = 'query1') from cseEventStream select price , custom:getAll(symbol) as toConcat " +
                 "group by volume insert into mailOutput;");
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(cseEventStream + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(cseEventStream + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 count = count + inEvents.length;
                 if (count == 3) {
-                    Assert.assertEquals("WSO2ABC", inEvents[inEvents.length - 1].getData(1));
+                    AssertJUnit.assertEquals("WSO2ABC", inEvents[inEvents.length - 1].getData(1));
                 }
                 eventArrived = true;
             }
 
         });
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("cseEventStream");
-        executionPlanRuntime.start();
-        inputHandler.send(new Object[]{"IBM", 700f, 100l});
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("cseEventStream");
+        siddhiAppRuntime.start();
+        inputHandler.send(new Object[]{"IBM", 700f, 100L});
         Thread.sleep(100);
-        inputHandler.send(new Object[]{"WSO2", 60.5f, 200l});
+        inputHandler.send(new Object[]{"WSO2", 60.5f, 200L});
         Thread.sleep(100);
-        inputHandler.send(new Object[]{"ABC", 60.5f, 200l});
+        inputHandler.send(new Object[]{"ABC", 60.5f, 200L});
         Thread.sleep(100);
-        Assert.assertEquals(3, count);
-        Assert.assertTrue(eventArrived);
-        executionPlanRuntime.shutdown();
+        AssertJUnit.assertEquals(3, count);
+        AssertJUnit.assertTrue(eventArrived);
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -85,22 +88,23 @@ public class ExtensionTestCase {
         siddhiManager.setExtension("email:getAll", StringConcatAggregatorString.class);
 
         String cseEventStream = "define stream cseEventStream (symbol string, price long, volume long);";
-        String query = ("@info(name = 'query1') from cseEventStream select symbol , custom:plus(price,volume) as totalCount " +
+        String query = ("@info(name = 'query1') from cseEventStream select symbol , custom:plus(price,volume) as " +
+                "totalCount " +
                 "insert into mailOutput;");
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(cseEventStream + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(cseEventStream + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 for (Event inEvent : inEvents) {
                     count++;
                     if (count == 1) {
-                        Assert.assertEquals(800l, inEvent.getData(1));
+                        AssertJUnit.assertEquals(800L, inEvent.getData(1));
                     } else if (count == 2) {
-                        Assert.assertEquals(805l, inEvent.getData(1));
+                        AssertJUnit.assertEquals(805L, inEvent.getData(1));
                     } else if (count == 3) {
-                        Assert.assertEquals(260l, inEvent.getData(1));
+                        AssertJUnit.assertEquals(260L, inEvent.getData(1));
                     }
                 }
                 eventArrived = true;
@@ -108,15 +112,15 @@ public class ExtensionTestCase {
 
         });
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("cseEventStream");
-        executionPlanRuntime.start();
-        inputHandler.send(new Object[]{"IBM", 700l, 100l});
-        inputHandler.send(new Object[]{"WSO2", 605l, 200l});
-        inputHandler.send(new Object[]{"ABC", 60l, 200l});
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("cseEventStream");
+        siddhiAppRuntime.start();
+        inputHandler.send(new Object[]{"IBM", 700L, 100L});
+        inputHandler.send(new Object[]{"WSO2", 605L, 200L});
+        inputHandler.send(new Object[]{"ABC", 60L, 200L});
         Thread.sleep(100);
-        Assert.assertEquals(3, count);
-        Assert.assertTrue(eventArrived);
-        executionPlanRuntime.shutdown();
+        AssertJUnit.assertEquals(3, count);
+        AssertJUnit.assertTrue(eventArrived);
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -135,32 +139,32 @@ public class ExtensionTestCase {
                 "select price , email:getAllNew(symbol,'') as toConcat " +
                 "group by volume " +
                 "insert into mailOutput;");
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(cseEventStream + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(cseEventStream + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 count = count + inEvents.length;
                 if (count == 3) {
-                    Assert.assertEquals("WSO2ABC", inEvents[inEvents.length - 1].getData(1));
+                    AssertJUnit.assertEquals("WSO2ABC", inEvents[inEvents.length - 1].getData(1));
                 }
                 eventArrived = true;
             }
 
         });
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("cseEventStream");
-        executionPlanRuntime.start();
-        inputHandler.send(new Object[]{"IBM", 700f, 100l});
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("cseEventStream");
+        siddhiAppRuntime.start();
+        inputHandler.send(new Object[]{"IBM", 700f, 100L});
         Thread.sleep(100);
-        inputHandler.send(new Object[]{"WSO2", 60.5f, 200l});
+        inputHandler.send(new Object[]{"WSO2", 60.5f, 200L});
         Thread.sleep(100);
-        inputHandler.send(new Object[]{"ABC", 60.5f, 200l});
+        inputHandler.send(new Object[]{"ABC", 60.5f, 200L});
         Thread.sleep(100);
-        Assert.assertEquals(3, count);
-        Assert.assertTrue(eventArrived);
-        executionPlanRuntime.shutdown();
+        AssertJUnit.assertEquals(3, count);
+        AssertJUnit.assertTrue(eventArrived);
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -174,20 +178,20 @@ public class ExtensionTestCase {
         String cseEventStream = "define stream cseEventStream (price long, volume long);";
         String query = ("@info(name = 'query1') from cseEventStream select  custom:plus(*) as totalCount " +
                 "insert into mailOutput;");
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(cseEventStream + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(cseEventStream + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 for (Event inEvent : inEvents) {
                     count++;
                     if (count == 1) {
-                        Assert.assertEquals(800l, inEvent.getData(0));
+                        AssertJUnit.assertEquals(800L, inEvent.getData(0));
                     } else if (count == 2) {
-                        Assert.assertEquals(805l, inEvent.getData(0));
+                        AssertJUnit.assertEquals(805L, inEvent.getData(0));
                     } else if (count == 3) {
-                        Assert.assertEquals(260l, inEvent.getData(0));
+                        AssertJUnit.assertEquals(260L, inEvent.getData(0));
                     }
                 }
                 eventArrived = true;
@@ -195,14 +199,61 @@ public class ExtensionTestCase {
 
         });
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("cseEventStream");
-        executionPlanRuntime.start();
-        inputHandler.send(new Object[]{700l, 100l});
-        inputHandler.send(new Object[]{605l, 200l});
-        inputHandler.send(new Object[]{60l, 200l});
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("cseEventStream");
+        siddhiAppRuntime.start();
+        inputHandler.send(new Object[]{700L, 100L});
+        inputHandler.send(new Object[]{605L, 200L});
+        inputHandler.send(new Object[]{60L, 200L});
         Thread.sleep(100);
-        Assert.assertEquals(3, count);
-        Assert.assertTrue(eventArrived);
-        executionPlanRuntime.shutdown();
+        AssertJUnit.assertEquals(3, count);
+        AssertJUnit.assertTrue(eventArrived);
+        siddhiAppRuntime.shutdown();
+    }
+
+    @Test
+    public void extensionTest5() throws InterruptedException, ClassNotFoundException {
+        log.info("extension test5");
+        SiddhiManager siddhiManager = new SiddhiManager();
+        Map<String, String> configMap = new HashMap<>();
+        configMap.put("email.getAllNew.append.abc", "true");
+        siddhiManager.setConfigManager(new InMemoryConfigManager(configMap, null));
+        siddhiManager.setExtension("custom:plus", CustomFunctionExtension.class);
+        siddhiManager.setExtension("email:getAllNew", StringConcatAggregatorString.class);
+
+        String cseEventStream = "" +
+                "" +
+                "define stream cseEventStream (symbol string, price float, volume long);";
+        String query = ("" +
+                "@info(name = 'query1') " +
+                "from cseEventStream " +
+                "select price , email:getAllNew(symbol,'') as toConcat " +
+                "group by volume " +
+                "insert into mailOutput;");
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(cseEventStream + query);
+
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
+            @Override
+            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timeStamp, inEvents, removeEvents);
+                count = count + inEvents.length;
+                if (count == 3) {
+                    AssertJUnit.assertEquals("WSO2ABC-abc", inEvents[inEvents.length - 1].getData(1));
+                }
+                eventArrived = true;
+            }
+
+        });
+
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("cseEventStream");
+        siddhiAppRuntime.start();
+        inputHandler.send(new Object[]{"IBM", 700f, 100L});
+        Thread.sleep(100);
+        inputHandler.send(new Object[]{"WSO2", 60.5f, 200L});
+        Thread.sleep(100);
+        inputHandler.send(new Object[]{"ABC", 60.5f, 200L});
+        Thread.sleep(100);
+        AssertJUnit.assertEquals(3, count);
+        AssertJUnit.assertTrue(eventArrived);
+        siddhiAppRuntime.shutdown();
     }
 }

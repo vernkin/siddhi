@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,6 +17,7 @@
  */
 package org.wso2.siddhi.core.query.input;
 
+import org.wso2.siddhi.core.config.SiddhiAppContext;
 import org.wso2.siddhi.core.event.ComplexEventChunk;
 import org.wso2.siddhi.core.event.state.StateEvent;
 import org.wso2.siddhi.core.event.stream.StreamEvent;
@@ -25,15 +26,21 @@ import org.wso2.siddhi.core.query.processor.Processor;
 import org.wso2.siddhi.core.query.selector.QuerySelector;
 import org.wso2.siddhi.core.util.statistics.LatencyTracker;
 
+/**
+ * Implementation of {@link org.wso2.siddhi.core.stream.StreamJunction.Receiver} to receive events to be fed into
+ * single stream stateless queries(Filter).
+ */
 public class SingleProcessStreamReceiver extends ProcessStreamReceiver {
 
-    protected ComplexEventChunk<StreamEvent> currentStreamEventChunk = new ComplexEventChunk<StreamEvent>(batchProcessingAllowed);
     protected final String lockKey;
-    private QuerySelector querySelector;
+    protected ComplexEventChunk<StreamEvent> currentStreamEventChunk = new ComplexEventChunk<StreamEvent>
+            (batchProcessingAllowed);
     protected String queryName;
+    private QuerySelector querySelector;
 
-    public SingleProcessStreamReceiver(String streamId, String lockKey, LatencyTracker latencyTracker, String queryName) {
-        super(streamId, latencyTracker, queryName);
+    public SingleProcessStreamReceiver(String streamId, String lockKey, LatencyTracker latencyTracker,
+                                       String queryName, SiddhiAppContext siddhiAppContext) {
+        super(streamId, latencyTracker, queryName, siddhiAppContext);
         this.lockKey = lockKey;
         this.queryName = queryName;
     }
@@ -44,7 +51,7 @@ public class SingleProcessStreamReceiver extends ProcessStreamReceiver {
     }
 
     public SingleProcessStreamReceiver clone(String key) {
-        return new SingleProcessStreamReceiver(streamId + key, key, latencyTracker, queryName);
+        return new SingleProcessStreamReceiver(streamId + key, key, latencyTracker, queryName, siddhiAppContext);
     }
 
     protected void processAndClear(ComplexEventChunk<StreamEvent> streamEventChunk) {
@@ -55,7 +62,8 @@ public class SingleProcessStreamReceiver extends ProcessStreamReceiver {
                 streamEventChunk.remove();
                 stabilizeStates();
                 currentStreamEventChunk.add(streamEvent);
-                ComplexEventChunk<StateEvent> eventChunk = ((StreamPreStateProcessor) next).processAndReturn(currentStreamEventChunk);
+                ComplexEventChunk<StateEvent> eventChunk = ((StreamPreStateProcessor) next).processAndReturn
+                        (currentStreamEventChunk);
                 if (eventChunk.getFirst() != null) {
                     retEventChunk.add(eventChunk.getFirst());
                 }
@@ -67,7 +75,7 @@ public class SingleProcessStreamReceiver extends ProcessStreamReceiver {
         while (retEventChunk.hasNext()) {
             StateEvent stateEvent = retEventChunk.next();
             retEventChunk.remove();
-            querySelector.process(new ComplexEventChunk<StateEvent>(stateEvent,stateEvent, false));
+            querySelector.process(new ComplexEventChunk<StateEvent>(stateEvent, stateEvent, false));
         }
     }
 

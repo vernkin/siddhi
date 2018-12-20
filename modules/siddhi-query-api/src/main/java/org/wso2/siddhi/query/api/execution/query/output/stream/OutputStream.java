@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,14 +17,18 @@
  */
 package org.wso2.siddhi.query.api.execution.query.output.stream;
 
-public abstract class OutputStream {
+import org.wso2.siddhi.query.api.SiddhiElement;
 
-    public enum OutputEventType {
-        EXPIRED_EVENTS, CURRENT_EVENTS, ALL_EVENTS, ALL_RAW_EVENTS, EXPIRED_RAW_EVENTS
-    }
+/**
+ * Query output stream
+ */
+public abstract class OutputStream implements SiddhiElement {
 
+    private static final long serialVersionUID = 1L;
     protected String id;
     protected OutputEventType outputEventType;
+    private int[] queryContextStartIndex;
+    private int[] queryContextEndIndex;
 
     public String getId() {
         return id;
@@ -52,13 +56,21 @@ public abstract class OutputStream {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof OutputStream)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof OutputStream)) {
+            return false;
+        }
 
         OutputStream that = (OutputStream) o;
 
-        if (outputEventType != that.outputEventType) return false;
-        if (id != null ? !id.equals(that.id) : that.id != null) return false;
+        if (outputEventType != that.outputEventType) {
+            return false;
+        }
+        if (id != null ? !id.equals(that.id) : that.id != null) {
+            return false;
+        }
 
         return true;
     }
@@ -68,5 +80,36 @@ public abstract class OutputStream {
         int result = outputEventType != null ? outputEventType.hashCode() : 0;
         result = 31 * result + (id != null ? id.hashCode() : 0);
         return result;
+    }
+
+    @Override
+    public int[] getQueryContextStartIndex() {
+        return queryContextStartIndex;
+    }
+
+    @Override
+    public void setQueryContextStartIndex(int[] lineAndColumn) {
+        queryContextStartIndex = lineAndColumn;
+    }
+
+    @Override
+    public int[] getQueryContextEndIndex() {
+        return queryContextEndIndex;
+    }
+
+    @Override
+    public void setQueryContextEndIndex(int[] lineAndColumn) {
+        queryContextEndIndex = lineAndColumn;
+    }
+
+    /**
+     * Output event types
+     */
+    public enum OutputEventType {
+        EXPIRED_EVENTS,
+        CURRENT_EVENTS,
+        ALL_EVENTS,
+        ALL_RAW_EVENTS,
+        EXPIRED_RAW_EVENTS
     }
 }

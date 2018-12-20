@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,7 +18,11 @@
 
 package org.wso2.siddhi.core.query.processor.stream.window;
 
-import org.wso2.siddhi.core.config.ExecutionPlanContext;
+import org.wso2.siddhi.annotation.Example;
+import org.wso2.siddhi.annotation.Extension;
+import org.wso2.siddhi.annotation.Parameter;
+import org.wso2.siddhi.annotation.util.DataType;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
 import org.wso2.siddhi.core.event.ComplexEventChunk;
 import org.wso2.siddhi.core.event.state.StateEvent;
 import org.wso2.siddhi.core.event.stream.StreamEvent;
@@ -27,22 +31,59 @@ import org.wso2.siddhi.core.executor.ConstantExpressionExecutor;
 import org.wso2.siddhi.core.executor.ExpressionExecutor;
 import org.wso2.siddhi.core.executor.VariableExpressionExecutor;
 import org.wso2.siddhi.core.query.processor.Processor;
-import org.wso2.siddhi.core.table.EventTable;
-import org.wso2.siddhi.core.util.collection.operator.Finder;
-import org.wso2.siddhi.core.util.collection.operator.MatchingMetaStateHolder;
+import org.wso2.siddhi.core.table.Table;
+import org.wso2.siddhi.core.util.collection.operator.CompiledCondition;
+import org.wso2.siddhi.core.util.collection.operator.MatchingMetaInfoHolder;
+import org.wso2.siddhi.core.util.collection.operator.Operator;
+import org.wso2.siddhi.core.util.config.ConfigReader;
 import org.wso2.siddhi.core.util.parser.OperatorParser;
 import org.wso2.siddhi.query.api.expression.Expression;
 
-import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * This is the implementation of a counting algorithm based on
- * Misra-Gries counting algorithm
+ * Implementation of {@link WindowProcessor} which represent a Window operating based on frequency of incoming events.
+ * Implementation uses a counting algorithm based on Misra-Gries counting algorithm
  */
+@Extension(
+        name = "frequent",
+        namespace = "",
+        description = "This window returns the latest events with the most frequently occurred value for " +
+                "a given attribute(s). Frequency calculation for this window processor is based on " +
+                "Misra-Gries counting algorithm.",
+        parameters = {
+                @Parameter(name = "event.count",
+                        description = "The number of most frequent events to be emitted to the stream.",
+                        type = {DataType.INT}),
+                @Parameter(name = "attribute",
+                        description = "The attributes to group the events. If no attributes are given, " +
+                                "the concatenation of all the attributes of the event is considered.",
+                        type = {DataType.STRING},
+                        optional = true,
+                        defaultValue = "The concatenation of all the attributes of the event is considered.")
+        },
+        examples = {
+                @Example(
+                        syntax = "@info(name = 'query1')\n" +
+                                "from purchase[price >= 30]#window.frequent(2)\n" +
+                                "select cardNo, price\n" +
+                                "insert all events into PotentialFraud;",
+                        description = "This will returns the 2 most frequent events."
+                ),
+                @Example(
+                        syntax = "@info(name = 'query1')\n" +
+                                "from purchase[price >= 30]#window.frequent(2, cardNo)\n" +
+                                "select cardNo, price\n" +
+                                "insert all events into PotentialFraud;",
+                        description = "This will returns the 2 latest events with the most frequently appeared " +
+                                "card numbers."
+                )
+        }
+)
 public class FrequentWindowProcessor extends WindowProcessor implements FindableProcessor {
     private ConcurrentHashMap<String, Integer> countMap = new ConcurrentHashMap<String, Integer>();
     private ConcurrentHashMap<String, StreamEvent> map = new ConcurrentHashMap<String, StreamEvent>();
@@ -51,8 +92,10 @@ public class FrequentWindowProcessor extends WindowProcessor implements Findable
     private int mostFrequentCount;
 
     @Override
-    protected void init(ExpressionExecutor[] attributeExpressionExecutors, ExecutionPlanContext executionPlanContext) {
-        mostFrequentCount = Integer.parseInt(String.valueOf(((ConstantExpressionExecutor) attributeExpressionExecutors[0]).getValue()));
+    protected void init(ExpressionExecutor[] attributeExpressionExecutors, ConfigReader configReader, boolean
+            outputExpectsExpiredEvents, SiddhiAppContext siddhiAppContext) {
+        mostFrequentCount = Integer.parseInt(String.valueOf(((ConstantExpressionExecutor)
+                attributeExpressionExecutors[0]).getValue()));
         variableExpressionExecutors = new VariableExpressionExecutor[attributeExpressionExecutors.length - 1];
         for (int i = 1; i < attributeExpressionExecutors.length; i++) {
             variableExpressionExecutors[i - 1] = (VariableExpressionExecutor) attributeExpressionExecutors[i];
@@ -60,11 +103,12 @@ public class FrequentWindowProcessor extends WindowProcessor implements Findable
     }
 
     @Override
-    protected void process(ComplexEventChunk<StreamEvent> streamEventChunk, Processor nextProcessor, StreamEventCloner streamEventCloner) {
+    protected void process(ComplexEventChunk<StreamEvent> streamEventChunk, Processor nextProcessor,
+                           StreamEventCloner streamEventCloner) {
         synchronized (this) {
             StreamEvent streamEvent = streamEventChunk.getFirst();
             streamEventChunk.clear();
-            long currentTime = executionPlanContext.getTimestampGenerator().currentTime();
+            long currentTime = siddhiAppContext.getTimestampGenerator().currentTime();
             while (streamEvent != null) {
                 StreamEvent next = streamEvent.getNext();
                 streamEvent.setNext(null);
@@ -126,17 +170,21 @@ public class FrequentWindowProcessor extends WindowProcessor implements Findable
     }
 
     @Override
-    public Object[] currentState() {
-        return new Object[]{new AbstractMap.SimpleEntry<String, Object>("CountMap", countMap)};
+    public Map<String, Object> currentState() {
+        Map<String, Object> state = new HashMap<>();
+        synchronized (this) {
+            state.put("CountMap", countMap);
+        }
+        return state;
     }
 
     @Override
-    public void restoreState(Object[] state) {
-        Map.Entry<String, Object> stateEntry = (Map.Entry<String, Object>) state[0];
-        countMap = (ConcurrentHashMap<String, Integer>) stateEntry.getValue();
+    public synchronized void restoreState(Map<String, Object> state) {
+        countMap = (ConcurrentHashMap<String, Integer>) state.get("CountMap");
     }
 
-    private String generateKey(StreamEvent event) {      // for performance reason if its all attribute we don't do the attribute list check
+    private String generateKey(StreamEvent event) {      // for performance reason if its all attribute we don't do
+        // the attribute list check
         StringBuilder stringBuilder = new StringBuilder();
         if (variableExpressionExecutors.length == 0) {
             for (Object data : event.getOutputData()) {
@@ -151,13 +199,16 @@ public class FrequentWindowProcessor extends WindowProcessor implements Findable
     }
 
     @Override
-    public synchronized StreamEvent find(StateEvent matchingEvent, Finder finder) {
-        return finder.find(matchingEvent, map.values(), streamEventCloner);
+    public synchronized StreamEvent find(StateEvent matchingEvent, CompiledCondition compiledCondition) {
+        return ((Operator) compiledCondition).find(matchingEvent, map.values(), streamEventCloner);
     }
 
     @Override
-    public Finder constructFinder(Expression expression, MatchingMetaStateHolder matchingMetaStateHolder, ExecutionPlanContext executionPlanContext,
-                                  List<VariableExpressionExecutor> variableExpressionExecutors, Map<String, EventTable> eventTableMap) {
-        return OperatorParser.constructOperator(map.values(), expression, matchingMetaStateHolder, executionPlanContext, variableExpressionExecutors, eventTableMap, queryName);
+    public CompiledCondition compileCondition(Expression condition, MatchingMetaInfoHolder matchingMetaInfoHolder,
+                                               SiddhiAppContext siddhiAppContext,
+                                               List<VariableExpressionExecutor> variableExpressionExecutors,
+                                               Map<String, Table> tableMap, String queryName) {
+        return OperatorParser.constructOperator(map.values(), condition, matchingMetaInfoHolder, siddhiAppContext,
+                variableExpressionExecutors, tableMap, this.queryName);
     }
 }

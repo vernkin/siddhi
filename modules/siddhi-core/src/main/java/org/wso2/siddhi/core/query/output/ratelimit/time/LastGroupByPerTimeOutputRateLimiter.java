@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -29,24 +29,28 @@ import org.wso2.siddhi.core.util.Schedulable;
 import org.wso2.siddhi.core.util.Scheduler;
 import org.wso2.siddhi.core.util.parser.SchedulerParser;
 
-import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 
+/**
+ * Implementation of {@link OutputRateLimiter} which will collect pre-defined time period and the emit only last
+ * event. This implementation specifically represent GroupBy queries.
+ */
 public class LastGroupByPerTimeOutputRateLimiter extends OutputRateLimiter implements Schedulable {
-    private String id;
+    private static final Logger log = Logger.getLogger(LastGroupByPerTimeOutputRateLimiter.class);
     private final Long value;
+    private String id;
     private Map<String, ComplexEvent> allGroupByKeyEvents = new LinkedHashMap<String, ComplexEvent>();
     private ScheduledExecutorService scheduledExecutorService;
     private Scheduler scheduler;
     private long scheduledTime;
     private String queryName;
 
-    static final Logger log = Logger.getLogger(LastGroupByPerTimeOutputRateLimiter.class);
-
-    public LastGroupByPerTimeOutputRateLimiter(String id, Long value, ScheduledExecutorService scheduledExecutorService, String queryName) {
+    public LastGroupByPerTimeOutputRateLimiter(String id, Long value, ScheduledExecutorService
+            scheduledExecutorService, String queryName) {
         this.queryName = queryName;
         this.id = id;
         this.value = value;
@@ -55,7 +59,8 @@ public class LastGroupByPerTimeOutputRateLimiter extends OutputRateLimiter imple
 
     @Override
     public OutputRateLimiter clone(String key) {
-        LastGroupByPerTimeOutputRateLimiter instance = new LastGroupByPerTimeOutputRateLimiter(id + key, value, scheduledExecutorService, queryName);
+        LastGroupByPerTimeOutputRateLimiter instance = new LastGroupByPerTimeOutputRateLimiter(id + key, value,
+                scheduledExecutorService, queryName);
         instance.setLatencyTracker(latencyTracker);
         return instance;
     }
@@ -70,7 +75,8 @@ public class LastGroupByPerTimeOutputRateLimiter extends OutputRateLimiter imple
                 if (event.getType() == ComplexEvent.Type.TIMER) {
                     if (event.getTimestamp() >= scheduledTime) {
                         if (allGroupByKeyEvents.size() != 0) {
-                            ComplexEventChunk<ComplexEvent> outputEventChunk = new ComplexEventChunk<ComplexEvent>(complexEventChunk.isBatch());
+                            ComplexEventChunk<ComplexEvent> outputEventChunk = new ComplexEventChunk<ComplexEvent>
+                                    (complexEventChunk.isBatch());
                             for (ComplexEvent complexEvent : allGroupByKeyEvents.values()) {
                                 outputEventChunk.add(complexEvent);
                             }
@@ -80,7 +86,8 @@ public class LastGroupByPerTimeOutputRateLimiter extends OutputRateLimiter imple
                         scheduledTime = scheduledTime + value;
                         scheduler.notifyAt(scheduledTime);
                     }
-                } else if (event.getType() == ComplexEvent.Type.CURRENT || event.getType() == ComplexEvent.Type.EXPIRED) {
+                } else if (event.getType() == ComplexEvent.Type.CURRENT || event.getType() == ComplexEvent.Type
+                        .EXPIRED) {
                     complexEventChunk.remove();
                     GroupedComplexEvent groupedComplexEvent = ((GroupedComplexEvent) event);
                     allGroupByKeyEvents.put(groupedComplexEvent.getGroupKey(), groupedComplexEvent.getComplexEvent());
@@ -95,7 +102,7 @@ public class LastGroupByPerTimeOutputRateLimiter extends OutputRateLimiter imple
 
     @Override
     public void start() {
-        scheduler = SchedulerParser.parse(scheduledExecutorService, this, executionPlanContext);
+        scheduler = SchedulerParser.parse(this, siddhiAppContext);
         scheduler.setStreamEventPool(new StreamEventPool(0, 0, 0, 5));
         scheduler.init(lockWrapper, queryName);
         long currentTime = System.currentTimeMillis();
@@ -109,14 +116,17 @@ public class LastGroupByPerTimeOutputRateLimiter extends OutputRateLimiter imple
     }
 
     @Override
-    public Object[] currentState() {
-        return new Object[]{new AbstractMap.SimpleEntry<String, Object>("AllGroupByKeyEvents", allGroupByKeyEvents)};
+    public Map<String, Object> currentState() {
+        Map<String, Object> state = new HashMap<>();
+        synchronized (this) {
+            state.put("AllGroupByKeyEvents", allGroupByKeyEvents);
+        }
+        return state;
     }
 
     @Override
-    public void restoreState(Object[] state) {
-        Map.Entry<String, Object> stateEntry = (Map.Entry<String, Object>) state[0];
-        allGroupByKeyEvents = (Map<String, ComplexEvent>) stateEntry.getValue();
+    public synchronized void restoreState(Map<String, Object> state) {
+        allGroupByKeyEvents = (Map<String, ComplexEvent>) state.get("AllGroupByKeyEvents");
     }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,7 +18,7 @@
 
 package org.wso2.siddhi.core.stream.input;
 
-import org.wso2.siddhi.core.config.ExecutionPlanContext;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
 import org.wso2.siddhi.core.exception.DefinitionNotExistException;
 import org.wso2.siddhi.core.stream.StreamJunction;
 import org.wso2.siddhi.query.api.definition.AbstractDefinition;
@@ -27,23 +27,24 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
+/**
+ * Manager class to handle {@link org.wso2.siddhi.core.event.Event} insertion to Siddhi.
+ */
 public class InputManager {
 
     private final InputEntryValve inputEntryValve;
-    private ExecutionPlanContext executionPlanContext;
+    private final SiddhiAppContext siddhiAppContext;
     private Map<String, InputHandler> inputHandlerMap = new LinkedHashMap<String, InputHandler>();
-    private Map<String, AbstractDefinition> streamDefinitionMap;
     private Map<String, StreamJunction> streamJunctionMap;
     private InputDistributor inputDistributor;
 
-    public InputManager(ExecutionPlanContext executionPlanContext,
+    public InputManager(SiddhiAppContext siddhiAppContext,
                         ConcurrentMap<String, AbstractDefinition> streamDefinitionMap,
                         ConcurrentMap<String, StreamJunction> streamJunctionMap) {
-        this.executionPlanContext = executionPlanContext;
-        this.streamDefinitionMap = streamDefinitionMap;
         this.streamJunctionMap = streamJunctionMap;
         this.inputDistributor = new InputDistributor();
-        this.inputEntryValve =new InputEntryValve(executionPlanContext,inputDistributor);
+        this.inputEntryValve = new InputEntryValve(siddhiAppContext, inputDistributor);
+        this.siddhiAppContext = siddhiAppContext;
     }
 
     public InputHandler getInputHandler(String streamId) {
@@ -63,7 +64,8 @@ public class InputManager {
     }
 
     public InputHandler constructInputHandler(String streamId) {
-        InputHandler inputHandler = new InputHandler(streamId, inputHandlerMap.size(), inputEntryValve);
+        InputHandler inputHandler = new InputHandler(streamId, inputHandlerMap.size(),
+                inputEntryValve, siddhiAppContext);
         StreamJunction streamJunction = streamJunctionMap.get(streamId);
         if (streamJunction == null) {
             throw new DefinitionNotExistException("Stream with stream ID " + streamId + " has not been defined");

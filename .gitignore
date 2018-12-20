@@ -21,3 +21,7 @@ hs_err_pid*
 .settings/
 .cache-tests
 .cache-main
+
+site/
+
+modules/siddhi-service/dependency-reduced-pom.xml

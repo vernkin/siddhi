@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -19,18 +19,24 @@
 package org.wso2.siddhi.core.executor.function;
 
 import org.apache.log4j.Logger;
-import org.wso2.siddhi.core.config.ExecutionPlanContext;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
 import org.wso2.siddhi.core.executor.ExpressionExecutor;
-import org.wso2.siddhi.core.function.EvalScript;
+import org.wso2.siddhi.core.function.Script;
+import org.wso2.siddhi.core.util.config.ConfigReader;
 import org.wso2.siddhi.query.api.definition.Attribute;
 
+import java.util.Map;
+
+/**
+ * Executor class for Script function. Function execution logic is implemented in execute here.
+ */
 public class ScriptFunctionExecutor extends FunctionExecutor {
 
-    static final Logger log = Logger.getLogger(ScriptFunctionExecutor.class);
-
-    private String functionId;
+    static final Logger LOG = Logger.getLogger(ScriptFunctionExecutor.class);
     Attribute.Type returnType;
-    EvalScript evalScript;
+    Script script;
+
+    public ScriptFunctionExecutor() { }
 
     public ScriptFunctionExecutor(String name) {
         this.functionId = name;
@@ -42,38 +48,29 @@ public class ScriptFunctionExecutor extends FunctionExecutor {
     }
 
     @Override
-    protected void init(ExpressionExecutor[] attributeExpressionExecutors, ExecutionPlanContext executionPlanContext) {
-        returnType = executionPlanContext.getEvalScript(functionId).getReturnType();
-        evalScript = executionPlanContext.getEvalScript(functionId);
+    protected void init(ExpressionExecutor[] attributeExpressionExecutors, ConfigReader configReader,
+                        SiddhiAppContext siddhiAppContext) {
+        returnType = siddhiAppContext.getScript(functionId).getReturnType();
+        script = siddhiAppContext.getScript(functionId);
     }
 
     @Override
     protected Object execute(Object[] data) {
-        return evalScript.eval(functionId, data);
+        return script.eval(functionId, data);
     }
 
     @Override
     protected Object execute(Object data) {
-        return evalScript.eval(functionId, new Object[]{data});
+        return script.eval(functionId, new Object[]{data});
     }
 
     @Override
-    public void start() {
-
+    public Map<String, Object> currentState() {
+        return null;
     }
 
     @Override
-    public void stop() {
-
-    }
-
-    @Override
-    public Object[] currentState() {
-        return new Object[0];
-    }
-
-    @Override
-    public void restoreState(Object[] state) {
+    public void restoreState(Map<String, Object> state) {
 
     }
 }

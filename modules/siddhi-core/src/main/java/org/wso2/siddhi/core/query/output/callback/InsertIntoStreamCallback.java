@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -23,29 +23,28 @@ import org.wso2.siddhi.core.event.ComplexEventChunk;
 import org.wso2.siddhi.core.stream.StreamJunction;
 import org.wso2.siddhi.query.api.definition.StreamDefinition;
 
+/**
+ * Implementation of {@link OutputCallback} to receive processed Siddhi events from
+ * Siddhi queries and put them into {@link StreamJunction}.
+ */
 public class InsertIntoStreamCallback extends OutputCallback {
     private StreamDefinition outputStreamDefinition;
     private StreamJunction.Publisher publisher;
-    private SiddhiDebugger siddhiDebugger;
-    private String queryName;
 
     public InsertIntoStreamCallback(StreamDefinition outputStreamDefinition, String queryName) {
+        super(queryName);
         this.outputStreamDefinition = outputStreamDefinition;
-        this.queryName = queryName;
     }
 
     public void init(StreamJunction outputStreamJunction) {
         this.publisher = outputStreamJunction.constructPublisher();
     }
 
-    public void setSiddhiDebugger(SiddhiDebugger siddhiDebugger) {
-        this.siddhiDebugger = siddhiDebugger;
-    }
-
     @Override
-    public void send(ComplexEventChunk complexEventChunk) {
-        if (siddhiDebugger != null) {
-            siddhiDebugger.checkBreakPoint(queryName, SiddhiDebugger.QueryTerminal.OUT, complexEventChunk.getFirst());
+    public void send(ComplexEventChunk complexEventChunk, int noOfEvents) {
+        if (getSiddhiDebugger() != null) {
+            getSiddhiDebugger()
+                    .checkBreakPoint(getQueryName(), SiddhiDebugger.QueryTerminal.OUT, complexEventChunk.getFirst());
         }
         complexEventChunk.reset();
         while (complexEventChunk.hasNext()) {

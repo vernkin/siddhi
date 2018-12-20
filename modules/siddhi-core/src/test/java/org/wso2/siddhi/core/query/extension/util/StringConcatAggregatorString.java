@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,27 +18,55 @@
 
 package org.wso2.siddhi.core.query.extension.util;
 
-import org.wso2.siddhi.core.config.ExecutionPlanContext;
+import org.wso2.siddhi.annotation.Example;
+import org.wso2.siddhi.annotation.Extension;
+import org.wso2.siddhi.annotation.Parameter;
+import org.wso2.siddhi.annotation.ReturnAttribute;
+import org.wso2.siddhi.annotation.util.DataType;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
 import org.wso2.siddhi.core.executor.ExpressionExecutor;
 import org.wso2.siddhi.core.query.selector.attribute.aggregator.AttributeAggregator;
+import org.wso2.siddhi.core.util.config.ConfigReader;
 import org.wso2.siddhi.query.api.definition.Attribute.Type;
 
-import java.util.AbstractMap;
+import java.util.HashMap;
 import java.util.Map;
 
-
+@Extension(
+        name = "getAll",
+        namespace = "custom",
+        description = "Return the concatenations of the given input values.",
+        parameters = {
+                @Parameter(name = "args",
+                        description = "The values that need to be concat.",
+                        type = {DataType.STRING})
+        },
+        returnAttributes = @ReturnAttribute(
+                description = "Returns the concatenated value as a string.",
+                type = {DataType.STRING}),
+        examples = @Example(
+                syntax = "from inputStream\n" +
+                        "select custom:getAll(\"hello\",\"_\",\"world\") as name\n" +
+                        "insert into outputStream;",
+                description = "This will concatenate given input values and return 'hello world'."
+        )
+)
 public class StringConcatAggregatorString extends AttributeAggregator {
     private static final long serialVersionUID = 1358667438272544590L;
     private String aggregatedStringValue = "";
+    private boolean appendAbc = false;
 
     /**
      * The initialization method for FunctionExecutor
      *
      * @param attributeExpressionExecutors are the executors of each attributes in the function
-     * @param executionPlanContext         SiddhiContext
+     * @param configReader                 this hold the {@link StringConcatAggregatorString} configuration reader.
+     * @param siddhiAppContext             SiddhiContext
      */
     @Override
-    protected void init(ExpressionExecutor[] attributeExpressionExecutors, ExecutionPlanContext executionPlanContext) {
+    protected void init(ExpressionExecutor[] attributeExpressionExecutors, ConfigReader configReader,
+                        SiddhiAppContext siddhiAppContext) {
+        appendAbc = Boolean.parseBoolean(configReader.readConfig("append.abc", "false"));
 
     }
 
@@ -51,7 +79,11 @@ public class StringConcatAggregatorString extends AttributeAggregator {
     @Override
     public Object processAdd(Object data) {
         aggregatedStringValue = aggregatedStringValue + data;
-        return aggregatedStringValue;
+        if (appendAbc) {
+            return aggregatedStringValue + "-abc";
+        } else {
+            return aggregatedStringValue;
+        }
     }
 
     @Override
@@ -59,14 +91,22 @@ public class StringConcatAggregatorString extends AttributeAggregator {
         for (Object aData : data) {
             aggregatedStringValue = aggregatedStringValue + aData;
         }
-        return aggregatedStringValue;
+        if (appendAbc) {
+            return aggregatedStringValue + "-abc";
+        } else {
+            return aggregatedStringValue;
+        }
     }
 
 
     @Override
     public Object processRemove(Object data) {
         aggregatedStringValue = aggregatedStringValue.replaceFirst(data.toString(), "");
-        return aggregatedStringValue;
+        if (appendAbc) {
+            return aggregatedStringValue + "-abc";
+        } else {
+            return aggregatedStringValue;
+        }
     }
 
     @Override
@@ -74,7 +114,16 @@ public class StringConcatAggregatorString extends AttributeAggregator {
         for (Object aData : data) {
             aggregatedStringValue = aggregatedStringValue.replaceFirst(aData.toString(), "");
         }
-        return aggregatedStringValue;
+        if (appendAbc) {
+            return aggregatedStringValue + "-abc";
+        } else {
+            return aggregatedStringValue;
+        }
+    }
+
+    @Override
+    public boolean canDestroy() {
+        return aggregatedStringValue != null && aggregatedStringValue.equals("");
     }
 
     @Override
@@ -83,25 +132,15 @@ public class StringConcatAggregatorString extends AttributeAggregator {
         return aggregatedStringValue;
     }
 
-
     @Override
-    public void start() {
-        //Nothing to start
+    public Map<String, Object> currentState() {
+        Map<String, Object> state = new HashMap<>();
+        state.put("AggregatedStringValue", aggregatedStringValue);
+        return state;
     }
 
     @Override
-    public void stop() {
-        //To change body of implemented methods use File | Settings | File Templates.
-    }
-
-    @Override
-    public Object[] currentState() {
-        return new Object[]{new AbstractMap.SimpleEntry<String, Object>("AggregatedStringValue", aggregatedStringValue)};
-    }
-
-    @Override
-    public void restoreState(Object[] state) {
-        Map.Entry<String, Object> stateEntry = (Map.Entry<String, Object>) state[0];
-        aggregatedStringValue = (String) stateEntry.getValue();
+    public void restoreState(Map<String, Object> state) {
+        aggregatedStringValue = (String) state.get("AggregatedStringValue");
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,13 +18,39 @@
 package org.wso2.siddhi.query.api.expression;
 
 
-import org.wso2.siddhi.query.api.expression.condition.*;
-import org.wso2.siddhi.query.api.expression.constant.*;
-import org.wso2.siddhi.query.api.expression.function.AttributeFunction;
-import org.wso2.siddhi.query.api.expression.function.AttributeFunctionExtension;
-import org.wso2.siddhi.query.api.expression.math.*;
+import org.wso2.siddhi.query.api.SiddhiElement;
+import org.wso2.siddhi.query.api.aggregation.TimePeriod;
+import org.wso2.siddhi.query.api.exception.SiddhiAppValidationException;
+import org.wso2.siddhi.query.api.expression.condition.And;
+import org.wso2.siddhi.query.api.expression.condition.Compare;
+import org.wso2.siddhi.query.api.expression.condition.In;
+import org.wso2.siddhi.query.api.expression.condition.IsNull;
+import org.wso2.siddhi.query.api.expression.condition.Not;
+import org.wso2.siddhi.query.api.expression.condition.Or;
+import org.wso2.siddhi.query.api.expression.constant.BoolConstant;
+import org.wso2.siddhi.query.api.expression.constant.DoubleConstant;
+import org.wso2.siddhi.query.api.expression.constant.FloatConstant;
+import org.wso2.siddhi.query.api.expression.constant.IntConstant;
+import org.wso2.siddhi.query.api.expression.constant.LongConstant;
+import org.wso2.siddhi.query.api.expression.constant.StringConstant;
+import org.wso2.siddhi.query.api.expression.constant.TimeConstant;
+import org.wso2.siddhi.query.api.expression.math.Add;
+import org.wso2.siddhi.query.api.expression.math.Divide;
+import org.wso2.siddhi.query.api.expression.math.Mod;
+import org.wso2.siddhi.query.api.expression.math.Multiply;
+import org.wso2.siddhi.query.api.expression.math.Subtract;
 
-public abstract class Expression {
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+/**
+ * Siddhi expression
+ */
+public abstract class Expression implements SiddhiElement {
+
+    private static final long serialVersionUID = 1L;
+    private int[] queryContextStartIndex;
+    private int[] queryContextEndIndex;
 
     public static StringConstant value(String value) {
         return new StringConstant(value);
@@ -76,11 +102,11 @@ public abstract class Expression {
 
     public static Expression function(String extensionNamespace, String extensionFunctionName,
                                       Expression... expressions) {
-        return new AttributeFunctionExtension(extensionNamespace, extensionFunctionName, expressions);
+        return new AttributeFunction(extensionNamespace, extensionFunctionName, expressions);
     }
 
     public static Expression function(String functionName, Expression... expressions) {
-        return new AttributeFunction(functionName, expressions);
+        return new AttributeFunction("", functionName, expressions);
     }
 
     public static Expression compare(Expression leftExpression, Compare.Operator operator,
@@ -100,8 +126,8 @@ public abstract class Expression {
         return new Or(leftExpression, rightExpression);
     }
 
-    public static Expression not(Expression Expression) {
-        return new Not(Expression);
+    public static Expression not(Expression expression) {
+        return new Not(expression);
     }
 
     public static Expression isNull(Expression expression) {
@@ -124,6 +150,29 @@ public abstract class Expression {
         return new IsNull(streamId, streamIndex, true);
     }
 
+    @Override
+    public int[] getQueryContextStartIndex() {
+        return queryContextStartIndex;
+    }
+
+    @Override
+    public void setQueryContextStartIndex(int[] lineAndColumn) {
+        queryContextStartIndex = lineAndColumn;
+    }
+
+    @Override
+    public int[] getQueryContextEndIndex() {
+        return queryContextEndIndex;
+    }
+
+    @Override
+    public void setQueryContextEndIndex(int[] lineAndColumn) {
+        queryContextEndIndex = lineAndColumn;
+    }
+
+    /**
+     * Time constant factory class
+     */
     public abstract static class Time {
 
         public static TimeConstant milliSec(long i) {
@@ -188,6 +237,64 @@ public abstract class Expression {
 
         public static TimeConstant year(int i) {
             return year((long) i);
+        }
+
+        public static Long timeToLong(String value) {
+            Pattern timeValuePattern = Pattern.compile("\\d+");
+            Pattern durationPattern = Pattern.compile("\\D+");
+            Matcher timeMatcher = timeValuePattern.matcher(value);
+            Matcher durationMatcher = durationPattern.matcher(value);
+            int timeValue;
+            TimePeriod.Duration duration;
+            if (timeMatcher.find() && durationMatcher.find()) {
+                duration = normalizeDuration(durationMatcher.group(0).trim());
+                timeValue = Integer.parseInt(timeMatcher.group(0));
+                switch (duration) {
+                    case SECONDS:
+                        return Expression.Time.sec(timeValue).value();
+                    case MINUTES:
+                        return Expression.Time.minute(timeValue).value();
+                    case HOURS:
+                        return Expression.Time.hour(timeValue).value();
+                    case DAYS:
+                        return Expression.Time.day(timeValue).value();
+                    case YEARS:
+                        return Expression.Time.year(timeValue).value();
+                    default:
+                        return Expression.Time.month(timeValue).value();
+                }
+            } else {
+                throw new SiddhiAppValidationException("Provided retention value cannot be identified. retention " +
+                        "period: " + value + ".");
+            }
+        }
+
+        public static TimePeriod.Duration normalizeDuration(String value) {
+            switch (value.toLowerCase()) {
+                case "sec":
+                case "seconds":
+                case "second":
+                    return TimePeriod.Duration.SECONDS;
+                case "min":
+                case "minutes":
+                case "minute":
+                    return TimePeriod.Duration.MINUTES;
+                case "h":
+                case "hour":
+                case "hours":
+                    return TimePeriod.Duration.HOURS;
+                case "days":
+                case "day":
+                    return TimePeriod.Duration.DAYS;
+                case "month":
+                case "months":
+                    return TimePeriod.Duration.MONTHS;
+                case "year":
+                case "years":
+                    return TimePeriod.Duration.YEARS;
+                default:
+                    throw new SiddhiAppValidationException("Duration '" + value + "' does not exists ");
+            }
         }
 
     }

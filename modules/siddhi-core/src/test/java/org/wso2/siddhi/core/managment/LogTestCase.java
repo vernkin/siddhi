@@ -19,10 +19,10 @@
 package org.wso2.siddhi.core.managment;
 
 import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.wso2.siddhi.core.ExecutionPlanRuntime;
+import org.testng.AssertJUnit;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+import org.wso2.siddhi.core.SiddhiAppRuntime;
 import org.wso2.siddhi.core.SiddhiManager;
 import org.wso2.siddhi.core.event.Event;
 import org.wso2.siddhi.core.query.output.callback.QueryCallback;
@@ -32,13 +32,13 @@ import org.wso2.siddhi.core.util.persistence.InMemoryPersistenceStore;
 import org.wso2.siddhi.core.util.persistence.PersistenceStore;
 
 public class LogTestCase {
-    static final Logger log = Logger.getLogger(LogTestCase.class);
+    private static final Logger log = Logger.getLogger(LogTestCase.class);
     private int count;
     private boolean eventArrived;
     private long firstValue;
     private long lastValue;
 
-    @Before
+    @BeforeMethod
     public void init() {
         count = 0;
         eventArrived = false;
@@ -55,8 +55,8 @@ public class LogTestCase {
         SiddhiManager siddhiManager = new SiddhiManager();
         siddhiManager.setPersistenceStore(persistenceStore);
 
-        String executionPlan = "" +
-                "@plan:name('Test') " +
+        String siddhiApp = "" +
+                "@app:name('Test') " +
                 "" +
                 "define stream StockStream ( symbol string, price float, volume int );" +
                 "" +
@@ -76,22 +76,22 @@ public class LogTestCase {
 
         QueryCallback queryCallback = new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 eventArrived = true;
             }
         };
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(executionPlan);
-        executionPlanRuntime.addCallback("query1", queryCallback);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiApp);
+        siddhiAppRuntime.addCallback("query1", queryCallback);
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("StockStream");
-        executionPlanRuntime.start();
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("StockStream");
+        siddhiAppRuntime.start();
 
         inputHandler.send(new Object[]{"IBM", 75.6f, 100});
         Thread.sleep(100);
 
-        executionPlanRuntime.shutdown();
-        Assert.assertEquals(true, eventArrived);
+        siddhiAppRuntime.shutdown();
+        AssertJUnit.assertEquals(true, eventArrived);
     }
 }

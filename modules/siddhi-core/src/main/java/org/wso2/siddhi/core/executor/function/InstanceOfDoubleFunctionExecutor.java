@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,34 +18,69 @@
 
 package org.wso2.siddhi.core.executor.function;
 
-import org.wso2.siddhi.core.config.ExecutionPlanContext;
+import org.wso2.siddhi.annotation.Example;
+import org.wso2.siddhi.annotation.Extension;
+import org.wso2.siddhi.annotation.Parameter;
+import org.wso2.siddhi.annotation.ReturnAttribute;
+import org.wso2.siddhi.annotation.util.DataType;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
 import org.wso2.siddhi.core.executor.ExpressionExecutor;
+import org.wso2.siddhi.core.util.config.ConfigReader;
 import org.wso2.siddhi.query.api.definition.Attribute;
-import org.wso2.siddhi.query.api.exception.ExecutionPlanValidationException;
+import org.wso2.siddhi.query.api.exception.SiddhiAppValidationException;
+
+import java.util.Map;
 
 /**
- * instanceOfDouble(input)
- * This method returns true if and only if the input is a instance of Double
- * input - the value to check for Double instance eg: 233.424
- * Accept Type(s) for instanceOfDouble(input);
- *         input : BOOLEAN, STRING, INT, FLOAT, DOUBLE, LONG
- * Return Type(s): BOOLEAN
+ * Executor class for instanceOf Double function. Function execution logic is implemented in execute here.
  */
+@Extension(
+        name = "instanceOfDouble",
+        namespace = "",
+        description = "Checks whether the parameter is an instance of Double or not.",
+        parameters = {
+                @Parameter(name = "arg",
+                        description = "The parameter to be checked.",
+                        type = {DataType.INT, DataType.LONG, DataType.DOUBLE, DataType.FLOAT,
+                                DataType.STRING, DataType.BOOL, DataType.OBJECT})
+        },
+        returnAttributes = @ReturnAttribute(
+                description = "Returned type will be boolean and true if and only if the input " +
+                        "is a instance of Double.",
+                type = {DataType.BOOL}),
+        examples = {
+                @Example(
+                        syntax = "from fooStream\n" +
+                                "select instanceOfDouble(value) as state\n" +
+                                "insert into barStream;",
+                        description = "This will return true if the value field format is double ex : 56.45."
+                ),
+                @Example(
+                        syntax = "from fooStream\n" +
+                                "select instanceOfDouble(switchState) as state\n" +
+                                "insert into barStream;",
+                        description = "if the switchState = true then this will returns false as the value is not an" +
+                                " instance of the double."
+                )
+        }
+)
 public class InstanceOfDoubleFunctionExecutor extends FunctionExecutor {
 
     Attribute.Type returnType = Attribute.Type.BOOL;
 
     @Override
-    protected void init(ExpressionExecutor[] attributeExpressionExecutors, ExecutionPlanContext executionPlanContext) {
+    protected void init(ExpressionExecutor[] attributeExpressionExecutors, ConfigReader configReader,
+                        SiddhiAppContext siddhiAppContext) {
         if (attributeExpressionExecutors.length != 1) {
-            throw new ExecutionPlanValidationException("Invalid no of arguments passed to instanceOfDouble() function, " +
-                                                       "required only 1, but found " + attributeExpressionExecutors.length);
+            throw new SiddhiAppValidationException("Invalid no of arguments passed to instanceOfDouble() " +
+                    "function, required only 1, but found " + attributeExpressionExecutors.length);
         }
     }
 
     @Override
     protected Object execute(Object[] data) {
-        return null;//Since the instanceOfDouble function takes in 1 parameter, this method does not get called. Hence, not implemented.
+        return null; //Since the instanceOfDouble function takes in 1 parameter, this method does not get called.
+        // Hence, not implemented.
     }
 
     @Override
@@ -54,27 +89,17 @@ public class InstanceOfDoubleFunctionExecutor extends FunctionExecutor {
     }
 
     @Override
-    public void start() {
-
-    }
-
-    @Override
-    public void stop() {
-
-    }
-
-    @Override
     public Attribute.Type getReturnType() {
         return returnType;
     }
 
     @Override
-    public Object[] currentState() {
+    public Map<String, Object> currentState() {
         return null;
     }
 
     @Override
-    public void restoreState(Object[] state) {
+    public void restoreState(Map<String, Object> state) {
 
     }
 }

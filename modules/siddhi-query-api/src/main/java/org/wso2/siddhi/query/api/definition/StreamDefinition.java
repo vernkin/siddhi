@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -19,7 +19,12 @@ package org.wso2.siddhi.query.api.definition;
 
 import org.wso2.siddhi.query.api.annotation.Annotation;
 
+/**
+ * Siddhi Stream Definition
+ */
 public class StreamDefinition extends AbstractDefinition {
+
+    private static final long serialVersionUID = 1L;
 
     public StreamDefinition() {
     }
@@ -41,16 +46,6 @@ public class StreamDefinition extends AbstractDefinition {
     public StreamDefinition annotation(Annotation annotation) {
         annotations.add(annotation);
         return this;
-    }
-
-
-    @Override
-    public String toString() {
-        return "StreamDefinition{" +
-                "id='" + id + '\'' +
-                ", attributeList=" + attributeList +
-                ", annotations=" + annotations +
-                '}';
     }
 
 }

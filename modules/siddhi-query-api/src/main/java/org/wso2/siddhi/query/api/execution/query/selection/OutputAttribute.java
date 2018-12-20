@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,13 +17,20 @@
  */
 package org.wso2.siddhi.query.api.execution.query.selection;
 
+import org.wso2.siddhi.query.api.SiddhiElement;
 import org.wso2.siddhi.query.api.expression.Expression;
 import org.wso2.siddhi.query.api.expression.Variable;
 
-public class OutputAttribute {
+/**
+ * Query output stream attributes
+ */
+public class OutputAttribute implements SiddhiElement {
 
+    private static final long serialVersionUID = 1L;
     private String rename;
     private Expression expression;
+    private int[] queryContextStartIndex;
+    private int[] queryContextEndIndex;
 
     public OutputAttribute(String rename, Expression expression) {
         this.rename = rename;
@@ -53,13 +60,21 @@ public class OutputAttribute {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof OutputAttribute)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof OutputAttribute)) {
+            return false;
+        }
 
         OutputAttribute that = (OutputAttribute) o;
 
-        if (expression != null ? !expression.equals(that.expression) : that.expression != null) return false;
-        if (rename != null ? !rename.equals(that.rename) : that.rename != null) return false;
+        if (expression != null ? !expression.equals(that.expression) : that.expression != null) {
+            return false;
+        }
+        if (rename != null ? !rename.equals(that.rename) : that.rename != null) {
+            return false;
+        }
 
         return true;
     }
@@ -69,5 +84,25 @@ public class OutputAttribute {
         int result = rename != null ? rename.hashCode() : 0;
         result = 31 * result + (expression != null ? expression.hashCode() : 0);
         return result;
+    }
+
+    @Override
+    public int[] getQueryContextStartIndex() {
+        return queryContextStartIndex;
+    }
+
+    @Override
+    public void setQueryContextStartIndex(int[] lineAndColumn) {
+        queryContextStartIndex = lineAndColumn;
+    }
+
+    @Override
+    public int[] getQueryContextEndIndex() {
+        return queryContextEndIndex;
+    }
+
+    @Override
+    public void setQueryContextEndIndex(int[] lineAndColumn) {
+        queryContextEndIndex = lineAndColumn;
     }
 }

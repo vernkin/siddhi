@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -19,10 +19,10 @@
 package org.wso2.siddhi.core.query.sequence;
 
 import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.wso2.siddhi.core.ExecutionPlanRuntime;
+import org.testng.AssertJUnit;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+import org.wso2.siddhi.core.SiddhiAppRuntime;
 import org.wso2.siddhi.core.SiddhiManager;
 import org.wso2.siddhi.core.event.Event;
 import org.wso2.siddhi.core.query.output.callback.QueryCallback;
@@ -40,7 +40,7 @@ public class SequenceTestCase {
     private int removeEventCount;
     private boolean eventArrived;
 
-    @Before
+    @BeforeMethod
     public void init() {
         inEventCount = 0;
         removeEventCount = 0;
@@ -62,15 +62,15 @@ public class SequenceTestCase {
                 "select e1.symbol as symbol1, e2.symbol as symbol2 " +
                 "insert into OutputStream ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     inEventCount = inEventCount + inEvents.length;
-                    Assert.assertArrayEquals(new Object[]{"WSO2", "IBM"}, inEvents[0].getData());
+                    AssertJUnit.assertArrayEquals(new Object[]{"WSO2", "IBM"}, inEvents[0].getData());
                     eventArrived = true;
                 }
                 if (removeEvents != null) {
@@ -81,21 +81,21 @@ public class SequenceTestCase {
 
         });
 
-        InputHandler stream1 = executionPlanRuntime.getInputHandler("Stream1");
-        InputHandler stream2 = executionPlanRuntime.getInputHandler("Stream2");
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stream1.send(new Object[]{"WSO2", 55.6f, 100});
         Thread.sleep(100);
         stream2.send(new Object[]{"IBM", 55.7f, 100});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 1, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 1, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -113,15 +113,15 @@ public class SequenceTestCase {
                 "select e1.symbol as symbol1, e2.symbol as symbol2 " +
                 "insert into OutputStream ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     inEventCount = inEventCount + inEvents.length;
-                    Assert.assertArrayEquals(new Object[]{"GOOG", "IBM"}, inEvents[0].getData());
+                    AssertJUnit.assertArrayEquals(new Object[]{"GOOG", "IBM"}, inEvents[0].getData());
                     eventArrived = true;
                 }
                 if (removeEvents != null) {
@@ -132,10 +132,10 @@ public class SequenceTestCase {
 
         });
 
-        InputHandler stream1 = executionPlanRuntime.getInputHandler("Stream1");
-        InputHandler stream2 = executionPlanRuntime.getInputHandler("Stream2");
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stream1.send(new Object[]{"WSO2", 55.6f, 100});
         Thread.sleep(100);
@@ -144,11 +144,11 @@ public class SequenceTestCase {
         stream2.send(new Object[]{"IBM", 65.7f, 100});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 1, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 1, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
 
@@ -167,24 +167,24 @@ public class SequenceTestCase {
                 "select e1.symbol as symbol1, e2[0].symbol as symbol2, e2[1].symbol as symbol3 " +
                 "insert into OutputStream ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     for (Event event : inEvents) {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{"WSO2", null, null}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"WSO2", null, null}, event.getData());
                                 break;
                             case 2:
-                                Assert.assertArrayEquals(new Object[]{"IBM", null, null}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"IBM", null, null}, event.getData());
                                 break;
                             default:
-                                Assert.assertSame(2, inEventCount);
+                                AssertJUnit.assertSame(2, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -197,21 +197,21 @@ public class SequenceTestCase {
 
         });
 
-        InputHandler stream1 = executionPlanRuntime.getInputHandler("Stream1");
-        InputHandler stream2 = executionPlanRuntime.getInputHandler("Stream2");
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stream1.send(new Object[]{"WSO2", 55.6f, 100});
         Thread.sleep(100);
         stream1.send(new Object[]{"IBM", 55.7f, 100});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 2, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 2, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -229,21 +229,21 @@ public class SequenceTestCase {
                 "select e1[0].price as price1, e1[1].price as price2, e2.price as price3 " +
                 "insert into OutputStream ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     for (Event event : inEvents) {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{55.6f, 55.7f, 57.6f}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{55.6f, 55.7f, 57.6f}, event.getData());
                                 break;
                             default:
-                                Assert.assertSame(1, inEventCount);
+                                AssertJUnit.assertSame(1, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -256,10 +256,10 @@ public class SequenceTestCase {
 
         });
 
-        InputHandler stream1 = executionPlanRuntime.getInputHandler("Stream1");
-        InputHandler stream2 = executionPlanRuntime.getInputHandler("Stream2");
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stream1.send(new Object[]{"WSO2", 59.6f, 100});
         Thread.sleep(100);
@@ -270,11 +270,11 @@ public class SequenceTestCase {
         stream1.send(new Object[]{"WSO2", 57.6f, 100});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 1, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 1, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
 
@@ -293,21 +293,21 @@ public class SequenceTestCase {
                 "select e1[0].price as price1, e1[1].price as price2, e2.price as price3 " +
                 "insert into OutputStream ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     for (Event event : inEvents) {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{55.6f, 55.0f, 57.6f}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{55.6f, 55.0f, 57.6f}, event.getData());
                                 break;
                             default:
-                                Assert.assertSame(1, inEventCount);
+                                AssertJUnit.assertSame(1, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -320,10 +320,10 @@ public class SequenceTestCase {
 
         });
 
-        InputHandler stream1 = executionPlanRuntime.getInputHandler("Stream1");
-        InputHandler stream2 = executionPlanRuntime.getInputHandler("Stream2");
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stream1.send(new Object[]{"WSO2", 59.6f, 100});
         Thread.sleep(100);
@@ -334,11 +334,11 @@ public class SequenceTestCase {
         stream1.send(new Object[]{"WSO2", 57.6f, 100});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 1, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 1, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -356,21 +356,21 @@ public class SequenceTestCase {
                 "select e1[0].price as price1, e2.price as price3 " +
                 "insert into OutputStream ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     for (Event event : inEvents) {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{55.7f, 57.6f}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{55.7f, 57.6f}, event.getData());
                                 break;
                             default:
-                                Assert.assertSame(1, inEventCount);
+                                AssertJUnit.assertSame(1, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -383,10 +383,10 @@ public class SequenceTestCase {
 
         });
 
-        InputHandler stream1 = executionPlanRuntime.getInputHandler("Stream1");
-        InputHandler stream2 = executionPlanRuntime.getInputHandler("Stream2");
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stream1.send(new Object[]{"WSO2", 59.6f, 100});
         Thread.sleep(100);
@@ -397,11 +397,11 @@ public class SequenceTestCase {
         stream1.send(new Object[]{"WSO2", 57.6f, 100});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 1, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 1, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -419,24 +419,24 @@ public class SequenceTestCase {
                 "select e1.price as price1, e2.price as price2, e3.price as price3 " +
                 "insert into OutputStream ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     for (Event event : inEvents) {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{55.6f, 55.7f, null}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{55.6f, 55.7f, null}, event.getData());
                                 break;
                             case 2:
-                                Assert.assertArrayEquals(new Object[]{55.7f, 57.6f, null}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{55.7f, 57.6f, null}, event.getData());
                                 break;
                             default:
-                                Assert.assertSame(2, inEventCount);
+                                AssertJUnit.assertSame(2, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -449,10 +449,10 @@ public class SequenceTestCase {
 
         });
 
-        InputHandler stream1 = executionPlanRuntime.getInputHandler("Stream1");
-        InputHandler stream2 = executionPlanRuntime.getInputHandler("Stream2");
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stream2.send(new Object[]{"WSO2", 59.6f, 100});
         Thread.sleep(100);
@@ -463,11 +463,11 @@ public class SequenceTestCase {
         stream2.send(new Object[]{"WSO2", 57.6f, 100});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 2, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 2, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -485,24 +485,24 @@ public class SequenceTestCase {
                 "select e1.price as price1, e2.price as price2, e3.price as price3 " +
                 "insert into OutputStream ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     for (Event event : inEvents) {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{55.6f, null, 55.0f}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{55.6f, null, 55.0f}, event.getData());
                                 break;
                             case 2:
-                                Assert.assertArrayEquals(new Object[]{55.0f, 57.6f, null}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{55.0f, 57.6f, null}, event.getData());
                                 break;
                             default:
-                                Assert.assertSame(2, inEventCount);
+                                AssertJUnit.assertSame(2, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -515,10 +515,10 @@ public class SequenceTestCase {
 
         });
 
-        InputHandler stream1 = executionPlanRuntime.getInputHandler("Stream1");
-        InputHandler stream2 = executionPlanRuntime.getInputHandler("Stream2");
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stream2.send(new Object[]{"WSO2", 59.6f, 100});
         Thread.sleep(100);
@@ -529,11 +529,11 @@ public class SequenceTestCase {
         stream2.send(new Object[]{"WSO2", 57.6f, 100});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 2, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 2, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -551,24 +551,24 @@ public class SequenceTestCase {
                 "select e1.price as price1, e2.price as price2, e3.price as price3 " +
                 "insert into OutputStream ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     for (Event event : inEvents) {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{55.6f, 57.6f, null}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{55.6f, 57.6f, null}, event.getData());
                                 break;
                             case 2:
-                                Assert.assertArrayEquals(new Object[]{57.6f, null, 55.7f}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{57.6f, null, 55.7f}, event.getData());
                                 break;
                             default:
-                                Assert.assertSame(2, inEventCount);
+                                AssertJUnit.assertSame(2, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -581,10 +581,10 @@ public class SequenceTestCase {
 
         });
 
-        InputHandler stream1 = executionPlanRuntime.getInputHandler("Stream1");
-        InputHandler stream2 = executionPlanRuntime.getInputHandler("Stream2");
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stream2.send(new Object[]{"WSO2", 59.6f, 100});
         Thread.sleep(100);
@@ -595,11 +595,11 @@ public class SequenceTestCase {
         stream2.send(new Object[]{"IBM", 55.7f, 100});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 2, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 2, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -617,21 +617,21 @@ public class SequenceTestCase {
                 "select e1[0].price as price1, e1[1].price as price2, e2.price as price3 " +
                 "insert into OutputStream ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     for (Event event : inEvents) {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{55.6f, null, 57.6f}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{55.6f, null, 57.6f}, event.getData());
                                 break;
                             default:
-                                Assert.assertSame(1, inEventCount);
+                                AssertJUnit.assertSame(1, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -644,10 +644,10 @@ public class SequenceTestCase {
 
         });
 
-        InputHandler stream1 = executionPlanRuntime.getInputHandler("Stream1");
-        InputHandler stream2 = executionPlanRuntime.getInputHandler("Stream2");
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stream1.send(new Object[]{"WSO2", 59.6f, 100});
         Thread.sleep(100);
@@ -656,11 +656,11 @@ public class SequenceTestCase {
         stream1.send(new Object[]{"WSO2", 57.6f, 100});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 1, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 1, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -675,26 +675,28 @@ public class SequenceTestCase {
         String query = "" +
                 "@info(name = 'query1') " +
                 "from every e1=Stream1[price>20], " +
-                "   e2=Stream1[(e2[last].price is null and price>=e1.price) or ((not (e2[last].price is null)) and price>=e2[last].price)]+, " +
+                "   e2=Stream1[(e2[last].price is null and price>=e1.price) or ((not (e2[last].price is null)) and " +
+                "price>=e2[last].price)]+, " +
                 "   e3=Stream1[price<e2[last].price] " +
                 "select e1.price as price1, e2[0].price as price2, e2[1].price as price3, e3.price as price4 " +
                 "insert into OutputStream ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     for (Event event : inEvents) {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{29.6f, 35.6f, 57.6f, 47.6f}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{29.6f, 35.6f, 57.6f, 47.6f},
+                                        event.getData());
                                 break;
                             default:
-                                Assert.assertSame(1, inEventCount);
+                                AssertJUnit.assertSame(1, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -707,10 +709,10 @@ public class SequenceTestCase {
 
         });
 
-        InputHandler stream1 = executionPlanRuntime.getInputHandler("Stream1");
-        InputHandler stream2 = executionPlanRuntime.getInputHandler("Stream2");
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stream1.send(new Object[]{"WSO2", 29.6f, 100});
         Thread.sleep(100);
@@ -721,11 +723,11 @@ public class SequenceTestCase {
         stream1.send(new Object[]{"IBM", 47.6f, 100});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 1, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 1, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -743,21 +745,21 @@ public class SequenceTestCase {
                 "select e1.price as price, e1.symbol as symbol, e2.count as count " +
                 "insert into OutputStream ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     for (Event event : inEvents) {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{76.6f, "IBM", 20}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{76.6f, "IBM", 20}, event.getData());
                                 break;
                             default:
-                                Assert.assertSame(1, inEventCount);
+                                AssertJUnit.assertSame(1, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -770,10 +772,10 @@ public class SequenceTestCase {
 
         });
 
-        InputHandler stockStream = executionPlanRuntime.getInputHandler("StockStream");
-        InputHandler twitterStream = executionPlanRuntime.getInputHandler("TwitterStream");
+        InputHandler stockStream = siddhiAppRuntime.getInputHandler("StockStream");
+        InputHandler twitterStream = siddhiAppRuntime.getInputHandler("TwitterStream");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stockStream.send(new Object[]{"IBM", 75.6f, 105});
         stockStream.send(new Object[]{"GOOG", 51f, 101});
@@ -785,11 +787,11 @@ public class SequenceTestCase {
         twitterStream.send(new Object[]{"GOOG", 20});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 1, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 1, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
 
@@ -804,25 +806,26 @@ public class SequenceTestCase {
                 "define stream TwitterStream (symbol string, count int); ";
         String query = "" +
                 "@info(name = 'query1') " +
-                "from every e1=StockStream[ price >= 50 and volume > 100 ], e2=StockStream[price <= 40]*, e3=StockStream[volume <= 70] " +
+                "from every e1=StockStream[ price >= 50 and volume > 100 ], e2=StockStream[price <= 40]*, " +
+                "e3=StockStream[volume <= 70] " +
                 "select e1.symbol as symbol1, e2[0].symbol as symbol2, e3.symbol as symbol3 " +
                 "insert into OutputStream ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     for (Event event : inEvents) {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{"IBM", "GOOG", "WSO2"}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"IBM", "GOOG", "WSO2"}, event.getData());
                                 break;
                             default:
-                                Assert.assertSame(1, inEventCount);
+                                AssertJUnit.assertSame(1, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -835,10 +838,10 @@ public class SequenceTestCase {
 
         });
 
-        InputHandler stockStream = executionPlanRuntime.getInputHandler("StockStream");
-        InputHandler twitterStream = executionPlanRuntime.getInputHandler("TwitterStream");
+        InputHandler stockStream = siddhiAppRuntime.getInputHandler("StockStream");
+        InputHandler twitterStream = siddhiAppRuntime.getInputHandler("TwitterStream");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stockStream.send(new Object[]{"IBM", 75.6f, 105});
         Thread.sleep(100);
@@ -846,11 +849,11 @@ public class SequenceTestCase {
         stockStream.send(new Object[]{"WSO2", 176.6f, 65});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 1, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 1, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -864,31 +867,32 @@ public class SequenceTestCase {
                 "define stream StockStream2 (symbol string, price float, volume int); ";
         String query = "" +
                 "@info(name = 'query1') " +
-                "from every e1=StockStream1[ price >= 50 and volume > 100 ], e2=StockStream2[price <= 40]*, e3=StockStream2[volume <= 70] " +
+                "from every e1=StockStream1[ price >= 50 and volume > 100 ], e2=StockStream2[price <= 40]*, " +
+                "e3=StockStream2[volume <= 70] " +
                 "select e3.symbol as symbol1, e2[0].symbol as symbol2, e3.volume as volume " +
                 "insert into OutputStream ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     for (Event event : inEvents) {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{"WSO2", "GOOG", 65}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"WSO2", "GOOG", 65}, event.getData());
                                 break;
                             case 2:
-                                Assert.assertArrayEquals(new Object[]{"WSO2", "DDD", 60}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"WSO2", "DDD", 60}, event.getData());
                                 break;
                             case 3:
-                                Assert.assertArrayEquals(new Object[]{"DOX", null, 25}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"DOX", null, 25}, event.getData());
                                 break;
                             default:
-                                Assert.assertSame(3, inEventCount);
+                                AssertJUnit.assertSame(3, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -901,10 +905,10 @@ public class SequenceTestCase {
 
         });
 
-        InputHandler stockStream1 = executionPlanRuntime.getInputHandler("StockStream1");
-        InputHandler stockStream2 = executionPlanRuntime.getInputHandler("StockStream2");
+        InputHandler stockStream1 = siddhiAppRuntime.getInputHandler("StockStream1");
+        InputHandler stockStream2 = siddhiAppRuntime.getInputHandler("StockStream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stockStream1.send(new Object[]{"IBM", 75.6f, 105});
         Thread.sleep(100);
@@ -920,11 +924,11 @@ public class SequenceTestCase {
         stockStream2.send(new Object[]{"DOX", 16.2f, 25});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 3, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 3, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -938,28 +942,29 @@ public class SequenceTestCase {
                 "define stream StockStream2 (symbol string, price float, volume int); ";
         String query = "" +
                 "@info(name = 'query1') " +
-                "from every e1=StockStream1[ price >= 50 and volume > 100 ], e2=StockStream2[e1.symbol != 'AMBA']*, e3=StockStream2[volume <= 70] " +
+                "from every e1=StockStream1[ price >= 50 and volume > 100 ], e2=StockStream2[e1.symbol != 'AMBA']*, " +
+                "e3=StockStream2[volume <= 70] " +
                 "select e3.symbol as symbol1, e2[0].symbol as symbol2, e3.volume as volume " +
                 "insert into OutputStream ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     for (Event event : inEvents) {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{"WSO2", "GOOG", 65}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"WSO2", "GOOG", 65}, event.getData());
                                 break;
                             case 2:
-                                Assert.assertArrayEquals(new Object[]{"DOX", null, 25}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"DOX", null, 25}, event.getData());
                                 break;
                             default:
-                                Assert.assertSame(2, inEventCount);
+                                AssertJUnit.assertSame(2, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -972,10 +977,10 @@ public class SequenceTestCase {
 
         });
 
-        InputHandler stockStream1 = executionPlanRuntime.getInputHandler("StockStream1");
-        InputHandler stockStream2 = executionPlanRuntime.getInputHandler("StockStream2");
+        InputHandler stockStream1 = siddhiAppRuntime.getInputHandler("StockStream1");
+        InputHandler stockStream2 = siddhiAppRuntime.getInputHandler("StockStream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stockStream1.send(new Object[]{"IBM", 75.6f, 105});
         Thread.sleep(100);
@@ -991,11 +996,11 @@ public class SequenceTestCase {
         stockStream2.send(new Object[]{"DOX", 16.2f, 25});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 2, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 2, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -1013,24 +1018,24 @@ public class SequenceTestCase {
                 "select e3.symbol as symbol1, e2[0].symbol as symbol2, e3.volume as volume " +
                 "insert into OutputStream ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     for (Event event : inEvents) {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{"WSO2", "GOOG", 65}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"WSO2", "GOOG", 65}, event.getData());
                                 break;
                             case 2:
-                                Assert.assertArrayEquals(new Object[]{"DOX", null, 25}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{"DOX", null, 25}, event.getData());
                                 break;
                             default:
-                                Assert.assertSame(2, inEventCount);
+                                AssertJUnit.assertSame(2, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -1043,10 +1048,10 @@ public class SequenceTestCase {
 
         });
 
-        InputHandler stockStream1 = executionPlanRuntime.getInputHandler("StockStream1");
-        InputHandler stockStream2 = executionPlanRuntime.getInputHandler("StockStream2");
+        InputHandler stockStream1 = siddhiAppRuntime.getInputHandler("StockStream1");
+        InputHandler stockStream2 = siddhiAppRuntime.getInputHandler("StockStream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stockStream1.send(new Object[]{"IBM", 75.6f, 105});
         Thread.sleep(100);
@@ -1062,11 +1067,11 @@ public class SequenceTestCase {
         stockStream2.send(new Object[]{"DOX", 16.2f, 25});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 2, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 2, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -1081,26 +1086,28 @@ public class SequenceTestCase {
         String query = "" +
                 "@info(name = 'query1') " +
                 "from every e1=Stream1[price>20], " +
-                "   e2=Stream1[((e2[last].price is null) and price>=e1.price) or ((not (e2[last].price is null)) and price>=e2[last].price)]+, " +
+                "   e2=Stream1[((e2[last].price is null) and price>=e1.price) or ((not (e2[last].price is null)) and " +
+                "price>=e2[last].price)]+, " +
                 "   e3=Stream1[price<e2[last].price] " +
                 "select e1.price as price1, e2[0].price as price2, e2[1].price as price3, e3.price as price4 " +
                 "insert into OutputStream ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     for (Event event : inEvents) {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{25.0f, 35.6f, 57.6f, 47.6f}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{25.0f, 35.6f, 57.6f, 47.6f},
+                                        event.getData());
                                 break;
                             default:
-                                Assert.assertSame(1, inEventCount);
+                                AssertJUnit.assertSame(1, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -1113,10 +1120,10 @@ public class SequenceTestCase {
 
         });
 
-        InputHandler stream1 = executionPlanRuntime.getInputHandler("Stream1");
-        InputHandler stream2 = executionPlanRuntime.getInputHandler("Stream2");
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stream1.send(new Object[]{"WSO2", 29.6f, 100});
         Thread.sleep(100);
@@ -1129,11 +1136,11 @@ public class SequenceTestCase {
         stream1.send(new Object[]{"IBM", 47.6f, 100});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 1, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 1, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -1148,26 +1155,27 @@ public class SequenceTestCase {
         String query = "" +
                 "@info(name = 'query1') " +
                 "from every e1=Stream1[price>20], " +
-                "   e2=Stream1[((e2[last].price is null) and price>=e1.price) or ((not (e2[last].price is null)) and price>=e2[last].price)]+, " +
+                "   e2=Stream1[((e2[last].price is null) and price>=e1.price) or ((not (e2[last].price is null)) and " +
+                "price>=e2[last].price)]+, " +
                 "   e3=Stream1[price<e2[last].price] " +
                 "select e1.price as price1, e2[0].price as price2, e2[1].price as price3, e3.price as price4 " +
                 "insert into OutputStream ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     for (Event event : inEvents) {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{25.0f, 40.0f, null, 35.0f}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{25.0f, 40.0f, null, 35.0f}, event.getData());
                                 break;
                             default:
-                                Assert.assertSame(1, inEventCount);
+                                AssertJUnit.assertSame(1, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -1180,10 +1188,10 @@ public class SequenceTestCase {
 
         });
 
-        InputHandler stream1 = executionPlanRuntime.getInputHandler("Stream1");
-        InputHandler stream2 = executionPlanRuntime.getInputHandler("Stream2");
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stream1.send(new Object[]{"WSO2", 25.0f, 100});
         Thread.sleep(100);
@@ -1192,11 +1200,11 @@ public class SequenceTestCase {
         stream1.send(new Object[]{"WSO2", 35.0f, 100});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 1, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 1, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -1211,32 +1219,34 @@ public class SequenceTestCase {
         String query = "" +
                 "@info(name = 'query1') " +
                 "from every e1=Stream1[price>20], " +
-                "   e2=Stream1[((e2[last].price is null) and price>=e1.price) or ((not (e2[last].price is null)) and price>=e2[last].price)]+, " +
+                "   e2=Stream1[((e2[last].price is null) and price>=e1.price) or ((not (e2[last].price is null)) and " +
+                "price>=e2[last].price)]+, " +
                 "   e3=Stream1[price<e2[last].price] " +
                 "select e1.price as price1, e2[0].price as price2, e2[1].price as price3, e3.price as price4 " +
                 "insert into OutputStream ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     for (Event event : inEvents) {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{25.0f, 35.6f, null, 25.5f}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{25.0f, 35.6f, null, 25.5f}, event.getData());
                                 break;
                             case 2:
-                                Assert.assertArrayEquals(new Object[]{25.5f, 57.6f, 58.6f, 47.6f}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{25.5f, 57.6f, 58.6f, 47.6f},
+                                        event.getData());
                                 break;
                             case 3:
-                                Assert.assertArrayEquals(new Object[]{27.6f, 49.6f, null, 45.6f}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{27.6f, 49.6f, null, 45.6f}, event.getData());
                                 break;
                             default:
-                                Assert.assertSame(3, inEventCount);
+                                AssertJUnit.assertSame(3, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -1249,10 +1259,10 @@ public class SequenceTestCase {
 
         });
 
-        InputHandler stream1 = executionPlanRuntime.getInputHandler("Stream1");
-        InputHandler stream2 = executionPlanRuntime.getInputHandler("Stream2");
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stream1.send(new Object[]{"WSO2", 29.6f, 100});
         Thread.sleep(100);
@@ -1275,11 +1285,11 @@ public class SequenceTestCase {
         stream1.send(new Object[]{"IBM", 45.6f, 100});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 3, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 3, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -1294,26 +1304,29 @@ public class SequenceTestCase {
         String query = "" +
                 "@info(name = 'query1') " +
                 "from every e1=Stream1[price>20], " +
-                "   e2=Stream1[((e2[last].price is null) and price>=e1.price) or ((not (e2[last].price is null)) and price>=e2[last].price)]+, " +
+                "   e2=Stream1[((e2[last].price is null) and price>=e1.price) or ((not (e2[last].price is null)) and " +
+                "price>=e2[last].price)]+, " +
                 "   e3=Stream1[price<e2[last].price] " +
-                "select e1.price as price1, e2[0].price as price2, e2[last-2].price as price3, e2[last-1].price as price4, e2[last].price as price5, e3.price as price6, e2[last-20].price as price7 " +
+                "select e1.price as price1, e2[0].price as price2, e2[last-2].price as price3, e2[last-1].price as " +
+                "price4, e2[last].price as price5, e3.price as price6, e2[last-20].price as price7 " +
                 "insert into OutputStream ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     for (Event event : inEvents) {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{25.0f, 35.6f, 45.5f, 57.6f, 58.6f, 47.6f, null}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{25.0f, 35.6f, 45.5f, 57.6f, 58.6f, 47.6f,
+                                        null}, event.getData());
                                 break;
                             default:
-                                Assert.assertSame(1, inEventCount);
+                                AssertJUnit.assertSame(1, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -1326,10 +1339,10 @@ public class SequenceTestCase {
 
         });
 
-        InputHandler stream1 = executionPlanRuntime.getInputHandler("Stream1");
-        InputHandler stream2 = executionPlanRuntime.getInputHandler("Stream2");
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stream1.send(new Object[]{"WSO2", 29.6f, 100});
         Thread.sleep(100);
@@ -1348,11 +1361,11 @@ public class SequenceTestCase {
         stream1.send(new Object[]{"IBM", 45.6f, 100});
         Thread.sleep(10000);
 
-        Assert.assertEquals("Number of success events", 1, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 1, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -1367,26 +1380,29 @@ public class SequenceTestCase {
         String query = "" +
                 "@info(name = 'query1') " +
                 "from every e1=Stream1[price>20], " +
-                "   e2=Stream1[((e2[last].price is null) and price>=e1.price) or ((not (e2[last].price is null)) and price>=e2[last].price)]+, " +
+                "   e2=Stream1[((e2[last].price is null) and price>=e1.price) or ((not (e2[last].price is null)) and " +
+                "price>=e2[last].price)]+, " +
                 "   e3=Stream1[price<e2[last].price and price>e2[last-1].price] " +
-                "select e1.price as price1, e2[0].price as price2, e2[last-2].price as price3, e2[last-1].price as price4, e2[last].price as price5, e3.price as price6, e2[last-20].price as price7 " +
+                "select e1.price as price1, e2[0].price as price2, e2[last-2].price as price3, e2[last-1].price as " +
+                "price4, e2[last].price as price5, e3.price as price6, e2[last-20].price as price7 " +
                 "insert into OutputStream ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     for (Event event : inEvents) {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{25.0f, 35.6f, 45.5f, 57.6f, 58.6f, 57.7f, null}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{25.0f, 35.6f, 45.5f, 57.6f, 58.6f, 57.7f,
+                                        null}, event.getData());
                                 break;
                             default:
-                                Assert.assertSame(1, inEventCount);
+                                AssertJUnit.assertSame(1, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -1399,10 +1415,10 @@ public class SequenceTestCase {
 
         });
 
-        InputHandler stream1 = executionPlanRuntime.getInputHandler("Stream1");
-        InputHandler stream2 = executionPlanRuntime.getInputHandler("Stream2");
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stream1.send(new Object[]{"WSO2", 29.6f, 100});
         Thread.sleep(100);
@@ -1427,11 +1443,11 @@ public class SequenceTestCase {
         stream1.send(new Object[]{"IBM", 59.7f, 100});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 1, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 1, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -1448,27 +1464,30 @@ public class SequenceTestCase {
                 "from every e1=Stream1[price>20], " +
                 "   e2=Stream1[price>=e2[last].price or price>=e1.price ]+, " +
                 "   e3=Stream1[price<e2[last].price]" +
-                "select e1.price as price1, e2[0].price as price2, e2[last-2].price as price3, e2[last-1].price as price4, e2[last].price as price5, e3.price as price6 " +
+                "select e1.price as price1, e2[0].price as price2, e2[last-2].price as price3, e2[last-1].price as " +
+                "price4, e2[last].price as price5, e3.price as price6 " +
                 "insert into OutputStream ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     for (Event event : inEvents) {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{25.0f, 35.6f, null, null, 35.6f, 29.5f}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{25.0f, 35.6f, null, null, 35.6f, 29.5f},
+                                        event.getData());
                                 break;
                             case 2:
-                                Assert.assertArrayEquals(new Object[]{29.5f, 57.6f, null, 57.6f, 58.6f, 57.7f}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{29.5f, 57.6f, null, 57.6f, 58.6f, 57.7f},
+                                        event.getData());
                                 break;
                             default:
-                                Assert.assertSame(2, inEventCount);
+                                AssertJUnit.assertSame(2, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -1481,10 +1500,10 @@ public class SequenceTestCase {
 
         });
 
-        InputHandler stream1 = executionPlanRuntime.getInputHandler("Stream1");
-        InputHandler stream2 = executionPlanRuntime.getInputHandler("Stream2");
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stream1.send(new Object[]{"WSO2", 29.6f, 100});
         Thread.sleep(100);
@@ -1503,11 +1522,11 @@ public class SequenceTestCase {
         stream1.send(new Object[]{"IBM", 45.6f, 100});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 2, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 2, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
 
@@ -1523,26 +1542,29 @@ public class SequenceTestCase {
         String query = "" +
                 "@info(name = 'query1') " +
                 "from every e1=Stream1[price>20], " +
-                "   e2=Stream1[(price>=e2[last].price and (not (e2[last-1].price is null)) and price>=e2[last-1].price+5)  or ((e2[last-1].price is null) and price>=e1.price+5 )]+, " +
+                "   e2=Stream1[(price>=e2[last].price and (not (e2[last-1].price is null)) and price>=e2[last-1]" +
+                ".price+5)  or ((e2[last-1].price is null) and price>=e1.price+5 )]+, " +
                 "   e3=Stream1[price<e2[last].price]" +
-                "select e1.price as price1, e2[0].price as price2, e2[last-2].price as price3, e2[last-1].price as price4, e2[last].price as price5, e3.price as price6 " +
+                "select e1.price as price1, e2[0].price as price2, e2[last-2].price as price3, e2[last-1].price as " +
+                "price4, e2[last].price as price5, e3.price as price6 " +
                 "insert into OutputStream ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     for (Event event : inEvents) {
                         inEventCount++;
                         switch (inEventCount) {
                             case 1:
-                                Assert.assertArrayEquals(new Object[]{43.6f, 57.7f, null, 57.7f, 58.7f, 45.6f}, event.getData());
+                                AssertJUnit.assertArrayEquals(new Object[]{43.6f, 57.7f, null, 57.7f, 58.7f, 45.6f},
+                                        event.getData());
                                 break;
                             default:
-                                Assert.assertSame(1, inEventCount);
+                                AssertJUnit.assertSame(1, inEventCount);
                         }
                     }
                     eventArrived = true;
@@ -1555,10 +1577,10 @@ public class SequenceTestCase {
 
         });
 
-        InputHandler stream1 = executionPlanRuntime.getInputHandler("Stream1");
-        InputHandler stream2 = executionPlanRuntime.getInputHandler("Stream2");
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         stream1.send(new Object[]{"WSO2", 29.6f, 100});
         Thread.sleep(100);
@@ -1579,11 +1601,488 @@ public class SequenceTestCase {
         stream1.send(new Object[]{"IBM", 45.6f, 100});
         Thread.sleep(100);
 
-        Assert.assertEquals("Number of success events", 1, inEventCount);
-        Assert.assertEquals("Number of remove events", 0, removeEventCount);
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of success events", 1, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
+    }
+
+    @Test
+    public void testQuery25() throws InterruptedException {
+        log.info("testQuery25 - OUT 1");
+
+        SiddhiManager siddhiManager = new SiddhiManager();
+
+        String streams = "" +
+                "define stream Stream1 (symbol string, price float, volume int); " +
+                "define stream Stream2 (symbol string, price float, volume int); " +
+                "define stream Stream3 (symbol string, price float, volume int); ";
+
+        String query = "" +
+                "@info(name = 'query1') " +
+                "from e1=Stream1[price >20], e2=Stream2['IBM' == symbol] and " +
+                "e3=Stream3['WSO2' == symbol]" +
+                "select e1.price as price1, e2.price as price2, e3.price as price3 " +
+                "insert into OutputStream ;";
+
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
+
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
+            @Override
+            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timeStamp, inEvents, removeEvents);
+                if (inEvents != null) {
+                    inEventCount = inEventCount + inEvents.length;
+                    switch (inEventCount) {
+                        case 1:
+                            AssertJUnit.assertArrayEquals(new Object[]{25.5f, 45.5f, 46.56f}, inEvents[0].getData());
+                            break;
+                        default:
+                            AssertJUnit.assertEquals("Number of success events", 1, inEventCount);
+                    }
+                    eventArrived = true;
+                }
+                if (removeEvents != null) {
+                    removeEventCount = removeEventCount + removeEvents.length;
+                }
+                eventArrived = true;
+            }
+
+        });
+
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
+        InputHandler stream3 = siddhiAppRuntime.getInputHandler("Stream3");
+
+        siddhiAppRuntime.start();
+
+        stream1.send(new Object[]{"IBM", 25.5f, 100});
+        Thread.sleep(100);
+        stream2.send(new Object[]{"IBM", 45.5f, 100});
+        Thread.sleep(100);
+        stream3.send(new Object[]{"WSO2", 46.56f, 100});
+        Thread.sleep(100);
+
+        AssertJUnit.assertEquals("Number of success events", 1, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
+
+        siddhiAppRuntime.shutdown();
+    }
+
+    @Test
+    public void testQuery26() throws InterruptedException {
+        log.info("testQuery26 - OUT 1");
+
+        SiddhiManager siddhiManager = new SiddhiManager();
+
+        String streams = "" +
+                "define stream Stream1 (symbol string, price float, volume int); " +
+                "define stream Stream2 (symbol string, price float, volume int); " +
+                "define stream Stream3 (symbol string, price float, volume int); ";
+
+        String query = "" +
+                "@info(name = 'query1') " +
+                "from e1=Stream1[price >20], e2=Stream2['IBM' == symbol] and " +
+                "e3=Stream3['WSO2' == symbol]" +
+                "select e1.price as price1, e2.price as price2, e3.price as price3 " +
+                "insert into OutputStream ;";
+
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
+
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
+            @Override
+            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timeStamp, inEvents, removeEvents);
+                if (inEvents != null) {
+                    inEventCount = inEventCount + inEvents.length;
+                    switch (inEventCount) {
+                        case 1:
+                            AssertJUnit.assertArrayEquals(new Object[]{25.5f, 45.5f, 46.56f}, inEvents[0].getData());
+                            break;
+                        default:
+                            AssertJUnit.assertEquals("Number of success events", 1, inEventCount);
+                    }
+                    eventArrived = true;
+                }
+                if (removeEvents != null) {
+                    removeEventCount = removeEventCount + removeEvents.length;
+                }
+                eventArrived = true;
+            }
+
+        });
+
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
+        InputHandler stream3 = siddhiAppRuntime.getInputHandler("Stream3");
+
+        siddhiAppRuntime.start();
+
+        stream1.send(new Object[]{"IBM", 25.5f, 100});
+        Thread.sleep(100);
+        stream2.send(new Object[]{"IBM", 45.5f, 100});
+        Thread.sleep(100);
+        stream3.send(new Object[]{"WSO2", 46.56f, 100});
+        Thread.sleep(100);
+
+        AssertJUnit.assertEquals("Number of success events", 1, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
+
+        siddhiAppRuntime.shutdown();
+    }
+
+    @Test
+    public void testQuery27() throws InterruptedException {
+        log.info("testQuery27 - OUT 1");
+
+        SiddhiManager siddhiManager = new SiddhiManager();
+
+        String streams = "" +
+                "define stream Stream1 (symbol string, price float, volume int); " +
+                "define stream Stream2 (symbol string, price float, volume int); " +
+                "define stream Stream3 (symbol string, price float, volume int); ";
+
+        String query = "" +
+                "@info(name = 'query1') " +
+                "from e1=Stream1[price >20], e2=Stream2['IBM' == symbol] or " +
+                "e3=Stream3['WSO2' == symbol]" +
+                "select e1.price as price1, e2.price as price2, e3.price as price3 " +
+                "insert into OutputStream ;";
+
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
+
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
+            @Override
+            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timeStamp, inEvents, removeEvents);
+                if (inEvents != null) {
+                    inEventCount = inEventCount + inEvents.length;
+                    switch (inEventCount) {
+                        case 1:
+                            AssertJUnit.assertArrayEquals(new Object[]{59.65f, 45.5f, null}, inEvents[0].getData());
+                            break;
+                        default:
+                            AssertJUnit.assertEquals("Number of success events", 1, inEventCount);
+                    }
+                    eventArrived = true;
+                }
+                if (removeEvents != null) {
+                    removeEventCount = removeEventCount + removeEvents.length;
+                }
+                eventArrived = true;
+            }
+
+        });
+
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
+
+        siddhiAppRuntime.start();
+
+        stream1.send(new Object[]{"IBM", 59.65f, 100});
+        Thread.sleep(100);
+        stream2.send(new Object[]{"IBM", 45.5f, 100});
+        Thread.sleep(100);
+
+        AssertJUnit.assertEquals("Number of success events", 1, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
+
+        siddhiAppRuntime.shutdown();
+    }
+
+    @Test
+    public void testQuery28() throws InterruptedException {
+        log.info("testQuery28 - OUT 1");
+
+        SiddhiManager siddhiManager = new SiddhiManager();
+
+        String streams = "" +
+                "define stream Stream1 (symbol string, price float, volume int); " +
+                "define stream Stream2 (symbol string, price float, volume int); " +
+                "define stream Stream3 (symbol string, price float, volume int); ";
+
+        String query = "" +
+                "@info(name = 'query1') " +
+                "from e1=Stream1[price >20], e2=Stream2['IBM' == symbol] and " +
+                "e3=Stream3['WSO2' == symbol]" +
+                "select e1.price as price1, e2.price as price2, e3.price as price3 " +
+                "insert into OutputStream ;";
+
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
+
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
+            @Override
+            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timeStamp, inEvents, removeEvents);
+                if (inEvents != null) {
+                    inEventCount = inEventCount + inEvents.length;
+                    eventArrived = true;
+                }
+                if (removeEvents != null) {
+                    removeEventCount = removeEventCount + removeEvents.length;
+                }
+                eventArrived = true;
+            }
+
+        });
+
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
+        InputHandler stream3 = siddhiAppRuntime.getInputHandler("Stream3");
+
+        siddhiAppRuntime.start();
+
+
+        stream1.send(new Object[]{"IBM", 59.65f, 100});
+        Thread.sleep(100);
+        stream2.send(new Object[]{"IBM", 45.5f, 100});
+        Thread.sleep(100);
+        stream3.send(new Object[]{"WSO2", 46.56f, 100});
+        Thread.sleep(100);
+
+        AssertJUnit.assertEquals("Number of success events", 1, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
+
+        siddhiAppRuntime.shutdown();
+    }
+
+    @Test
+    public void testQuery29() throws InterruptedException {
+        log.info("testSequence29 - OUT 1");
+
+        SiddhiManager siddhiManager = new SiddhiManager();
+
+        String streams = "" +
+                "define stream Stream1 (symbol string, price float, volume int); " +
+                "define stream Stream2 (symbol string, price float, volume int); ";
+        String query = "" +
+                "@info(name = 'query1') " +
+                "from e1=Stream1[price>20],e2=Stream2[price>e1.price] " +
+                "select e1.symbol as symbol1, e2.symbol as symbol2 " +
+                "insert into OutputStream ;";
+
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
+
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
+            @Override
+            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timeStamp, inEvents, removeEvents);
+                if (inEvents != null) {
+                    inEventCount = inEventCount + inEvents.length;
+                    AssertJUnit.assertArrayEquals(new Object[]{"WSO2", "IBM"}, inEvents[0].getData());
+                    eventArrived = true;
+                }
+                if (removeEvents != null) {
+                    removeEventCount = removeEventCount + removeEvents.length;
+                }
+                eventArrived = true;
+            }
+
+        });
+
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
+
+        siddhiAppRuntime.start();
+
+        stream1.send(new Object[]{"WSO2", 55.6f, 100});
+        Thread.sleep(100);
+        stream2.send(new Object[]{"IBM", 55.7f, 100});
+        Thread.sleep(100);
+        stream1.send(new Object[]{"ORACLE", 55.6f, 100});
+        Thread.sleep(100);
+        stream2.send(new Object[]{"GOOGLE", 55.7f, 100});
+        Thread.sleep(100);
+
+        AssertJUnit.assertEquals("Number of success events", 1, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
+
+        siddhiAppRuntime.shutdown();
+    }
+
+    @Test
+    public void testQuery30() throws InterruptedException {
+        log.info("testSequence30 - OUT 2");
+
+        SiddhiManager siddhiManager = new SiddhiManager();
+
+        String streams = "" +
+                "define stream Stream1 (symbol string, price float, volume int); " +
+                "define stream Stream2 (symbol string, price float, volume int); ";
+        String query = "" +
+                "@info(name = 'query1') " +
+                "from every e1=Stream1[price>20],e2=Stream2[price>e1.price] " +
+                "select e1.symbol as symbol1, e2.symbol as symbol2 " +
+                "insert into OutputStream ;";
+
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
+
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
+            @Override
+            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timeStamp, inEvents, removeEvents);
+                if (inEvents != null) {
+                    inEventCount = inEventCount + inEvents.length;
+                    eventArrived = true;
+                    switch (inEventCount) {
+                        case 1:
+                            AssertJUnit.assertArrayEquals(new Object[]{"WSO2", "IBM"}, inEvents[0].getData());
+                            break;
+                        case 2:
+                            AssertJUnit.assertArrayEquals(new Object[]{"MICROSOFT", "GOOGLE"}, inEvents[0].getData());
+                            break;
+                    }
+                }
+                if (removeEvents != null) {
+                    removeEventCount = removeEventCount + removeEvents.length;
+                }
+                eventArrived = true;
+            }
+
+        });
+
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
+
+        siddhiAppRuntime.start();
+
+        stream1.send(new Object[]{"WSO2", 55.6f, 100});
+        Thread.sleep(100);
+        stream2.send(new Object[]{"IBM", 55.7f, 100});
+        Thread.sleep(100);
+        stream1.send(new Object[]{"ORACLE", 55.6f, 100});
+        Thread.sleep(100);
+        stream1.send(new Object[]{"MICROSOFT", 55.8f, 100});
+        Thread.sleep(100);
+        stream2.send(new Object[]{"GOOGLE", 55.9f, 100});
+        Thread.sleep(100);
+
+        AssertJUnit.assertEquals("Number of success events", 2, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
+
+        siddhiAppRuntime.shutdown();
+    }
+
+    @Test
+    public void testQuery31() throws InterruptedException {
+        log.info("testSequence31 - OUT 0");
+
+        SiddhiManager siddhiManager = new SiddhiManager();
+
+        String streams = "" +
+                "define stream Stream1 (symbol string, price float, volume int); " +
+                "define stream Stream2 (symbol string, price float, volume int); ";
+        String query = "" +
+                "@info(name = 'query1') " +
+                "from e1=Stream1[price>20], e2=Stream2[price>e1.price] " +
+                "select e1.symbol as symbol1, e2.symbol as symbol2 " +
+                "insert into OutputStream ;";
+
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
+
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
+            @Override
+            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timeStamp, inEvents, removeEvents);
+                if (inEvents != null) {
+                    inEventCount = inEventCount + inEvents.length;
+                    eventArrived = true;
+                }
+                if (removeEvents != null) {
+                    removeEventCount = removeEventCount + removeEvents.length;
+                }
+                eventArrived = true;
+            }
+
+        });
+
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
+
+        siddhiAppRuntime.start();
+
+        stream1.send(new Object[]{"WSO2", 55.6f, 100});
+        Thread.sleep(100);
+        stream1.send(new Object[]{"GOOG", 57.6f, 100});
+        Thread.sleep(100);
+        stream2.send(new Object[]{"IBM", 65.7f, 100});
+        Thread.sleep(100);
+
+        AssertJUnit.assertEquals("Number of success events", 0, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", false, eventArrived);
+
+        siddhiAppRuntime.shutdown();
+    }
+
+    @Test
+    public void testQuery32() throws InterruptedException {
+        log.info("testQuery32 - OUT 1");
+
+        SiddhiManager siddhiManager = new SiddhiManager();
+
+        String streams = "" +
+                "define stream Stream1 (symbol string, price float, volume int); " +
+                "define stream Stream2 (symbol string, price float, volume int); " +
+                "define stream Stream3 (symbol string, price float, volume int); ";
+
+        String query = "" +
+                "@info(name = 'query1') " +
+                "from e1=Stream1[price >20] and e2=Stream2['IBM' == symbol], " +
+                "e3=Stream3['WSO2' == symbol]" +
+                "select e1.price as price1, e2.price as price2, e3.price as price3 " +
+                "insert into OutputStream ;";
+
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
+
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
+            @Override
+            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timeStamp, inEvents, removeEvents);
+                if (inEvents != null) {
+                    inEventCount = inEventCount + inEvents.length;
+                    switch (inEventCount) {
+                        case 1:
+                            AssertJUnit.assertArrayEquals(new Object[]{25.5f, 45.5f, 46.56f}, inEvents[0].getData());
+                            break;
+                        default:
+                            AssertJUnit.assertEquals("Number of success events", 1, inEventCount);
+                    }
+                    eventArrived = true;
+                }
+                if (removeEvents != null) {
+                    removeEventCount = removeEventCount + removeEvents.length;
+                }
+                eventArrived = true;
+            }
+
+        });
+
+        InputHandler stream1 = siddhiAppRuntime.getInputHandler("Stream1");
+        InputHandler stream2 = siddhiAppRuntime.getInputHandler("Stream2");
+        InputHandler stream3 = siddhiAppRuntime.getInputHandler("Stream3");
+
+        siddhiAppRuntime.start();
+
+        stream1.send(new Object[]{"IBM", 25.5f, 100});
+        Thread.sleep(100);
+        stream2.send(new Object[]{"IBM", 45.5f, 100});
+        Thread.sleep(100);
+        stream3.send(new Object[]{"WSO2", 46.56f, 100});
+        Thread.sleep(100);
+
+        AssertJUnit.assertEquals("Number of success events", 1, inEventCount);
+        AssertJUnit.assertEquals("Number of remove events", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
+
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -1600,14 +2099,15 @@ public class SequenceTestCase {
                 "insert into reclamation_averages;" +
                 "" +
                 "@info(name = 'query2') " +
-                "from a=reclamation_averages[num > 1], b=reclamation_averages[num > a.num and product_id == a.product_id and defect_category == a.defect_category] " +
+                "from a=reclamation_averages[num > 1], b=reclamation_averages[num > a.num and product_id == a" +
+                ".product_id and defect_category == a.defect_category] " +
                 "select a.product_id, a.defect_category, a.num as oldNum, b.num as newNum " +
                 "insert into increased_reclamations;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(streams + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(streams + query);
 
 
-        executionPlanRuntime.addCallback("increased_reclamations", new StreamCallback() {
+        siddhiAppRuntime.addCallback("increased_reclamations", new StreamCallback() {
             @Override
             public void receive(Event[] events) {
                 EventPrinter.print(events);
@@ -1621,12 +2121,12 @@ public class SequenceTestCase {
                                 long oldNum = (Long) event.getData()[2];
                                 long newNum = (Long) event.getData()[3];
 
-                                Assert.assertTrue(product.equals("abc"));
-                                Assert.assertTrue(defectCategory.equals("123"));
-                                Assert.assertTrue(oldNum < newNum);
+                                AssertJUnit.assertTrue(product.equals("abc"));
+                                AssertJUnit.assertTrue(defectCategory.equals("123"));
+                                AssertJUnit.assertTrue(oldNum < newNum);
                                 break;
                             default:
-                                Assert.assertSame(1, inEventCount);
+                                AssertJUnit.assertSame(1, inEventCount);
                         }
                     }
                 }
@@ -1635,9 +2135,9 @@ public class SequenceTestCase {
         });
 
 
-        InputHandler i1 = executionPlanRuntime.getInputHandler("received_reclamations");
+        InputHandler i1 = siddhiAppRuntime.getInputHandler("received_reclamations");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         for (int i = 0; i < 5; i++) {
             i1.send(new Object[]{System.currentTimeMillis(), "abc", "123"});
@@ -1652,9 +2152,9 @@ public class SequenceTestCase {
         }
         Thread.sleep(1000);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
 
-        Assert.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
 
     }
 }

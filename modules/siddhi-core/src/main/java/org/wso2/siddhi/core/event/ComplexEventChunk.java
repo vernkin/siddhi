@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -28,11 +28,12 @@ import java.util.NoSuchElementException;
  */
 public class ComplexEventChunk<E extends ComplexEvent> implements Iterator<E>, Serializable {
 
+    private static final long serialVersionUID = 3185987841726255019L;
     protected E first;
     protected E previousToLastReturned;
     protected E lastReturned;
     protected E last;
-    protected boolean isBatch=false;
+    protected boolean isBatch = false;
 
     public ComplexEventChunk(boolean isBatch) {
         this.isBatch = isBatch;

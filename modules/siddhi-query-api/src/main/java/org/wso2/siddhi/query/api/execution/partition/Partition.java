@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,9 +18,10 @@
 
 package org.wso2.siddhi.query.api.execution.partition;
 
+import org.wso2.siddhi.query.api.SiddhiElement;
 import org.wso2.siddhi.query.api.annotation.Annotation;
 import org.wso2.siddhi.query.api.annotation.Element;
-import org.wso2.siddhi.query.api.exception.ExecutionPlanValidationException;
+import org.wso2.siddhi.query.api.exception.SiddhiAppValidationException;
 import org.wso2.siddhi.query.api.execution.ExecutionElement;
 import org.wso2.siddhi.query.api.execution.query.Query;
 import org.wso2.siddhi.query.api.expression.Expression;
@@ -36,15 +37,22 @@ import java.util.Map;
  * {@linkplain org.wso2.siddhi.query.api.execution.partition.Partition} class is used to represent the definition of
  * a partition for a Siddhi instance.
  */
-public class Partition implements ExecutionElement {
+public class Partition implements ExecutionElement, SiddhiElement {
 
+    private static final long serialVersionUID = 1L;
     private Map<String, PartitionType> partitionTypeMap = new HashMap<String, PartitionType>();
     private List<Query> queryList = new ArrayList<Query>();
     private List<String> queryNameList = new ArrayList<String>();
     private List<Annotation> annotations = new ArrayList<Annotation>();
+    private int[] queryContextStartIndex;
+    private int[] queryContextEndIndex;
 
     public static Partition partition() {
         return new Partition();
+    }
+
+    public static RangePartitionType.RangePartitionProperty range(String partitionKey, Expression condition) {
+        return new RangePartitionType.RangePartitionProperty(partitionKey, condition);
     }
 
     public Map<String, PartitionType> getPartitionTypeMap() {
@@ -70,15 +78,18 @@ public class Partition implements ExecutionElement {
 
     public Partition addQuery(Query query) {
         if (query == null) {
-            throw new ExecutionPlanValidationException("Query should not be null");
+            throw new SiddhiAppValidationException("Query should not be null");
         }
         String name = null;
-        Element element = AnnotationHelper.getAnnotationElement(SiddhiConstants.ANNOTATION_INFO, SiddhiConstants.ANNOTATION_ELEMENT_NAME, query.getAnnotations());
+        Element element = AnnotationHelper.getAnnotationElement(SiddhiConstants.ANNOTATION_INFO, SiddhiConstants
+                .ANNOTATION_ELEMENT_NAME, query.getAnnotations());
         if (element != null) {
             name = element.getValue();
         }
         if (name != null && queryNameList.contains(name)) {
-            throw new ExecutionPlanValidationException("Cannot add Query as another Execution Element already uses its name=" + name + " within the same Partition");
+            throw new SiddhiAppValidationException("Cannot add Query as another Execution Element already uses " +
+                    "its name=" + name + " within the same Partition",
+                    element.getQueryContextStartIndex(), element.getQueryContextEndIndex());
         }
         queryNameList.add(name);
         this.queryList.add(query);
@@ -88,17 +99,16 @@ public class Partition implements ExecutionElement {
     private void addPartitionType(PartitionType partitionType) {
         String partitionedStream = partitionType.getStreamId();
         if (partitionTypeMap.containsKey(partitionedStream)) {
-            throw new ExecutionPlanValidationException("Duplicate partition for Stream " + partitionedStream + "!, " + partitionType.toString() + " cannot be added as " + partitionTypeMap.get(partitionType.getStreamId()) + " already exist.");
+            throw new SiddhiAppValidationException("Duplicate partition for Stream " + partitionedStream + "!, "
+                    + partitionType.toString() + " cannot be added as " + partitionTypeMap.get(partitionType
+                    .getStreamId()) + " already exist.", partitionType.getQueryContextStartIndex(),
+                    partitionType.getQueryContextEndIndex());
         }
         partitionTypeMap.put(partitionType.getStreamId(), partitionType);
     }
 
     public List<Query> getQueryList() {
         return queryList;
-    }
-
-    public static RangePartitionType.RangePartitionProperty range(String partitionKey, Expression condition) {
-        return new RangePartitionType.RangePartitionProperty(partitionKey, condition);
     }
 
     public Partition annotation(Annotation annotation) {
@@ -133,7 +143,8 @@ public class Partition implements ExecutionElement {
         if (annotations != null ? !annotations.equals(partition.annotations) : partition.annotations != null) {
             return false;
         }
-        if (partitionTypeMap != null ? !partitionTypeMap.equals(partition.partitionTypeMap) : partition.partitionTypeMap != null) {
+        if (partitionTypeMap != null ? !partitionTypeMap.equals(partition.partitionTypeMap) : partition
+                .partitionTypeMap != null) {
             return false;
         }
         if (queryList != null ? !queryList.equals(partition.queryList) : partition.queryList != null) {
@@ -149,5 +160,25 @@ public class Partition implements ExecutionElement {
         result = 31 * result + (queryList != null ? queryList.hashCode() : 0);
         result = 31 * result + (annotations != null ? annotations.hashCode() : 0);
         return result;
+    }
+
+    @Override
+    public int[] getQueryContextStartIndex() {
+        return queryContextStartIndex;
+    }
+
+    @Override
+    public void setQueryContextStartIndex(int[] lineAndColumn) {
+        queryContextStartIndex = lineAndColumn;
+    }
+
+    @Override
+    public int[] getQueryContextEndIndex() {
+        return queryContextEndIndex;
+    }
+
+    @Override
+    public void setQueryContextEndIndex(int[] lineAndColumn) {
+        queryContextEndIndex = lineAndColumn;
     }
 }

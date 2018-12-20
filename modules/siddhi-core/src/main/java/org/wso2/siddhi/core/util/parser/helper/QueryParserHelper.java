@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,6 +18,7 @@
 
 package org.wso2.siddhi.core.util.parser.helper;
 
+import org.wso2.siddhi.core.config.SiddhiAppContext;
 import org.wso2.siddhi.core.event.MetaComplexEvent;
 import org.wso2.siddhi.core.event.state.MetaStateEvent;
 import org.wso2.siddhi.core.event.state.MetaStateEventAttribute;
@@ -26,6 +27,8 @@ import org.wso2.siddhi.core.event.state.StateEventPool;
 import org.wso2.siddhi.core.event.stream.MetaStreamEvent;
 import org.wso2.siddhi.core.event.stream.StreamEventCloner;
 import org.wso2.siddhi.core.event.stream.StreamEventPool;
+import org.wso2.siddhi.core.event.stream.populater.ComplexEventPopulater;
+import org.wso2.siddhi.core.event.stream.populater.StreamEventPopulaterFactory;
 import org.wso2.siddhi.core.executor.VariableExpressionExecutor;
 import org.wso2.siddhi.core.query.input.ProcessStreamReceiver;
 import org.wso2.siddhi.core.query.input.stream.StreamRuntime;
@@ -35,15 +38,25 @@ import org.wso2.siddhi.core.query.input.stream.state.StreamPreStateProcessor;
 import org.wso2.siddhi.core.query.processor.Processor;
 import org.wso2.siddhi.core.query.processor.SchedulingProcessor;
 import org.wso2.siddhi.core.query.processor.stream.AbstractStreamProcessor;
+import org.wso2.siddhi.core.util.SiddhiConstants;
+import org.wso2.siddhi.core.util.collection.operator.IncrementalAggregateCompileCondition;
 import org.wso2.siddhi.core.util.lock.LockWrapper;
+import org.wso2.siddhi.core.util.statistics.LatencyTracker;
+import org.wso2.siddhi.core.util.statistics.MemoryUsageTracker;
+import org.wso2.siddhi.core.util.statistics.ThroughputTracker;
 import org.wso2.siddhi.query.api.definition.Attribute;
 
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
-import static org.wso2.siddhi.core.util.SiddhiConstants.*;
+import static org.wso2.siddhi.core.util.SiddhiConstants.BEFORE_WINDOW_DATA_INDEX;
+import static org.wso2.siddhi.core.util.SiddhiConstants.HAVING_STATE;
+import static org.wso2.siddhi.core.util.SiddhiConstants.ON_AFTER_WINDOW_DATA_INDEX;
+import static org.wso2.siddhi.core.util.SiddhiConstants.OUTPUT_DATA_INDEX;
+import static org.wso2.siddhi.core.util.SiddhiConstants.STATE_OUTPUT_DATA_INDEX;
+import static org.wso2.siddhi.core.util.SiddhiConstants.STREAM_ATTRIBUTE_INDEX_IN_TYPE;
+import static org.wso2.siddhi.core.util.SiddhiConstants.STREAM_ATTRIBUTE_TYPE_INDEX;
+import static org.wso2.siddhi.core.util.SiddhiConstants.STREAM_EVENT_CHAIN_INDEX;
+import static org.wso2.siddhi.core.util.SiddhiConstants.UNKNOWN_STATE;
 
 /**
  * Utility class for queryParser to help with QueryRuntime
@@ -56,8 +69,8 @@ public class QueryParserHelper {
             MetaStateEvent metaStateEvent = (MetaStateEvent) metaComplexEvent;
             for (MetaStateEventAttribute attribute : metaStateEvent.getOutputDataAttributes()) {
                 if (attribute != null) {
-                    metaStateEvent.getMetaStreamEvent(attribute.getPosition()[STREAM_EVENT_CHAIN_INDEX]).
-                            addOutputData(attribute.getAttribute());
+                    metaStateEvent.getMetaStreamEvent(attribute.getPosition()[STREAM_EVENT_CHAIN_INDEX])
+                            .addOutputData(attribute.getAttribute());
                 }
             }
             for (MetaStreamEvent metaStreamEvent : metaStateEvent.getMetaStreamEvents()) {
@@ -69,7 +82,7 @@ public class QueryParserHelper {
     }
 
     /**
-     * Helper method to clean/refactor MetaStreamEvent
+     * Helper method to clean/refactor MetaStreamEvent.
      *
      * @param metaStreamEvent MetaStreamEvent
      */
@@ -82,32 +95,15 @@ public class QueryParserHelper {
                 metaStreamEvent.getOnAfterWindowData().remove(attribute);
             }
         }
-        Set<Attribute> duplicateFinder = new HashSet<Attribute>();
-        for (Iterator<Attribute> iterator = metaStreamEvent.getOnAfterWindowData().iterator(); iterator.hasNext(); ) {
-            Attribute attribute = iterator.next();
-            if (attribute != null) {
-                if (duplicateFinder.add(attribute)) {
-                    if (metaStreamEvent.getBeforeWindowData().contains(attribute)) {
-                        metaStreamEvent.getBeforeWindowData().remove(attribute);
-                    }
-                } else {
-                    iterator.remove();
-                }
+        for (Attribute attribute : metaStreamEvent.getOnAfterWindowData()) {
+            if (metaStreamEvent.getBeforeWindowData().contains(attribute)) {
+                metaStreamEvent.getBeforeWindowData().remove(attribute);
             }
         }
-
-        for (Iterator<Attribute> iterator = metaStreamEvent.getBeforeWindowData().iterator(); iterator.hasNext(); ) {
-            Attribute attribute = iterator.next();
-            if (attribute != null) {
-                if (!duplicateFinder.add(attribute)) {
-                    iterator.remove();
-                }
-            }
-        }
-
     }
 
-    public static void updateVariablePosition(MetaComplexEvent metaComplexEvent, List<VariableExpressionExecutor> variableExpressionExecutorList) {
+    public static void updateVariablePosition(MetaComplexEvent metaComplexEvent,
+                                              List<VariableExpressionExecutor> variableExpressionExecutorList) {
 
         for (VariableExpressionExecutor variableExpressionExecutor : variableExpressionExecutorList) {
             int streamEventChainIndex = variableExpressionExecutor.getPosition()[STREAM_EVENT_CHAIN_INDEX];
@@ -118,12 +114,16 @@ public class QueryParserHelper {
                     variableExpressionExecutor.getPosition()[STREAM_ATTRIBUTE_TYPE_INDEX] = STATE_OUTPUT_DATA_INDEX;
                 }
                 variableExpressionExecutor.getPosition()[STREAM_EVENT_CHAIN_INDEX] = UNKNOWN_STATE;
-                variableExpressionExecutor.getPosition()[STREAM_ATTRIBUTE_INDEX] = metaComplexEvent.
-                        getOutputStreamDefinition().getAttributeList().indexOf(variableExpressionExecutor.getAttribute());
+                variableExpressionExecutor.getPosition()[STREAM_ATTRIBUTE_INDEX_IN_TYPE] = metaComplexEvent
+                        .getOutputStreamDefinition().getAttributeList()
+                        .indexOf(variableExpressionExecutor.getAttribute());
                 continue;
-            } else if (metaComplexEvent instanceof MetaStreamEvent && streamEventChainIndex >= 1) { //for VariableExpressionExecutor on Event table
+            } else if (metaComplexEvent instanceof MetaStreamEvent && streamEventChainIndex >= 1) { // for
+                // VariableExpressionExecutor on Event table
                 continue;
-            } else if (metaComplexEvent instanceof MetaStateEvent && streamEventChainIndex >= ((MetaStateEvent) metaComplexEvent).getMetaStreamEvents().length) { //for VariableExpressionExecutor on Event table
+            } else if (metaComplexEvent instanceof MetaStateEvent
+                    && streamEventChainIndex >= ((MetaStateEvent) metaComplexEvent).getMetaStreamEvents().length) {
+                // for VariableExpressionExecutor on Event table
                 continue;
             }
 
@@ -135,41 +135,41 @@ public class QueryParserHelper {
             }
 
             if (metaStreamEvent.getOutputData().contains(variableExpressionExecutor.getAttribute())) {
-                variableExpressionExecutor.getPosition()[STREAM_ATTRIBUTE_TYPE_INDEX] =
-                        OUTPUT_DATA_INDEX;
-                variableExpressionExecutor.getPosition()[STREAM_ATTRIBUTE_INDEX] =
-                        metaStreamEvent.getOutputData().indexOf(variableExpressionExecutor.getAttribute());
+                variableExpressionExecutor.getPosition()[STREAM_ATTRIBUTE_TYPE_INDEX] = OUTPUT_DATA_INDEX;
+                variableExpressionExecutor.getPosition()[STREAM_ATTRIBUTE_INDEX_IN_TYPE] = metaStreamEvent
+                        .getOutputData().indexOf(variableExpressionExecutor.getAttribute());
             } else if (metaStreamEvent.getOnAfterWindowData().contains(variableExpressionExecutor.getAttribute())) {
-                variableExpressionExecutor.getPosition()[STREAM_ATTRIBUTE_TYPE_INDEX] =
-                        ON_AFTER_WINDOW_DATA_INDEX;
-                variableExpressionExecutor.getPosition()[STREAM_ATTRIBUTE_INDEX] =
-                        metaStreamEvent.getOnAfterWindowData().indexOf(variableExpressionExecutor.getAttribute());
+                variableExpressionExecutor.getPosition()[STREAM_ATTRIBUTE_TYPE_INDEX] = ON_AFTER_WINDOW_DATA_INDEX;
+                variableExpressionExecutor.getPosition()[STREAM_ATTRIBUTE_INDEX_IN_TYPE] = metaStreamEvent
+                        .getOnAfterWindowData().indexOf(variableExpressionExecutor.getAttribute());
             } else if (metaStreamEvent.getBeforeWindowData().contains(variableExpressionExecutor.getAttribute())) {
-                variableExpressionExecutor.getPosition()[STREAM_ATTRIBUTE_TYPE_INDEX] =
-                        BEFORE_WINDOW_DATA_INDEX;
-                variableExpressionExecutor.getPosition()[STREAM_ATTRIBUTE_INDEX] =
-                        metaStreamEvent.getBeforeWindowData().indexOf(variableExpressionExecutor.getAttribute());
+                variableExpressionExecutor.getPosition()[STREAM_ATTRIBUTE_TYPE_INDEX] = BEFORE_WINDOW_DATA_INDEX;
+                variableExpressionExecutor.getPosition()[STREAM_ATTRIBUTE_INDEX_IN_TYPE] = metaStreamEvent
+                        .getBeforeWindowData().indexOf(variableExpressionExecutor.getAttribute());
             }
         }
     }
 
-    public static void initStreamRuntime(StreamRuntime runtime, MetaComplexEvent metaComplexEvent, LockWrapper lockWrapper, String queryName) {
+    public static void initStreamRuntime(StreamRuntime runtime, MetaComplexEvent metaComplexEvent,
+                                         LockWrapper lockWrapper, String queryName) {
 
         if (runtime instanceof SingleStreamRuntime) {
-            initSingleStreamRuntime((SingleStreamRuntime) runtime, 0, metaComplexEvent, null, lockWrapper, queryName);
+            initSingleStreamRuntime((SingleStreamRuntime) runtime, 0, metaComplexEvent,
+                    null, lockWrapper, queryName);
         } else {
             MetaStateEvent metaStateEvent = (MetaStateEvent) metaComplexEvent;
             StateEventPool stateEventPool = new StateEventPool(metaStateEvent, 5);
             MetaStreamEvent[] metaStreamEvents = metaStateEvent.getMetaStreamEvents();
             for (int i = 0, metaStreamEventsLength = metaStreamEvents.length; i < metaStreamEventsLength; i++) {
-                initSingleStreamRuntime(runtime.getSingleStreamRuntimes().get(i),
-                        i, metaStateEvent, stateEventPool, lockWrapper, queryName);
+                initSingleStreamRuntime(runtime.getSingleStreamRuntimes().get(i), i, metaStateEvent, stateEventPool,
+                        lockWrapper, queryName);
             }
         }
     }
 
     private static void initSingleStreamRuntime(SingleStreamRuntime singleStreamRuntime, int streamEventChainIndex,
-                                                MetaComplexEvent metaComplexEvent, StateEventPool stateEventPool, LockWrapper lockWrapper, String queryName) {
+                                                MetaComplexEvent metaComplexEvent, StateEventPool stateEventPool,
+                                                LockWrapper lockWrapper, String queryName) {
         MetaStreamEvent metaStreamEvent;
 
         if (metaComplexEvent instanceof MetaStateEvent) {
@@ -190,24 +190,122 @@ public class QueryParserHelper {
                 ((SchedulingProcessor) processor).getScheduler().init(lockWrapper, queryName);
             }
             if (processor instanceof AbstractStreamProcessor) {
-                ((AbstractStreamProcessor) processor).setStreamEventCloner(new StreamEventCloner(metaStreamEvent,
-                        streamEventPool));
-                ((AbstractStreamProcessor) processor).constructStreamEventPopulater(metaStreamEvent, streamEventChainIndex);
+                ((AbstractStreamProcessor) processor)
+                        .setStreamEventCloner(new StreamEventCloner(metaStreamEvent, streamEventPool));
+                ((AbstractStreamProcessor) processor).constructStreamEventPopulater(metaStreamEvent,
+                        streamEventChainIndex);
             }
             if (stateEventPool != null && processor instanceof JoinProcessor) {
+                if (((JoinProcessor) processor)
+                        .getCompiledCondition() instanceof IncrementalAggregateCompileCondition) {
+                    IncrementalAggregateCompileCondition compiledCondition = (IncrementalAggregateCompileCondition) (
+                            (JoinProcessor) processor).getCompiledCondition();
+                    ComplexEventPopulater complexEventPopulater = StreamEventPopulaterFactory
+                            .constructEventPopulator(metaStreamEvent, 0, compiledCondition.getAdditionalAttributes());
+                    compiledCondition.setComplexEventPopulater(complexEventPopulater);
+
+                }
                 ((JoinProcessor) processor).setStateEventPool(stateEventPool);
-                ((JoinProcessor) processor).setJoinLock(lockWrapper);
             }
             if (stateEventPool != null && processor instanceof StreamPreStateProcessor) {
                 ((StreamPreStateProcessor) processor).setStateEventPool(stateEventPool);
                 ((StreamPreStateProcessor) processor).setStreamEventPool(streamEventPool);
-                ((StreamPreStateProcessor) processor).setStreamEventCloner(new StreamEventCloner(metaStreamEvent, streamEventPool));
+                ((StreamPreStateProcessor) processor)
+                        .setStreamEventCloner(new StreamEventCloner(metaStreamEvent, streamEventPool));
                 if (metaComplexEvent instanceof MetaStateEvent) {
-                    ((StreamPreStateProcessor) processor).setStateEventCloner(new StateEventCloner(((MetaStateEvent) metaComplexEvent), stateEventPool));
+                    ((StreamPreStateProcessor) processor).setStateEventCloner(
+                            new StateEventCloner(((MetaStateEvent) metaComplexEvent), stateEventPool));
                 }
             }
 
             processor = processor.getNextProcessor();
+        }
+    }
+
+    public static LatencyTracker createLatencyTracker(SiddhiAppContext siddhiAppContext, String name, String type,
+                                                      String function) {
+        LatencyTracker latencyTracker = null;
+        if (siddhiAppContext.getStatisticsManager() != null) {
+            String metricName =
+                    siddhiAppContext.getSiddhiContext().getStatisticsConfiguration().getMetricPrefix() +
+                            SiddhiConstants.METRIC_DELIMITER + SiddhiConstants.METRIC_INFIX_SIDDHI_APPS +
+                            SiddhiConstants.METRIC_DELIMITER + siddhiAppContext.getName() +
+                            SiddhiConstants.METRIC_DELIMITER + SiddhiConstants.METRIC_INFIX_SIDDHI +
+                            SiddhiConstants.METRIC_DELIMITER + type +
+                            SiddhiConstants.METRIC_DELIMITER + name;
+            if (function != null) {
+                metricName += SiddhiConstants.METRIC_DELIMITER + function;
+            }
+            metricName += SiddhiConstants.METRIC_DELIMITER + "latency";
+            boolean matchExist = false;
+            for (String regex : siddhiAppContext.getIncludedMetrics()) {
+                if (metricName.matches(regex)) {
+                    matchExist = true;
+                    break;
+                }
+            }
+            if (matchExist) {
+                latencyTracker = siddhiAppContext.getSiddhiContext()
+                        .getStatisticsConfiguration()
+                        .getFactory()
+                        .createLatencyTracker(metricName, siddhiAppContext.getStatisticsManager());
+            }
+        }
+        return latencyTracker;
+    }
+
+    public static ThroughputTracker createThroughputTracker(SiddhiAppContext siddhiAppContext, String name,
+                                                            String type, String function) {
+        ThroughputTracker throughputTracker = null;
+        if (siddhiAppContext.getStatisticsManager() != null) {
+            String metricName =
+                    siddhiAppContext.getSiddhiContext().getStatisticsConfiguration().getMetricPrefix() +
+                            SiddhiConstants.METRIC_DELIMITER + SiddhiConstants.METRIC_INFIX_SIDDHI_APPS +
+                            SiddhiConstants.METRIC_DELIMITER + siddhiAppContext.getName() +
+                            SiddhiConstants.METRIC_DELIMITER + SiddhiConstants.METRIC_INFIX_SIDDHI +
+                            SiddhiConstants.METRIC_DELIMITER + type +
+                            SiddhiConstants.METRIC_DELIMITER + name;
+            if (function != null) {
+                metricName += SiddhiConstants.METRIC_DELIMITER + function;
+            }
+            metricName += SiddhiConstants.METRIC_DELIMITER + "throughput";
+            boolean matchExist = false;
+            for (String regex : siddhiAppContext.getIncludedMetrics()) {
+                if (metricName.matches(regex)) {
+                    matchExist = true;
+                    break;
+                }
+            }
+            if (matchExist) {
+                throughputTracker = siddhiAppContext
+                        .getSiddhiContext()
+                        .getStatisticsConfiguration()
+                        .getFactory()
+                        .createThroughputTracker(metricName, siddhiAppContext.getStatisticsManager());
+            }
+        }
+        return throughputTracker;
+    }
+
+
+    public static void registerMemoryUsageTracking(String name, Object value, String metricInfixQueries,
+                                                   SiddhiAppContext siddhiAppContext,
+                                                   MemoryUsageTracker memoryUsageTracker) {
+        String metricName = siddhiAppContext.getSiddhiContext().getStatisticsConfiguration().getMetricPrefix() +
+                SiddhiConstants.METRIC_DELIMITER + SiddhiConstants.METRIC_INFIX_SIDDHI_APPS +
+                SiddhiConstants.METRIC_DELIMITER + siddhiAppContext.getName() + SiddhiConstants.METRIC_DELIMITER +
+                SiddhiConstants.METRIC_INFIX_SIDDHI + SiddhiConstants.METRIC_DELIMITER +
+                metricInfixQueries + SiddhiConstants.METRIC_DELIMITER +
+                name + SiddhiConstants.METRIC_DELIMITER + "memory";
+        boolean matchExist = false;
+        for (String regex : siddhiAppContext.getIncludedMetrics()) {
+            if (metricName.matches(regex)) {
+                matchExist = true;
+                break;
+            }
+        }
+        if (matchExist) {
+            memoryUsageTracker.registerObject(value, metricName);
         }
     }
 

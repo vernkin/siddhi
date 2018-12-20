@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,6 +17,10 @@
  */
 package org.wso2.siddhi.core.util.extension.holder;
 
+/**
+ * Primary interface used to give start and stop method to Siddhi components which will be called once during Siddhi
+ * start up and shutting down so that user can perform actions such as resource allocation and de-allocation.
+ */
 public interface EternalReferencedHolder {
 
     /**

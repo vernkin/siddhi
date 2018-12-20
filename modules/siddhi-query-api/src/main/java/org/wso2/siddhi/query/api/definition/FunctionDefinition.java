@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,12 +18,19 @@
 
 package org.wso2.siddhi.query.api.definition;
 
-public class FunctionDefinition {
+import org.wso2.siddhi.query.api.SiddhiElement;
 
+/**
+ * Siddhi inline function definition
+ */
+public class FunctionDefinition implements SiddhiElement {
+    private static final long serialVersionUID = 42L;
     private String language;
     private String body;
     private String id;
     private Attribute.Type returnType;
+    private int[] queryContextStartIndex;
+    private int[] queryContextEndIndex;
 
     public Attribute.Type getReturnType() {
         return returnType;
@@ -59,5 +66,25 @@ public class FunctionDefinition {
     public FunctionDefinition type(Attribute.Type type) {
         this.returnType = type;
         return this;
+    }
+
+    @Override
+    public int[] getQueryContextStartIndex() {
+        return queryContextStartIndex;
+    }
+
+    @Override
+    public void setQueryContextStartIndex(int[] lineAndColumn) {
+        queryContextStartIndex = lineAndColumn;
+    }
+
+    @Override
+    public int[] getQueryContextEndIndex() {
+        return queryContextEndIndex;
+    }
+
+    @Override
+    public void setQueryContextEndIndex(int[] lineAndColumn) {
+        queryContextEndIndex = lineAndColumn;
     }
 }

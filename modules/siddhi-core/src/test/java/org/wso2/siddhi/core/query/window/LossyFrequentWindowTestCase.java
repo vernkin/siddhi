@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,11 +18,11 @@
 
 package org.wso2.siddhi.core.query.window;
 
-import junit.framework.Assert;
 import org.apache.log4j.Logger;
-import org.junit.Before;
-import org.junit.Test;
-import org.wso2.siddhi.core.ExecutionPlanRuntime;
+import org.testng.AssertJUnit;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+import org.wso2.siddhi.core.SiddhiAppRuntime;
 import org.wso2.siddhi.core.SiddhiManager;
 import org.wso2.siddhi.core.event.Event;
 import org.wso2.siddhi.core.query.output.callback.QueryCallback;
@@ -30,13 +30,13 @@ import org.wso2.siddhi.core.stream.input.InputHandler;
 import org.wso2.siddhi.core.util.EventPrinter;
 
 public class LossyFrequentWindowTestCase {
-    static final Logger log = Logger.getLogger(LossyFrequentWindowTestCase.class);
+    private static final Logger log = Logger.getLogger(LossyFrequentWindowTestCase.class);
 
     private int inEventCount;
     private int removeEventCount;
     private boolean eventArrived;
 
-    @Before
+    @BeforeMethod
     public void initialize() {
         eventArrived = false;
         inEventCount = 0;
@@ -57,12 +57,12 @@ public class LossyFrequentWindowTestCase {
                 "select cardNo, price " +
                 "insert into PotentialFraud ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(cseEventStream + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(cseEventStream + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     inEventCount += inEvents.length;
                 }
@@ -74,8 +74,8 @@ public class LossyFrequentWindowTestCase {
 
         });
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("purchase");
-        executionPlanRuntime.start();
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("purchase");
+        siddhiAppRuntime.start();
 
         for (int i = 0; i < 25; i++) {
             inputHandler.send(new Object[]{"3234-3244-2432-4124", 73.36f});
@@ -87,11 +87,11 @@ public class LossyFrequentWindowTestCase {
         inputHandler.send(new Object[]{"1124-3244-2432-4126", 78.36f});
 
         Thread.sleep(1000);
-        Assert.assertEquals("Event arrived", true, eventArrived);
-        Assert.assertEquals("In Event count", 100, inEventCount);
-        Assert.assertEquals("Out Event count", 0, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("In Event count", 100, inEventCount);
+        AssertJUnit.assertEquals("Out Event count", 0, removeEventCount);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
 
     }
 
@@ -110,12 +110,12 @@ public class LossyFrequentWindowTestCase {
                 "select cardNo, price " +
                 "insert all events into PotentialFraud ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(cseEventStream + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(cseEventStream + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     inEventCount += inEvents.length;
                 }
@@ -127,21 +127,22 @@ public class LossyFrequentWindowTestCase {
 
         });
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("purchase");
-        executionPlanRuntime.start();
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("purchase");
+        siddhiAppRuntime.start();
 
         inputHandler.send(new Object[]{"3224-3244-2432-4124", 73.36f});
         for (int i = 0; i < 25; i++) {
             inputHandler.send(new Object[]{"3234-3244-2432-4124", 73.36f});
             inputHandler.send(new Object[]{"3234-3244-2432-4124", 78.36f});
             inputHandler.send(new Object[]{"1234-3244-2432-123", 86.36f});
-            inputHandler.send(new Object[]{"5768-3244-2432-5646", 48.36f});//this event will not include in to the window during first iteration because 1+0<5*0.25
+            inputHandler.send(new Object[]{"5768-3244-2432-5646", 48.36f}); //this event will not include in to the
+            // window during first iteration because 1+0<5*0.25
         }
         Thread.sleep(1000);
-        Assert.assertEquals("Event arrived", true, eventArrived);
-        Assert.assertEquals("Out Event count", 1, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Out Event count", 1, removeEventCount);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
 
     }
 
@@ -159,12 +160,12 @@ public class LossyFrequentWindowTestCase {
                 "select cardNo, price " +
                 "insert all events into PotentialFraud ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(cseEventStream + query);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(cseEventStream + query);
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     inEventCount += inEvents.length;
                 }
@@ -176,22 +177,23 @@ public class LossyFrequentWindowTestCase {
 
         });
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("purchase");
-        executionPlanRuntime.start();
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("purchase");
+        siddhiAppRuntime.start();
 
         inputHandler.send(new Object[]{"3224-3244-2432-4124", 73.36f});
         for (int i = 0; i < 25; i++) {
             inputHandler.send(new Object[]{"3234-3244-2432-4124", 73.36f});
             inputHandler.send(new Object[]{"3234-3244-2432-4124", 78.36f});
             inputHandler.send(new Object[]{"1234-3244-2432-123", 86.36f});
-            inputHandler.send(new Object[]{"3234-3244-2432-4124", 48.36f});//this event will be included because we only consider cardNo
+            inputHandler.send(new Object[]{"3234-3244-2432-4124", 48.36f}); //this event will be included because we
+            // only consider cardNo
         }
         Thread.sleep(1000);
-        Assert.assertEquals("Event arrived", true, eventArrived);
-        Assert.assertEquals("In Event count", 101, inEventCount);
-        Assert.assertEquals("Out Event count", 1, removeEventCount);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("In Event count", 101, inEventCount);
+        AssertJUnit.assertEquals("Out Event count", 1, removeEventCount);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
 
     }
 

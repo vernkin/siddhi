@@ -22,7 +22,7 @@
     <parent>
         <groupId>org.wso2.siddhi</groupId>
         <artifactId>siddhi</artifactId>
-        <version>4.0.0-SNAPSHOT</version>
+        <version>4.3.5-SNAPSHOT</version>
         <relativePath>../..</relativePath>
     </parent>
 
@@ -30,6 +30,13 @@
     <artifactId>siddhi-annotations</artifactId>
     <name>Siddhi Annotations</name>
     <packaging>bundle</packaging>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.atteo.classindex</groupId>
+            <artifactId>classindex</artifactId>
+        </dependency>
+    </dependencies>
 
     <build>
         <plugins>
@@ -50,8 +57,8 @@
                         <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
                         <Bundle-Name>${project.artifactId}</Bundle-Name>
                         <Export-Package>
-                            org.wso2.siddhi.annotation,
-                            org.wso2.siddhi.annotation.*
+                            org.wso2.siddhi.annotation.*,
+                            org.atteo.classindex.*;version="3.4"
                         </Export-Package>
                         <Import-Package>
                             *;resolution:=optional
@@ -62,4 +69,9 @@
             </plugin>
         </plugins>
     </build>
+
+    <properties>
+        <mavan.findbugsplugin.exclude.file>../../findbugs-exclude.xml</mavan.findbugsplugin.exclude.file>
+    </properties>
+
 </project>

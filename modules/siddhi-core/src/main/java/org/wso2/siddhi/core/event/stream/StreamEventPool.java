@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,12 +17,15 @@
  */
 package org.wso2.siddhi.core.event.stream;
 
+import java.io.Serializable;
+
 /**
  * Event pool containing StreamEvent for reuse
  * This is not a thread safe implementation
  */
-public class StreamEventPool {
+public class StreamEventPool implements Serializable {
 
+    private static final long serialVersionUID = -1743558131917334571L;
     private StreamEventFactory eventFactory;
     private int size;
     private int index = 0;

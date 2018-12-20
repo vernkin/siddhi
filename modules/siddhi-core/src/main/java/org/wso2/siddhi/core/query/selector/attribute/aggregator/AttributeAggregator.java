@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,36 +17,42 @@
  */
 package org.wso2.siddhi.core.query.selector.attribute.aggregator;
 
-import org.wso2.siddhi.core.config.ExecutionPlanContext;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
 import org.wso2.siddhi.core.event.ComplexEvent;
-import org.wso2.siddhi.core.exception.ExecutionPlanCreationException;
-import org.wso2.siddhi.core.exception.ExecutionPlanRuntimeException;
+import org.wso2.siddhi.core.exception.SiddhiAppCreationException;
+import org.wso2.siddhi.core.exception.SiddhiAppRuntimeException;
 import org.wso2.siddhi.core.executor.ExpressionExecutor;
-import org.wso2.siddhi.core.util.extension.holder.EternalReferencedHolder;
+import org.wso2.siddhi.core.util.config.ConfigReader;
 import org.wso2.siddhi.core.util.snapshot.Snapshotable;
 import org.wso2.siddhi.query.api.definition.Attribute;
 
-public abstract class AttributeAggregator implements EternalReferencedHolder, Snapshotable {
+/**
+ * Abstract parent class for attribute aggregators. Attribute aggregators are used to perform aggregate operations
+ * such as count, average, etc.
+ */
+public abstract class AttributeAggregator implements Snapshotable {
 
     protected ExpressionExecutor[] attributeExpressionExecutors;
-    protected ExecutionPlanContext executionPlanContext;
+    protected SiddhiAppContext siddhiAppContext;
     protected String elementId;
     private int attributeSize;
+    private ConfigReader configReader;
 
-    public void initAggregator(ExpressionExecutor[] attributeExpressionExecutors, ExecutionPlanContext executionPlanContext) {
+    public void initAggregator(ExpressionExecutor[] attributeExpressionExecutors, SiddhiAppContext
+            siddhiAppContext, ConfigReader configReader) {
+        this.configReader = configReader;
         try {
-            this.executionPlanContext = executionPlanContext;
+            this.siddhiAppContext = siddhiAppContext;
             this.attributeExpressionExecutors = attributeExpressionExecutors;
             this.attributeSize = attributeExpressionExecutors.length;
-            executionPlanContext.addEternalReferencedHolder(this);
             if (elementId == null) {
-                elementId = "AttributeAggregator-" + executionPlanContext.getElementIdGenerator().createNewId();
+                elementId = "AttributeAggregator-" + siddhiAppContext.getElementIdGenerator().createNewId();
             }
             //Not added to Snapshotable as the AggregationAttributeExecutors are added
-//            executionPlanContext.getSnapshotService().addSnapshotable(this);
-            init(attributeExpressionExecutors, executionPlanContext);
+//            siddhiAppContext.getSnapshotService().addSnapshotable(this);
+            init(attributeExpressionExecutors, configReader, siddhiAppContext);
         } catch (Throwable t) {
-            throw new ExecutionPlanCreationException(t);
+            throw new SiddhiAppCreationException(t);
         }
     }
 
@@ -58,11 +64,10 @@ public abstract class AttributeAggregator implements EternalReferencedHolder, Sn
                 innerExpressionExecutors[i] = attributeExpressionExecutors[i].cloneExecutor(key);
             }
             attributeAggregator.elementId = elementId + "-" + key;
-            attributeAggregator.initAggregator(innerExpressionExecutors, executionPlanContext);
-            attributeAggregator.start();
+            attributeAggregator.initAggregator(innerExpressionExecutors, siddhiAppContext, configReader);
             return attributeAggregator;
         } catch (Exception e) {
-            throw new ExecutionPlanRuntimeException("Exception in cloning " + this.getClass().getCanonicalName(), e);
+            throw new SiddhiAppRuntimeException("Exception in cloning " + this.getClass().getCanonicalName(), e);
         }
     }
 
@@ -106,9 +111,12 @@ public abstract class AttributeAggregator implements EternalReferencedHolder, Sn
      * The initialization method for FunctionExecutor
      *
      * @param attributeExpressionExecutors are the executors of each attributes in the function
-     * @param executionPlanContext         Execution plan runtime context
+     * @param configReader                 this hold the {@link AttributeAggregator} extensions configuration reader.
+     * @param siddhiAppContext             Siddhi app runtime context
      */
-    protected abstract void init(ExpressionExecutor[] attributeExpressionExecutors, ExecutionPlanContext executionPlanContext);
+    protected abstract void init(ExpressionExecutor[] attributeExpressionExecutors, ConfigReader configReader,
+                                 SiddhiAppContext
+                                         siddhiAppContext);
 
     public abstract Attribute.Type getReturnType();
 
@@ -119,6 +127,8 @@ public abstract class AttributeAggregator implements EternalReferencedHolder, Sn
     public abstract Object processRemove(Object data);
 
     public abstract Object processRemove(Object[] data);
+
+    public abstract boolean canDestroy();
 
     public abstract Object reset();
 

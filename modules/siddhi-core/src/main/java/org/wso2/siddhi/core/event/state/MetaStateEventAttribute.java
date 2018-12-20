@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -44,12 +44,18 @@ public class MetaStateEventAttribute {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof MetaStateEventAttribute)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof MetaStateEventAttribute)) {
+            return false;
+        }
 
         MetaStateEventAttribute attribute1 = (MetaStateEventAttribute) o;
 
-        if (attribute != null ? !attribute.equals(attribute1.attribute) : attribute1.attribute != null) return false;
+        if (attribute != null ? !attribute.equals(attribute1.attribute) : attribute1.attribute != null) {
+            return false;
+        }
         return Arrays.equals(position, attribute1.position);
 
     }

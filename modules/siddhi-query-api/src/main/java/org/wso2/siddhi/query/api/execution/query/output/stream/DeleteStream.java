@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -19,8 +19,12 @@ package org.wso2.siddhi.query.api.execution.query.output.stream;
 
 import org.wso2.siddhi.query.api.expression.Expression;
 
+/**
+ * Query output stream deleting entry from table
+ */
 public class DeleteStream extends OutputStream {
 
+    private static final long serialVersionUID = 1L;
     protected Expression onDeleteExpression;
 
     public DeleteStream(String tableId, OutputEventType outputEventType, Expression onDeleteExpression) {
@@ -35,12 +39,12 @@ public class DeleteStream extends OutputStream {
         this.onDeleteExpression = onDeleteExpression;
     }
 
-    public void setOnDeleteExpression(Expression onDeleteExpression) {
-        this.onDeleteExpression = onDeleteExpression;
-    }
-
     public Expression getOnDeleteExpression() {
         return onDeleteExpression;
+    }
+
+    public void setOnDeleteExpression(Expression onDeleteExpression) {
+        this.onDeleteExpression = onDeleteExpression;
     }
 
     @Override
@@ -52,13 +56,19 @@ public class DeleteStream extends OutputStream {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof DeleteStream)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof DeleteStream)) {
+            return false;
+        }
 
         DeleteStream that = (DeleteStream) o;
 
-        if (onDeleteExpression != null ? !onDeleteExpression.equals(that.onDeleteExpression) : that.onDeleteExpression != null)
+        if (onDeleteExpression != null ? !onDeleteExpression.equals(that.onDeleteExpression) : that
+                .onDeleteExpression != null) {
             return false;
+        }
 
         return true;
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,40 +17,84 @@
  */
 package org.wso2.siddhi.core.query.processor.stream.window;
 
-import org.quartz.*;
+import org.apache.log4j.Logger;
+import org.quartz.CronScheduleBuilder;
+import org.quartz.Job;
+import org.quartz.JobDataMap;
+import org.quartz.JobDetail;
+import org.quartz.JobExecutionContext;
+import org.quartz.JobExecutionException;
+import org.quartz.JobKey;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
+import org.quartz.SchedulerFactory;
+import org.quartz.Trigger;
 import org.quartz.impl.StdSchedulerFactory;
-import org.wso2.siddhi.core.config.ExecutionPlanContext;
+import org.wso2.siddhi.annotation.Example;
+import org.wso2.siddhi.annotation.Extension;
+import org.wso2.siddhi.annotation.Parameter;
+import org.wso2.siddhi.annotation.util.DataType;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
 import org.wso2.siddhi.core.event.ComplexEventChunk;
 import org.wso2.siddhi.core.event.stream.StreamEvent;
 import org.wso2.siddhi.core.event.stream.StreamEventCloner;
 import org.wso2.siddhi.core.executor.ConstantExpressionExecutor;
 import org.wso2.siddhi.core.executor.ExpressionExecutor;
 import org.wso2.siddhi.core.query.processor.Processor;
+import org.wso2.siddhi.core.util.ExceptionUtil;
+import org.wso2.siddhi.core.util.config.ConfigReader;
 
-import java.util.AbstractMap;
+import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Implementation of {@link WindowProcessor} which represent a Window operating based on a cron expression.
+ */
+@Extension(
+        name = "cron",
+        namespace = "",
+        description = "This window returns events processed periodically as the output in time-repeating patterns, " +
+                "triggered based on time passing.",
+        parameters = {
+                @Parameter(name = "cron.expression",
+                        description = "The cron expression that represents a time schedule.",
+                        type = {DataType.STRING})
+        },
+        examples = @Example(
+                syntax = "define window cseEventWindow (symbol string, price float, volume int)" +
+                        "cron('*/5 * * * * ?');\n" +
+                        "@info(name = 'query0')\n" +
+                        "from cseEventStream\n" +
+                        "insert into cseEventWindow;\n" +
+                        "@info(name = 'query1')\n" +
+                        "from cseEventWindow \n" +
+                        "select symbol,price,volume\n" +
+                        "insert into outputStream ;",
+                description = "This will processed events as the output every 5 seconds.")
+)
 public class CronWindowProcessor extends WindowProcessor implements Job {
-
+    private static final Logger log = Logger.getLogger(CronWindowProcessor.class);
+    private final String jobGroup = "CronWindowGroup";
     private ComplexEventChunk<StreamEvent> currentEventChunk = new ComplexEventChunk<StreamEvent>(false);
     private ComplexEventChunk<StreamEvent> expiredEventChunk = new ComplexEventChunk<StreamEvent>(false);
-    private ExecutionPlanContext executionPlanContext;
+    private SiddhiAppContext siddhiAppContext;
     private Scheduler scheduler;
     private String jobName;
-    private final String jobGroup = "CronWindowGroup";
     private String cronString;
 
 
     @Override
-    protected void init(ExpressionExecutor[] attributeExpressionExecutors, ExecutionPlanContext executionPlanContext) {
-        this.executionPlanContext = executionPlanContext;
+    protected void init(ExpressionExecutor[] attributeExpressionExecutors, ConfigReader configReader, boolean
+            outputExpectsExpiredEvents, SiddhiAppContext siddhiAppContext) {
+        this.siddhiAppContext = siddhiAppContext;
         if (attributeExpressionExecutors != null) {
             cronString = (String) (((ConstantExpressionExecutor) attributeExpressionExecutors[0]).getValue());
         }
     }
 
     @Override
-    protected void process(ComplexEventChunk<StreamEvent> streamEventChunk, Processor nextProcessor, StreamEventCloner streamEventCloner) {
+    protected void process(ComplexEventChunk<StreamEvent> streamEventChunk, Processor nextProcessor,
+                           StreamEventCloner streamEventCloner) {
         synchronized (this) {
             while (streamEventChunk.hasNext()) {
                 StreamEvent streamEvent = streamEventChunk.next();
@@ -73,23 +117,26 @@ public class CronWindowProcessor extends WindowProcessor implements Job {
                 scheduler.deleteJob(new JobKey(jobName, jobGroup));
             }
         } catch (SchedulerException e) {
-            log.error("Error while removing the cron job : " + e.getMessage(), e);
+            log.error(ExceptionUtil.getMessageWithContext(e, siddhiAppContext) +
+                    " Error while removing the cron job '" + jobGroup + ":'" + jobName + "'.", e);
         }
     }
 
     @Override
-    public Object[] currentState() {
-        return new Object[]{new AbstractMap.SimpleEntry<String, Object>("CurrentEventChunk", currentEventChunk.getFirst()), new AbstractMap.SimpleEntry<String, Object>("ExpiredEventChunk", expiredEventChunk.getFirst())};
+    public Map<String, Object> currentState() {
+        Map<String, Object> state = new HashMap<>();
+        state.put("CurrentEventChunk", currentEventChunk.getFirst());
+        state.put("ExpiredEventChunk", expiredEventChunk.getFirst());
+        return state;
     }
 
+
     @Override
-    public void restoreState(Object[] state) {
+    public void restoreState(Map<String, Object> state) {
         currentEventChunk.clear();
-        Map.Entry<String, Object> stateEntry = (Map.Entry<String, Object>) state[0];
-        currentEventChunk.add((StreamEvent) stateEntry.getValue());
+        currentEventChunk.add((StreamEvent) state.get("CurrentEventChunk"));
         expiredEventChunk.clear();
-        Map.Entry<String, Object> stateEntry2 = (Map.Entry<String, Object>) state[1];
-        expiredEventChunk.add((StreamEvent) stateEntry2.getValue());
+        expiredEventChunk.add((StreamEvent) state.get("ExpiredEventChunk"));
     }
 
     private void scheduleCronJob(String cronString, String elementId) {
@@ -128,7 +175,7 @@ public class CronWindowProcessor extends WindowProcessor implements Job {
         ComplexEventChunk<StreamEvent> streamEventChunk = new ComplexEventChunk<StreamEvent>(false);
         synchronized (this) {
             if (currentEventChunk.getFirst() != null) {
-                long currentTime = executionPlanContext.getTimestampGenerator().currentTime();
+                long currentTime = siddhiAppContext.getTimestampGenerator().currentTime();
                 while (expiredEventChunk.hasNext()) {
                     StreamEvent expiredEvent = expiredEventChunk.next();
                     expiredEvent.setTimestamp(currentTime);

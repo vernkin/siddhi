@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -19,11 +19,11 @@
 package org.wso2.siddhi.core.query.ratelimit;
 
 
-import junit.framework.Assert;
 import org.apache.log4j.Logger;
-import org.junit.Before;
-import org.junit.Test;
-import org.wso2.siddhi.core.ExecutionPlanRuntime;
+import org.testng.AssertJUnit;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+import org.wso2.siddhi.core.SiddhiAppRuntime;
 import org.wso2.siddhi.core.SiddhiManager;
 import org.wso2.siddhi.core.event.Event;
 import org.wso2.siddhi.core.query.output.callback.QueryCallback;
@@ -31,11 +31,11 @@ import org.wso2.siddhi.core.stream.input.InputHandler;
 import org.wso2.siddhi.core.util.EventPrinter;
 
 public class EventOutputRateLimitTestCase {
-    static final Logger log = Logger.getLogger(EventOutputRateLimitTestCase.class);
+    private static final Logger log = Logger.getLogger(EventOutputRateLimitTestCase.class);
     private volatile int count;
     private volatile boolean eventArrived;
 
-    @Before
+    @BeforeMethod
     public void init() {
         count = 0;
         eventArrived = false;
@@ -47,10 +47,10 @@ public class EventOutputRateLimitTestCase {
 
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        String executionPlan = "" +
-                "@Plan:name('EventOutputRateLimitTest1') " +
+        String siddhiApp = "" +
+                "@app:name('EventOutputRateLimitTest1') " +
                 "" +
-                "define stream LoginEvents (timeStamp long, ip string);" +
+                "define stream LoginEvents (timestamp long, ip string);" +
                 "" +
                 "@info(name = 'query1') " +
                 "from LoginEvents " +
@@ -59,27 +59,27 @@ public class EventOutputRateLimitTestCase {
                 "insert into uniqueIps ;";
 
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(executionPlan);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiApp);
 
-        log.info("Running : " + executionPlanRuntime.getName());
+        log.info("Running : " + siddhiAppRuntime.getName());
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     count += inEvents.length;
                 } else {
-                    Assert.fail("Remove events emitted");
+                    AssertJUnit.fail("Remove events emitted");
                 }
                 eventArrived = true;
             }
 
         });
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("LoginEvents");
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("LoginEvents");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.3"});
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.3"});
@@ -88,10 +88,10 @@ public class EventOutputRateLimitTestCase {
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.5"});
 
         Thread.sleep(1000);
-        Assert.assertEquals("Event arrived", true, eventArrived);
-        Assert.assertEquals("Number of output event value", 4, count);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of output event value", 4, count);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
 
     }
 
@@ -101,10 +101,10 @@ public class EventOutputRateLimitTestCase {
 
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        String executionPlan = "" +
-                "@Plan:name('EventOutputRateLimitTest2') " +
+        String siddhiApp = "" +
+                "@app:name('EventOutputRateLimitTest2') " +
                 "" +
-                "define stream LoginEvents (timeStamp long, ip string);" +
+                "define stream LoginEvents (timestamp long, ip string);" +
                 "" +
                 "@info(name = 'query1') " +
                 "from LoginEvents " +
@@ -112,27 +112,27 @@ public class EventOutputRateLimitTestCase {
                 "output every 2 events " +
                 "insert into uniqueIps ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(executionPlan);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiApp);
 
-        log.info("Running : " + executionPlanRuntime.getName());
+        log.info("Running : " + siddhiAppRuntime.getName());
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     count += inEvents.length;
                 } else {
-                    Assert.fail("Remove events emitted");
+                    AssertJUnit.fail("Remove events emitted");
                 }
                 eventArrived = true;
             }
 
         });
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("LoginEvents");
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("LoginEvents");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.3"});
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.3"});
@@ -142,9 +142,9 @@ public class EventOutputRateLimitTestCase {
 
         Thread.sleep(1000);
 
-        Assert.assertEquals("Event arrived", true, eventArrived);
-        Assert.assertEquals("Number of output event value", 4, count);
-        executionPlanRuntime.shutdown();
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of output event value", 4, count);
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -153,10 +153,10 @@ public class EventOutputRateLimitTestCase {
 
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        String executionPlan = "" +
-                "@Plan:name('EventOutputRateLimitTest3') " +
+        String siddhiApp = "" +
+                "@app:name('EventOutputRateLimitTest3') " +
                 "" +
-                "define stream LoginEvents (timeStamp long, ip string);" +
+                "define stream LoginEvents (timestamp long, ip string);" +
                 "" +
                 "@info(name = 'query1') " +
                 "from LoginEvents " +
@@ -164,27 +164,27 @@ public class EventOutputRateLimitTestCase {
                 "output every 5 events " +
                 "insert into uniqueIps ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(executionPlan);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiApp);
 
-        log.info("Running : " + executionPlanRuntime.getName());
+        log.info("Running : " + siddhiAppRuntime.getName());
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     count += inEvents.length;
                 } else {
-                    Assert.fail("Remove events emitted");
+                    AssertJUnit.fail("Remove events emitted");
                 }
                 eventArrived = true;
             }
 
         });
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("LoginEvents");
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("LoginEvents");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.5"});
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.5"});
@@ -197,9 +197,9 @@ public class EventOutputRateLimitTestCase {
 
         Thread.sleep(1000);
 
-        Assert.assertEquals("Event arrived", true, eventArrived);
-        Assert.assertEquals("Number of output event value", 5, count);
-        executionPlanRuntime.shutdown();
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of output event value", 5, count);
+        siddhiAppRuntime.shutdown();
 
     }
 
@@ -209,10 +209,10 @@ public class EventOutputRateLimitTestCase {
 
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        String executionPlan = "" +
-                "@Plan:name('EventOutputRateLimitTest4') " +
+        String siddhiApp = "" +
+                "@app:name('EventOutputRateLimitTest4') " +
                 "" +
-                "define stream LoginEvents (timeStamp long, ip string);" +
+                "define stream LoginEvents (timestamp long, ip string);" +
                 "" +
                 "@info(name = 'query1') " +
                 "from LoginEvents " +
@@ -220,28 +220,30 @@ public class EventOutputRateLimitTestCase {
                 "output first every 2 events " +
                 "insert into uniqueIps ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(executionPlan);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiApp);
 
-        log.info("Running : " + executionPlanRuntime.getName());
+        log.info("Running : " + siddhiAppRuntime.getName());
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     count += inEvents.length;
-                    Assert.assertTrue("192.10.1.5".equals(inEvents[0].getData(0)) || "192.10.1.9".equals(inEvents[0].getData(0)) || "192.10.1.3".equals(inEvents[0].getData(0)));
+                    AssertJUnit.assertTrue("192.10.1.5".equals(inEvents[0].getData(0)) ||
+                            "192.10.1.9".equals(inEvents[0].getData(0)) ||
+                            "192.10.1.3".equals(inEvents[0].getData(0)));
                 } else {
-                    Assert.fail("Remove events emitted");
+                    AssertJUnit.fail("Remove events emitted");
                 }
                 eventArrived = true;
             }
 
         });
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("LoginEvents");
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("LoginEvents");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.5"});
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.3"});
@@ -251,9 +253,9 @@ public class EventOutputRateLimitTestCase {
 
         Thread.sleep(1000);
 
-        Assert.assertEquals("Event arrived", true, eventArrived);
-        Assert.assertEquals("Number of output event value", 3, count);
-        executionPlanRuntime.shutdown();
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of output event value", 3, count);
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -262,10 +264,10 @@ public class EventOutputRateLimitTestCase {
 
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        String executionPlan = "" +
-                "@Plan:name('EventOutputRateLimitTest5') " +
+        String siddhiApp = "" +
+                "@app:name('EventOutputRateLimitTest5') " +
                 "" +
-                "define stream LoginEvents (timeStamp long, ip string);" +
+                "define stream LoginEvents (timestamp long, ip string);" +
                 "" +
                 "@info(name = 'query1') " +
                 "from LoginEvents " +
@@ -273,28 +275,29 @@ public class EventOutputRateLimitTestCase {
                 "output first every 3 events " +
                 "insert into uniqueIps ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(executionPlan);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiApp);
 
-        log.info("Running : " + executionPlanRuntime.getName());
+        log.info("Running : " + siddhiAppRuntime.getName());
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     count += inEvents.length;
-                    Assert.assertTrue("192.10.1.5".equals(inEvents[0].getData(0)) || "192.10.1.4".equals(inEvents[0].getData(0)));
+                    AssertJUnit.assertTrue("192.10.1.5".equals(inEvents[0].getData(0)) ||
+                            "192.10.1.4".equals(inEvents[0].getData(0)));
                 } else {
-                    Assert.fail("Remove events emitted");
+                    AssertJUnit.fail("Remove events emitted");
                 }
                 eventArrived = true;
             }
 
         });
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("LoginEvents");
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("LoginEvents");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.5"});
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.3"});
@@ -304,9 +307,9 @@ public class EventOutputRateLimitTestCase {
 
         Thread.sleep(1000);
 
-        Assert.assertEquals("Event arrived", true, eventArrived);
-        Assert.assertEquals("Number of output event value", 2, count);
-        executionPlanRuntime.shutdown();
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of output event value", 2, count);
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -315,10 +318,10 @@ public class EventOutputRateLimitTestCase {
 
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        String executionPlan = "" +
-                "@Plan:name('EventOutputRateLimitTest6') " +
+        String siddhiApp = "" +
+                "@app:name('EventOutputRateLimitTest6') " +
                 "" +
-                "define stream LoginEvents (timeStamp long, ip string);" +
+                "define stream LoginEvents (timestamp long, ip string);" +
                 "" +
                 "@info(name = 'query1') " +
                 "from LoginEvents " +
@@ -326,28 +329,29 @@ public class EventOutputRateLimitTestCase {
                 "output last every 2 events " +
                 "insert into uniqueIps ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(executionPlan);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiApp);
 
-        log.info("Running : " + executionPlanRuntime.getName());
+        log.info("Running : " + siddhiAppRuntime.getName());
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     count += inEvents.length;
-                    Assert.assertTrue("192.10.1.5".equals(inEvents[0].getData(0)) || "192.10.1.4".equals(inEvents[0].getData(0)));
+                    AssertJUnit.assertTrue("192.10.1.5".equals(inEvents[0].getData(0)) ||
+                            "192.10.1.4".equals(inEvents[0].getData(0)));
                 } else {
-                    Assert.fail("Remove events emitted");
+                    AssertJUnit.fail("Remove events emitted");
                 }
                 eventArrived = true;
             }
 
         });
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("LoginEvents");
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("LoginEvents");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.3"});
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.5"});
@@ -357,9 +361,9 @@ public class EventOutputRateLimitTestCase {
 
         Thread.sleep(1000);
 
-        Assert.assertEquals("Event arrived", true, eventArrived);
-        Assert.assertEquals("Number of output event value", 2, count);
-        executionPlanRuntime.shutdown();
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of output event value", 2, count);
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -368,10 +372,10 @@ public class EventOutputRateLimitTestCase {
 
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        String executionPlan = "" +
-                "@Plan:name('EventOutputRateLimitTest7') " +
+        String siddhiApp = "" +
+                "@app:name('EventOutputRateLimitTest7') " +
                 "" +
-                "define stream LoginEvents (timeStamp long, ip string);" +
+                "define stream LoginEvents (timestamp long, ip string);" +
                 "" +
                 "@info(name = 'query1') " +
                 "from LoginEvents " +
@@ -379,28 +383,28 @@ public class EventOutputRateLimitTestCase {
                 "output last every 4 events " +
                 "insert into uniqueIps ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(executionPlan);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiApp);
 
-        log.info("Running : " + executionPlanRuntime.getName());
+        log.info("Running : " + siddhiAppRuntime.getName());
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     count += inEvents.length;
-                    Assert.assertTrue("192.10.1.4".equals(inEvents[0].getData(0)));
+                    AssertJUnit.assertTrue("192.10.1.4".equals(inEvents[0].getData(0)));
                 } else {
-                    Assert.fail("Remove events emitted");
+                    AssertJUnit.fail("Remove events emitted");
                 }
                 eventArrived = true;
             }
 
         });
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("LoginEvents");
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("LoginEvents");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.3"});
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.5"});
@@ -410,9 +414,9 @@ public class EventOutputRateLimitTestCase {
 
         Thread.sleep(1000);
 
-        Assert.assertEquals("Event arrived", true, eventArrived);
-        Assert.assertEquals("Number of output event value", 1, count);
-        executionPlanRuntime.shutdown();
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of output event value", 1, count);
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -421,10 +425,10 @@ public class EventOutputRateLimitTestCase {
 
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        String executionPlan = "" +
-                "@Plan:name('EventOutputRateLimitTest8') " +
+        String siddhiApp = "" +
+                "@app:name('EventOutputRateLimitTest8') " +
                 "" +
-                "define stream LoginEvents (timeStamp long, ip string);" +
+                "define stream LoginEvents (timestamp long, ip string);" +
                 "" +
                 "@info(name = 'query1') " +
                 "from LoginEvents " +
@@ -433,27 +437,27 @@ public class EventOutputRateLimitTestCase {
                 "output first every 5 events " +
                 "insert into uniqueIps ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(executionPlan);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiApp);
 
-        log.info("Running : " + executionPlanRuntime.getName());
+        log.info("Running : " + siddhiAppRuntime.getName());
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     count += inEvents.length;
                 } else {
-                    Assert.fail("Remove events emitted");
+                    AssertJUnit.fail("Remove events emitted");
                 }
                 eventArrived = true;
             }
 
         });
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("LoginEvents");
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("LoginEvents");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.5"});
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.5"});
@@ -465,9 +469,9 @@ public class EventOutputRateLimitTestCase {
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.30"});
         Thread.sleep(1000);
 
-        Assert.assertEquals("Event arrived", true, eventArrived);
-        Assert.assertEquals("Number of output event value", 4, count);
-        executionPlanRuntime.shutdown();
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of output event value", 4, count);
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -476,10 +480,10 @@ public class EventOutputRateLimitTestCase {
 
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        String executionPlan = "" +
-                "@Plan:name('EventOutputRateLimitTest9') " +
+        String siddhiApp = "" +
+                "@app:name('EventOutputRateLimitTest9') " +
                 "" +
-                "define stream LoginEvents (timeStamp long, ip string);" +
+                "define stream LoginEvents (timestamp long, ip string);" +
                 "" +
                 "@info(name = 'query1') " +
                 "from LoginEvents " +
@@ -488,27 +492,27 @@ public class EventOutputRateLimitTestCase {
                 "output last every 5 events " +
                 "insert into uniqueIps ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(executionPlan);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiApp);
 
-        log.info("Running : " + executionPlanRuntime.getName());
+        log.info("Running : " + siddhiAppRuntime.getName());
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     count += inEvents.length;
                 } else {
-                    Assert.fail("Remove events emitted");
+                    AssertJUnit.fail("Remove events emitted");
                 }
                 eventArrived = true;
             }
 
         });
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("LoginEvents");
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("LoginEvents");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
 
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.5"});
@@ -521,10 +525,10 @@ public class EventOutputRateLimitTestCase {
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.30"});
         Thread.sleep(1000);
 
-        Assert.assertEquals("Event arrived", true, eventArrived);
-        Assert.assertEquals("Number of output event value", 4, count);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of output event value", 4, count);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -533,10 +537,10 @@ public class EventOutputRateLimitTestCase {
 
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        String executionPlan = "" +
-                "@Plan:name('EventOutputRateLimitTest8') " +
+        String siddhiApp = "" +
+                "@app:name('EventOutputRateLimitTest8') " +
                 "" +
-                "define stream LoginEvents (timeStamp long, ip string);" +
+                "define stream LoginEvents (timestamp long, ip string);" +
                 "" +
                 "@info(name = 'query1') " +
                 "from LoginEvents " +
@@ -545,27 +549,27 @@ public class EventOutputRateLimitTestCase {
                 "output first every 5 events " +
                 "insert into uniqueIps ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(executionPlan);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiApp);
 
-        log.info("Running : " + executionPlanRuntime.getName());
+        log.info("Running : " + siddhiAppRuntime.getName());
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     count += inEvents.length;
                 } else {
-                    Assert.fail("Remove events emitted");
+                    AssertJUnit.fail("Remove events emitted");
                 }
                 eventArrived = true;
             }
 
         });
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("LoginEvents");
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("LoginEvents");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.5"});
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.5"});
@@ -579,9 +583,9 @@ public class EventOutputRateLimitTestCase {
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.30"});
         Thread.sleep(1000);
 
-        Assert.assertEquals("Event arrived", true, eventArrived);
-        Assert.assertEquals("Number of output event value", 6, count);
-        executionPlanRuntime.shutdown();
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of output event value", 6, count);
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -590,10 +594,10 @@ public class EventOutputRateLimitTestCase {
 
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        String executionPlan = "" +
-                "@Plan:name('EventOutputRateLimitTest9') " +
+        String siddhiApp = "" +
+                "@app:name('EventOutputRateLimitTest9') " +
                 "" +
-                "define stream LoginEvents (timeStamp long, ip string);" +
+                "define stream LoginEvents (timestamp long, ip string);" +
                 "" +
                 "@info(name = 'query1') " +
                 "from LoginEvents " +
@@ -602,27 +606,27 @@ public class EventOutputRateLimitTestCase {
                 "output last every 5 events " +
                 "insert into uniqueIps ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(executionPlan);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiApp);
 
-        log.info("Running : " + executionPlanRuntime.getName());
+        log.info("Running : " + siddhiAppRuntime.getName());
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     count += inEvents.length;
                 } else {
-                    Assert.fail("Remove events emitted");
+                    AssertJUnit.fail("Remove events emitted");
                 }
                 eventArrived = true;
             }
 
         });
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("LoginEvents");
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("LoginEvents");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
 
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.5"});
@@ -637,10 +641,10 @@ public class EventOutputRateLimitTestCase {
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.30"});
         Thread.sleep(1000);
 
-        Assert.assertEquals("Event arrived", true, eventArrived);
-        Assert.assertEquals("Number of output event value", 7, count);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of output event value", 7, count);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -649,10 +653,10 @@ public class EventOutputRateLimitTestCase {
 
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        String executionPlan = "" +
-                "@Plan:name('EventOutputRateLimitTest9') " +
+        String siddhiApp = "" +
+                "@app:name('EventOutputRateLimitTest9') " +
                 "" +
-                "define stream LoginEvents (timeStamp long, ip string);" +
+                "define stream LoginEvents (timestamp long, ip string);" +
                 "" +
                 "@info(name = 'query1') " +
                 "from LoginEvents#window.lengthBatch(4) " +
@@ -661,27 +665,27 @@ public class EventOutputRateLimitTestCase {
                 "output last every 5 events " +
                 "insert into uniqueIps ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(executionPlan);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiApp);
 
-        log.info("Running : " + executionPlanRuntime.getName());
+        log.info("Running : " + siddhiAppRuntime.getName());
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     count += inEvents.length;
                 } else {
-                    Assert.fail("Remove events emitted");
+                    AssertJUnit.fail("Remove events emitted");
                 }
                 eventArrived = true;
             }
 
         });
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("LoginEvents");
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("LoginEvents");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
 
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.5"});
@@ -698,10 +702,10 @@ public class EventOutputRateLimitTestCase {
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.33"});
         Thread.sleep(1000);
 
-        Assert.assertEquals("Event arrived", true, eventArrived);
-        Assert.assertEquals("Number of output event value", 4, count);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of output event value", 4, count);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -710,10 +714,10 @@ public class EventOutputRateLimitTestCase {
 
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        String executionPlan = "" +
-                "@Plan:name('EventOutputRateLimitTest9') " +
+        String siddhiApp = "" +
+                "@app:name('EventOutputRateLimitTest9') " +
                 "" +
-                "define stream LoginEvents (timeStamp long, ip string);" +
+                "define stream LoginEvents (timestamp long, ip string);" +
                 "" +
                 "@info(name = 'query1') " +
                 "from LoginEvents#window.lengthBatch(4) " +
@@ -721,27 +725,27 @@ public class EventOutputRateLimitTestCase {
                 "output last every 2 events " +
                 "insert into uniqueIps ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(executionPlan);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiApp);
 
-        log.info("Running : " + executionPlanRuntime.getName());
+        log.info("Running : " + siddhiAppRuntime.getName());
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (inEvents != null) {
                     count += inEvents.length;
                 } else {
-                    Assert.fail("Remove events emitted");
+                    AssertJUnit.fail("Remove events emitted");
                 }
                 eventArrived = true;
             }
 
         });
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("LoginEvents");
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("LoginEvents");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.5"});
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.3"});
@@ -757,10 +761,10 @@ public class EventOutputRateLimitTestCase {
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.33"});
         Thread.sleep(1000);
 
-        Assert.assertEquals("Event arrived", true, eventArrived);
-        Assert.assertEquals("Number of output event value", 1, count);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of output event value", 1, count);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -769,10 +773,10 @@ public class EventOutputRateLimitTestCase {
 
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        String executionPlan = "" +
-                "@Plan:name('EventOutputRateLimitTest14') " +
+        String siddhiApp = "" +
+                "@app:name('EventOutputRateLimitTest14') " +
                 "" +
-                "define stream LoginEvents (timeStamp long, ip string);" +
+                "define stream LoginEvents (timestamp long, ip string);" +
                 "" +
                 "@info(name = 'query1') " +
                 "from LoginEvents#window.lengthBatch(4) " +
@@ -780,27 +784,27 @@ public class EventOutputRateLimitTestCase {
                 "output last every 2 events " +
                 "insert expired events into uniqueIps ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(executionPlan);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiApp);
 
-        log.info("Running : " + executionPlanRuntime.getName());
+        log.info("Running : " + siddhiAppRuntime.getName());
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (removeEvents != null) {
                     count += removeEvents.length;
                 } else {
-                    Assert.fail("InEvents emitted");
+                    AssertJUnit.fail("InEvents emitted");
                 }
                 eventArrived = true;
             }
 
         });
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("LoginEvents");
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("LoginEvents");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.5"});
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.3"});
@@ -816,10 +820,10 @@ public class EventOutputRateLimitTestCase {
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.33"});
         Thread.sleep(1000);
 
-        Assert.assertEquals("Event arrived", true, eventArrived);
-        Assert.assertEquals("Number of output event value", 1, count);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of output event value", 1, count);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
 
@@ -829,10 +833,10 @@ public class EventOutputRateLimitTestCase {
 
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        String executionPlan = "" +
-                "@Plan:name('EventOutputRateLimitTest15') " +
+        String siddhiApp = "" +
+                "@app:name('EventOutputRateLimitTest15') " +
                 "" +
-                "define stream LoginEvents (timeStamp long, ip string);" +
+                "define stream LoginEvents (timestamp long, ip string);" +
                 "" +
                 "@info(name = 'query1') " +
                 "from LoginEvents#window.lengthBatch(4) " +
@@ -840,27 +844,27 @@ public class EventOutputRateLimitTestCase {
                 "output all every 2 events " +
                 "insert expired events into uniqueIps ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(executionPlan);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiApp);
 
-        log.info("Running : " + executionPlanRuntime.getName());
+        log.info("Running : " + siddhiAppRuntime.getName());
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (removeEvents != null) {
                     count += removeEvents.length;
                 } else {
-                    Assert.fail("InEvents emitted");
+                    AssertJUnit.fail("InEvents emitted");
                 }
                 eventArrived = true;
             }
 
         });
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("LoginEvents");
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("LoginEvents");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.5"});
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.3"});
@@ -876,10 +880,10 @@ public class EventOutputRateLimitTestCase {
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.33"});
         Thread.sleep(1000);
 
-        Assert.assertEquals("Event arrived", true, eventArrived);
-        Assert.assertEquals("Number of output event value", 2, count);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of output event value", 2, count);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 
     @Test
@@ -888,10 +892,10 @@ public class EventOutputRateLimitTestCase {
 
         SiddhiManager siddhiManager = new SiddhiManager();
 
-        String executionPlan = "" +
-                "@Plan:name('EventOutputRateLimitTest16') " +
+        String siddhiApp = "" +
+                "@app:name('EventOutputRateLimitTest16') " +
                 "" +
-                "define stream LoginEvents (timeStamp long, ip string);" +
+                "define stream LoginEvents (timestamp long, ip string);" +
                 "" +
                 "@info(name = 'query1') " +
                 "from LoginEvents#window.lengthBatch(4) " +
@@ -900,27 +904,27 @@ public class EventOutputRateLimitTestCase {
                 "output all every 2 events " +
                 "insert expired events into uniqueIps ;";
 
-        ExecutionPlanRuntime executionPlanRuntime = siddhiManager.createExecutionPlanRuntime(executionPlan);
+        SiddhiAppRuntime siddhiAppRuntime = siddhiManager.createSiddhiAppRuntime(siddhiApp);
 
-        log.info("Running : " + executionPlanRuntime.getName());
+        log.info("Running : " + siddhiAppRuntime.getName());
 
-        executionPlanRuntime.addCallback("query1", new QueryCallback() {
+        siddhiAppRuntime.addCallback("query1", new QueryCallback() {
             @Override
-            public void receive(long timeStamp, Event[] inEvents, Event[] removeEvents) {
-                EventPrinter.print(timeStamp, inEvents, removeEvents);
+            public void receive(long timestamp, Event[] inEvents, Event[] removeEvents) {
+                EventPrinter.print(timestamp, inEvents, removeEvents);
                 if (removeEvents != null) {
                     count += removeEvents.length;
                 } else {
-                    Assert.fail("InEvents emitted");
+                    AssertJUnit.fail("InEvents emitted");
                 }
                 eventArrived = true;
             }
 
         });
 
-        InputHandler inputHandler = executionPlanRuntime.getInputHandler("LoginEvents");
+        InputHandler inputHandler = siddhiAppRuntime.getInputHandler("LoginEvents");
 
-        executionPlanRuntime.start();
+        siddhiAppRuntime.start();
 
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.5"});
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.3"});
@@ -936,9 +940,9 @@ public class EventOutputRateLimitTestCase {
         inputHandler.send(new Object[]{System.currentTimeMillis(), "192.10.1.33"});
         Thread.sleep(1000);
 
-        Assert.assertEquals("Event arrived", true, eventArrived);
-        Assert.assertEquals("Number of output event value", 4, count);
+        AssertJUnit.assertEquals("Event arrived", true, eventArrived);
+        AssertJUnit.assertEquals("Number of output event value", 4, count);
 
-        executionPlanRuntime.shutdown();
+        siddhiAppRuntime.shutdown();
     }
 }

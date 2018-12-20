@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,15 +17,22 @@
  */
 package org.wso2.siddhi.query.api.execution.query.input.stream;
 
-import org.wso2.siddhi.query.api.execution.query.input.handler.*;
+import org.wso2.siddhi.query.api.execution.query.input.handler.Filter;
+import org.wso2.siddhi.query.api.execution.query.input.handler.StreamFunction;
+import org.wso2.siddhi.query.api.execution.query.input.handler.StreamHandler;
+import org.wso2.siddhi.query.api.execution.query.input.handler.Window;
 import org.wso2.siddhi.query.api.expression.Expression;
 import org.wso2.siddhi.query.api.util.SiddhiConstants;
 
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Single input stream using only filters and functions
+ */
 public class SingleInputStream extends InputStream {
 
+    private static final long serialVersionUID = 1L;
     protected boolean isInnerStream = false;
     protected String streamId;
     protected String streamReferenceId;
@@ -109,9 +116,9 @@ public class SingleInputStream extends InputStream {
         return this;
     }
 
-    public SingleInputStream function(String extensionName, String functionName,
+    public SingleInputStream function(String extensionNamespace, String functionName,
                                       Expression... parameters) {
-        streamHandlers.add(new StreamFunctionExtension(extensionName, functionName, parameters));
+        streamHandlers.add(new StreamFunction(extensionNamespace, functionName, parameters));
         return this;
     }
 
@@ -137,18 +144,31 @@ public class SingleInputStream extends InputStream {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof SingleInputStream)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof SingleInputStream)) {
+            return false;
+        }
 
         SingleInputStream that = (SingleInputStream) o;
 
-        if (isInnerStream != that.isInnerStream) return false;
-        if (windowPosition != that.windowPosition) return false;
-        if (streamHandlers != null ? !streamHandlers.equals(that.streamHandlers) : that.streamHandlers != null)
+        if (isInnerStream != that.isInnerStream) {
             return false;
-        if (streamId != null ? !streamId.equals(that.streamId) : that.streamId != null) return false;
-        if (streamReferenceId != null ? !streamReferenceId.equals(that.streamReferenceId) : that.streamReferenceId != null)
+        }
+        if (windowPosition != that.windowPosition) {
             return false;
+        }
+        if (streamHandlers != null ? !streamHandlers.equals(that.streamHandlers) : that.streamHandlers != null) {
+            return false;
+        }
+        if (streamId != null ? !streamId.equals(that.streamId) : that.streamId != null) {
+            return false;
+        }
+        if (streamReferenceId != null ? !streamReferenceId.equals(that.streamReferenceId) : that.streamReferenceId !=
+                null) {
+            return false;
+        }
 
         return true;
     }

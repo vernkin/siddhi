@@ -17,25 +17,28 @@
  */
 package org.wso2.siddhi.annotation;
 
-import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Annotation for storing an example for a processor.
- * Can be applied to windows, stream processors, stream functions, function executors and attribute aggregators
- *
+ * An Optional annotation for storing an examples for a Siddhi Extension.
  * <pre><code>
  * eg:-
- *      {@literal @}Example({"Example of the CustomProcessor usage"})
- *      public CustomProcessor extends ProcessorSuperClass {
+ *      {@literal @}Extension(
+ *                      ...
+ *                      examples = {{@literal @}Example(syntax = "from fooStream#window.time(10 sec)
+ *                      select symbol as name, volume insert into barStream;",
+ *                      description = "This will processing events that arrived within the last 10 seconds.")
+ *      public CustomExtension extends ExtensionSuperClass {
  *          ...
  *      }
  * </code></pre>
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.TYPE)
+@Target({})
 public @interface Example {
-    String value();
+    String syntax() default "";
+
+    String description() default "";
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,11 +18,14 @@
 
 package org.wso2.siddhi.sample.util;
 
-import org.wso2.siddhi.core.config.ExecutionPlanContext;
-import org.wso2.siddhi.core.exception.ExecutionPlanCreationException;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
+import org.wso2.siddhi.core.exception.SiddhiAppCreationException;
 import org.wso2.siddhi.core.executor.ExpressionExecutor;
 import org.wso2.siddhi.core.executor.function.FunctionExecutor;
+import org.wso2.siddhi.core.util.config.ConfigReader;
 import org.wso2.siddhi.query.api.definition.Attribute;
+
+import java.util.Map;
 
 public class CustomFunctionExtension extends FunctionExecutor {
 
@@ -30,19 +33,20 @@ public class CustomFunctionExtension extends FunctionExecutor {
 
     /**
      * The initialization method for FunctionExecutor, this method will be called before the other methods
-     *
-     * @param attributeExpressionExecutors are the executors of each function parameters
-     * @param executionPlanContext         the context of the execution plan
+     *  @param attributeExpressionExecutors are the executors of each function parameters
+     * @param configReader
+     * @param siddhiAppContext         the context of the siddhi app
      */
     @Override
-    protected void init(ExpressionExecutor[] attributeExpressionExecutors, ExecutionPlanContext executionPlanContext) {
+    protected void init(ExpressionExecutor[] attributeExpressionExecutors, ConfigReader configReader,
+                        SiddhiAppContext siddhiAppContext) {
         for (ExpressionExecutor expressionExecutor : attributeExpressionExecutors) {
             Attribute.Type attributeType = expressionExecutor.getReturnType();
             if (attributeType == Attribute.Type.DOUBLE) {
                 returnType = attributeType;
 
             } else if ((attributeType == Attribute.Type.STRING) || (attributeType == Attribute.Type.BOOL)) {
-                throw new ExecutionPlanCreationException("Plus cannot have parameters with types String or Bool");
+                throw new SiddhiAppCreationException("Plus cannot have parameters with types String or Bool");
             } else {
                 returnType = Attribute.Type.LONG;
             }
@@ -91,27 +95,6 @@ public class CustomFunctionExtension extends FunctionExecutor {
         }
     }
 
-    /**
-     * This will be called only once and this can be used to acquire
-     * required resources for the processing element.
-     * This will be called after initializing the system and before
-     * starting to process the events.
-     */
-    @Override
-    public void start() {
-
-    }
-
-    /**
-     * This will be called only once and this can be used to release
-     * the acquired resources for processing.
-     * This will be called before shutting down the system.
-     */
-    @Override
-    public void stop() {
-
-    }
-
     @Override
     public Attribute.Type getReturnType() {
         return returnType;
@@ -124,8 +107,8 @@ public class CustomFunctionExtension extends FunctionExecutor {
      * @return stateful objects of the processing element as an array
      */
     @Override
-    public Object[] currentState() {
-        return new Object[0];
+    public Map<String, Object> currentState() {
+        return null;
     }
 
     /**
@@ -136,7 +119,7 @@ public class CustomFunctionExtension extends FunctionExecutor {
      *              the same order provided by currentState().
      */
     @Override
-    public void restoreState(Object[] state) {
+    public void restoreState(Map<String, Object> state) {
 
     }
 

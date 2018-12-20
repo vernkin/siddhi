@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -24,11 +24,15 @@ import org.wso2.siddhi.core.event.ComplexEventChunk;
 import org.wso2.siddhi.core.event.GroupedComplexEvent;
 import org.wso2.siddhi.core.query.output.ratelimit.OutputRateLimiter;
 
-import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+/**
+ * Implementation of {@link OutputRateLimiter} which will collect pre-defined number of events and the emit only the
+ * last event. This implementation specifically handle queries with group by.
+ */
 public class LastGroupByPerEventOutputRateLimiter extends OutputRateLimiter {
     private final Integer value;
     private String id;
@@ -42,7 +46,7 @@ public class LastGroupByPerEventOutputRateLimiter extends OutputRateLimiter {
 
     @Override
     public OutputRateLimiter clone(String key) {
-        LastGroupByPerEventOutputRateLimiter instance = new LastGroupByPerEventOutputRateLimiter(id+key,value);
+        LastGroupByPerEventOutputRateLimiter instance = new LastGroupByPerEventOutputRateLimiter(id + key, value);
         instance.setLatencyTracker(latencyTracker);
         return instance;
     }
@@ -61,7 +65,8 @@ public class LastGroupByPerEventOutputRateLimiter extends OutputRateLimiter {
                     if (++counter == value) {
                         counter = 0;
                         if (allGroupByKeyEvents.size() != 0) {
-                            ComplexEventChunk<ComplexEvent> outputEventChunk = new ComplexEventChunk<ComplexEvent>(complexEventChunk.isBatch());
+                            ComplexEventChunk<ComplexEvent> outputEventChunk = new ComplexEventChunk<ComplexEvent>
+                                    (complexEventChunk.isBatch());
 
                             for (ComplexEvent complexEvent : allGroupByKeyEvents.values()) {
                                 outputEventChunk.add(complexEvent);
@@ -89,15 +94,18 @@ public class LastGroupByPerEventOutputRateLimiter extends OutputRateLimiter {
     }
 
     @Override
-    public Object[] currentState() {
-        return new Object[]{new AbstractMap.SimpleEntry<String, Object>("AllGroupByKeyEvents", allGroupByKeyEvents), new AbstractMap.SimpleEntry<String, Object>("Counter", counter)};
+    public Map<String, Object> currentState() {
+        Map<String, Object> state = new HashMap<>();
+        synchronized (this) {
+            state.put("Counter", counter);
+            state.put("AllGroupByKeyEvents", allGroupByKeyEvents);
+        }
+        return state;
     }
 
     @Override
-    public void restoreState(Object[] state) {
-        Map.Entry<String, Object> stateEntry = (Map.Entry<String, Object>) state[0];
-        allGroupByKeyEvents = (Map<String, ComplexEvent>) stateEntry.getValue();
-        Map.Entry<String, Object> stateEntry2 = (Map.Entry<String, Object>) state[1];
-        counter = (Integer) stateEntry2.getValue();
+    public synchronized void restoreState(Map<String, Object> state) {
+        counter = (int) state.get("Counter");
+        allGroupByKeyEvents = (Map<String, ComplexEvent>) state.get("AllGroupByKeyEvents");
     }
 }

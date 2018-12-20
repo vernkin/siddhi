@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,30 +18,45 @@
 
 package org.wso2.siddhi.core.query.output.ratelimit.snapshot;
 
-import org.wso2.siddhi.core.config.ExecutionPlanContext;
+import org.wso2.siddhi.core.config.SiddhiAppContext;
 import org.wso2.siddhi.core.event.ComplexEvent;
 import org.wso2.siddhi.core.event.ComplexEventChunk;
 import org.wso2.siddhi.core.event.stream.StreamEventPool;
 import org.wso2.siddhi.core.util.Scheduler;
 import org.wso2.siddhi.core.util.parser.SchedulerParser;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 
+/**
+ * Implementation of {@link PerSnapshotOutputRateLimiter} for queries with Windows and Aggregators.
+ */
 public class AggregationWindowedPerSnapshotOutputRateLimiter extends SnapshotOutputRateLimiter {
-    protected String id;
     protected final Long value;
-    protected LinkedList<ComplexEvent> eventList;
-    protected Comparator<ComplexEvent> comparator;
     protected final ScheduledExecutorService scheduledExecutorService;
+    protected String id;
+    private List<ComplexEvent> eventList;
+    protected Comparator<ComplexEvent> comparator;
     protected List<Integer> aggregateAttributePositionList;
-    private Map<Integer, Object> aggregateAttributeValueMap;
     protected Scheduler scheduler;
     protected long scheduledTime;
     protected String queryName;
+    private Map<Integer, Object> aggregateAttributeValueMap;
 
-    protected AggregationWindowedPerSnapshotOutputRateLimiter(String id, Long value, ScheduledExecutorService scheduledExecutorService, final List<Integer> aggregateAttributePositionList, WrappedSnapshotOutputRateLimiter wrappedSnapshotOutputRateLimiter, ExecutionPlanContext executionPlanContext, String queryName) {
-        super(wrappedSnapshotOutputRateLimiter, executionPlanContext);
+    protected AggregationWindowedPerSnapshotOutputRateLimiter(String id, Long value, ScheduledExecutorService
+            scheduledExecutorService, final List<Integer> aggregateAttributePositionList,
+                                                              WrappedSnapshotOutputRateLimiter
+                                                                      wrappedSnapshotOutputRateLimiter,
+                                                              SiddhiAppContext siddhiAppContext, String
+                                                                      queryName) {
+        super(wrappedSnapshotOutputRateLimiter, siddhiAppContext);
         this.id = id;
         this.value = value;
         this.scheduledExecutorService = scheduledExecutorService;
@@ -51,7 +66,8 @@ public class AggregationWindowedPerSnapshotOutputRateLimiter extends SnapshotOut
         Collections.sort(aggregateAttributePositionList);
         aggregateAttributeValueMap = new HashMap<Integer, Object>(aggregateAttributePositionList.size());
         this.comparator = new Comparator<ComplexEvent>() {
-            Integer[] aggregateAttributePositions = aggregateAttributePositionList.toArray(new Integer[aggregateAttributePositionList.size()]);
+            Integer[] aggregateAttributePositions = aggregateAttributePositionList.toArray(new
+                    Integer[aggregateAttributePositionList.size()]);
             int ignoreIndexLength = aggregateAttributePositions.length;
 
             @Override
@@ -137,7 +153,7 @@ public class AggregationWindowedPerSnapshotOutputRateLimiter extends SnapshotOut
 
     @Override
     public void start() {
-        scheduler = SchedulerParser.parse(scheduledExecutorService, this, executionPlanContext);
+        scheduler = SchedulerParser.parse(this, siddhiAppContext);
         scheduler.setStreamEventPool(new StreamEventPool(0, 0, 0, 5));
         scheduler.init(lockWrapper, queryName);
         long currentTime = System.currentTimeMillis();
@@ -151,19 +167,26 @@ public class AggregationWindowedPerSnapshotOutputRateLimiter extends SnapshotOut
     }
 
     @Override
-    public Object[] currentState() {
-        return new Object[]{eventList, aggregateAttributeValueMap};
+    public Map<String, Object> currentState() {
+        Map<String, Object> state = new HashMap<>();
+        synchronized (this) {
+            state.put("EventList", eventList);
+            state.put("AggregateAttributeValueMap", aggregateAttributeValueMap);
+        }
+        return state;
     }
 
     @Override
-    public void restoreState(Object[] state) {
-        eventList = (LinkedList<ComplexEvent>) state[0];
-        aggregateAttributeValueMap = (Map<Integer, Object>) state[1];
+    public synchronized void restoreState(Map<String, Object> state) {
+        eventList = (List<ComplexEvent>) state.get("EventList");
+        aggregateAttributeValueMap = (Map<Integer, Object>) state.get("AdgregateAttributeValueMap");
     }
 
     @Override
-    public SnapshotOutputRateLimiter clone(String key, WrappedSnapshotOutputRateLimiter wrappedSnapshotOutputRateLimiter) {
-        return new AggregationWindowedPerSnapshotOutputRateLimiter(id + key, value, scheduledExecutorService, aggregateAttributePositionList, wrappedSnapshotOutputRateLimiter, executionPlanContext, queryName);
+    public SnapshotOutputRateLimiter clone(String key, WrappedSnapshotOutputRateLimiter
+            wrappedSnapshotOutputRateLimiter) {
+        return new AggregationWindowedPerSnapshotOutputRateLimiter(id + key, value, scheduledExecutorService,
+                aggregateAttributePositionList, wrappedSnapshotOutputRateLimiter, siddhiAppContext, queryName);
     }
 
 

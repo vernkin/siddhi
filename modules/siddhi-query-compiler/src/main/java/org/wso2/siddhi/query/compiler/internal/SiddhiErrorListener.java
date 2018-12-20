@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -23,16 +23,17 @@ import org.antlr.v4.runtime.Recognizer;
 import org.wso2.siddhi.query.compiler.exception.SiddhiParserException;
 
 /**
- * Created by suho on 8/2/14.
+ * Error listener in Siddhi Parser
  */
 public class SiddhiErrorListener extends BaseErrorListener {
-    public static SiddhiErrorListener INSTANCE = new SiddhiErrorListener();
+    public static final SiddhiErrorListener INSTANCE = new SiddhiErrorListener();
 
     @Override
     public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol,
                             int line, int charPositionInLine,
                             String msg, RecognitionException e) {
 
-        throw new SiddhiParserException("You have an error in your SiddhiQL at line " + line + ":" + charPositionInLine + ", " + msg);
+        throw new SiddhiParserException("Syntax error in SiddhiQL, " + msg + ".", new int[]{line, 0},
+                new int[]{line, charPositionInLine});
     }
 }

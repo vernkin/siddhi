@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,67 +17,75 @@
  */
 package org.wso2.siddhi.query.api.execution.query.input.stream;
 
+import org.wso2.siddhi.query.api.SiddhiElement;
+import org.wso2.siddhi.query.api.aggregation.Within;
 import org.wso2.siddhi.query.api.execution.query.Query;
 import org.wso2.siddhi.query.api.execution.query.input.state.StateElement;
 import org.wso2.siddhi.query.api.expression.Expression;
-import org.wso2.siddhi.query.api.expression.constant.Constant;
 
 import java.util.List;
 
-public abstract class InputStream {
+/**
+ * Input stream in queries
+ */
+public abstract class InputStream implements SiddhiElement {
 
-    public abstract List<String> getAllStreamIds();
-
-    public abstract List<String> getUniqueStreamIds();
-
-    public static InputStream joinStream(SingleInputStream leftStream, JoinInputStream.Type type,
-                                         SingleInputStream rightStream,
-                                         Expression onCompare,
-                                         Constant within) {
-        return new JoinInputStream(leftStream, type, rightStream, onCompare, within, JoinInputStream.EventTrigger.ALL);
-    }
+    private static final long serialVersionUID = 1L;
+    private int[] queryContextStartIndex;
+    private int[] queryContextEndIndex;
 
     public static InputStream joinStream(SingleInputStream leftStream, JoinInputStream.Type type,
-                                         SingleInputStream rightStream,
-                                         Expression onCompare, Constant within,
-                                         JoinInputStream.EventTrigger trigger) {
-        return new JoinInputStream(leftStream, type, rightStream, onCompare, within, trigger);
-    }
-
-    public static InputStream joinStream(SingleInputStream leftStream, JoinInputStream.Type type,
-                                         SingleInputStream rightStream,
-                                         Constant within,
-                                         JoinInputStream.EventTrigger trigger) {
-        return new JoinInputStream(leftStream, type, rightStream, null, within, trigger);
-    }
-
-    public static InputStream joinStream(SingleInputStream leftStream, JoinInputStream.Type type,
-                                         SingleInputStream rightStream,
-                                         Expression onCompare,
-                                         JoinInputStream.EventTrigger trigger) {
-        return new JoinInputStream(leftStream, type, rightStream, onCompare, null, trigger);
-    }
-
-    public static InputStream joinStream(SingleInputStream leftStream, JoinInputStream.Type type,
-                                         SingleInputStream rightStream,
-                                         JoinInputStream.EventTrigger trigger) {
-        return new JoinInputStream(leftStream, type, rightStream, null, null, trigger);
-    }
-
-
-    public static InputStream joinStream(SingleInputStream leftStream, JoinInputStream.Type type,
-                                         SingleInputStream rightStream, Constant within) {
-        return new JoinInputStream(leftStream, type, rightStream, null, within, JoinInputStream.EventTrigger.ALL);
+                                         SingleInputStream rightStream) {
+        return new JoinInputStream(leftStream, type, rightStream, null,
+                JoinInputStream.EventTrigger.ALL, null, null);
     }
 
     public static InputStream joinStream(SingleInputStream leftStream, JoinInputStream.Type type,
                                          SingleInputStream rightStream, Expression onCompare) {
-        return new JoinInputStream(leftStream, type, rightStream, onCompare, null, JoinInputStream.EventTrigger.ALL);
+        return new JoinInputStream(leftStream, type, rightStream, onCompare,
+                JoinInputStream.EventTrigger.ALL, null, null);
     }
 
     public static InputStream joinStream(SingleInputStream leftStream, JoinInputStream.Type type,
-                                         SingleInputStream rightStream) {
-        return new JoinInputStream(leftStream, type, rightStream, null, null, JoinInputStream.EventTrigger.ALL);
+                                         SingleInputStream rightStream, Expression onCompare,
+                                         JoinInputStream.EventTrigger trigger) {
+        return new JoinInputStream(leftStream, type, rightStream, onCompare,
+                trigger, null, null);
+    }
+
+    public static InputStream joinStream(SingleInputStream leftStream, JoinInputStream.Type type,
+                                         SingleInputStream rightStream, JoinInputStream.EventTrigger trigger) {
+        return new JoinInputStream(leftStream, type, rightStream, null,
+                trigger, null, null);
+    }
+
+    public static InputStream joinStream(SingleInputStream leftStream, JoinInputStream.Type type,
+                                         SingleInputStream rightStream, Expression onCompare,
+                                         Within within, Expression per) {
+        return new JoinInputStream(leftStream, type, rightStream, onCompare,
+                JoinInputStream.EventTrigger.ALL, within, per);
+    }
+
+    public static InputStream joinStream(SingleInputStream leftStream, JoinInputStream.Type type,
+                                         SingleInputStream rightStream,
+                                         Within within, Expression per) {
+        return new JoinInputStream(leftStream, type, rightStream, null,
+                JoinInputStream.EventTrigger.ALL, within, per);
+    }
+
+    public static InputStream joinStream(SingleInputStream leftStream, JoinInputStream.Type type,
+                                         SingleInputStream rightStream, Expression onCompare,
+                                         JoinInputStream.EventTrigger trigger,
+                                         Within within, Expression per) {
+        return new JoinInputStream(leftStream, type, rightStream, onCompare,
+                trigger, within, per);
+    }
+
+    public static InputStream joinStream(SingleInputStream leftStream, JoinInputStream.Type type,
+                                         SingleInputStream rightStream, JoinInputStream.EventTrigger trigger,
+                                         Within within, Expression per) {
+        return new JoinInputStream(leftStream, type, rightStream, null,
+                trigger, within, per);
     }
 
     public static StateInputStream patternStream(StateElement patternElement) {
@@ -106,5 +114,29 @@ public abstract class InputStream {
 
     public static SingleInputStream stream(Query query) {
         return new AnonymousInputStream(query);
+    }
+
+    public abstract List<String> getAllStreamIds();
+
+    public abstract List<String> getUniqueStreamIds();
+
+    @Override
+    public int[] getQueryContextStartIndex() {
+        return queryContextStartIndex;
+    }
+
+    @Override
+    public void setQueryContextStartIndex(int[] lineAndColumn) {
+        queryContextStartIndex = lineAndColumn;
+    }
+
+    @Override
+    public int[] getQueryContextEndIndex() {
+        return queryContextEndIndex;
+    }
+
+    @Override
+    public void setQueryContextEndIndex(int[] lineAndColumn) {
+        queryContextEndIndex = lineAndColumn;
     }
 }
